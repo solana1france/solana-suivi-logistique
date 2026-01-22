@@ -43,6 +43,59 @@
     .btn-resent:hover{background:#d97706;transform:translateY(-1px);}
     .btn-supprimer{background:#ef4444;color:white;box-shadow:0 4px 12px rgba(239,68,68,.4);}
     .btn-supprimer:hover{background:#dc2626;transform:translateY(-1px);}
+
+    /* ✅ NOUVEAU CSS GRAPHIQUES TOP CLIENTS */
+    .graph-clients {
+      background: #fff;
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,.12);
+      margin: 30px 0;
+    }
+    .graph-title { 
+      color: #0077b6; 
+      font-size: 1.5rem; 
+      margin-bottom: 20px; 
+      text-align: center; 
+    }
+    .client-bar {
+      display: flex; 
+      align-items: center; 
+      margin: 12px 0;
+      background: #f1f5f9; 
+      border-radius: 12px; 
+      padding: 15px;
+      transition: all .3s;
+    }
+    .client-bar:hover { 
+      transform: translateX(10px); 
+      box-shadow: 0 10px 25px rgba(0,180,216,.2); 
+    }
+    .client-name { 
+      font-weight: 700; 
+      color: #374151; 
+      min-width: 120px; 
+    }
+    .client-tonnes { 
+      font-weight: 800; 
+      color: #0077b6; 
+      margin-left: 20px; 
+    }
+    .client-barre {
+      flex: 1; 
+      height: 25px; 
+      background: linear-gradient(90deg, #10b981, #00b4d8);
+      border-radius: 12px; 
+      margin: 0 20px; 
+      position: relative; 
+      overflow: hidden;
+    }
+    .client-pourcent { 
+      position: absolute; 
+      right: 10px; 
+      color: white; 
+      font-weight: 600; 
+    }
   </style>
 </head>
 <body>
@@ -133,6 +186,12 @@
     </div>
   </div>
 
+  <!-- ✅ NOUVEAU : GRAPHE TOP CLIENTS (après KPI, avant tableau) -->
+  <div class="graph-clients" id="topClientsSection">
+    <h2 class="graph-title">👑 TOP 8 CLIENTS</h2>
+    <div id="graphClients"></div>
+  </div>
+
   <!-- TABLEAU -->
   <div class="table-container">
     <h2 style="color:#0077b6;">📋 Commandes</h2>
@@ -153,13 +212,10 @@ let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
 // ✅ SUPPRIMER UNE SEULE COMMANDE (CORRIGÉ)
 function supprimerCmd(refASupprimer) {
-  // TROUVER LA COMMANDE PAR RÉFÉRENCE EXACTE
   const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
-  
   if (index !== -1) {
     const c = cmds[index];
     if (confirm(`🗑️ SUPPRIMER SEULEMENT cette commande ?\n\n👤 ${c.client}\n📄 Réf: ${c.ref}\n⚖️ ${c.tonnes.toFixed(2)}T\n📧 ${c.email}\n\nOK pour supprimer UNIQUEMENT cette ligne ?`)) {
-      // SUPPRIMER UNIQUEMENT CETTE LIGNE
       cmds.splice(index, 1);
       localStorage.setItem('solanaCmds', JSON.stringify(cmds));
       maj();
@@ -168,6 +224,39 @@ function supprimerCmd(refASupprimer) {
   } else {
     alert('❌ Commande non trouvée !');
   }
+}
+
+// ✅ NOUVELLE FONCTION : GRAPHE TOP CLIENTS (AVANT maj())
+function afficherTopClients() {
+  // Calculer tonnes par client
+  const clients = {};
+  cmds.forEach(c => {
+    clients[c.client] = (clients[c.client] || 0) + c.tonnes;
+  });
+  
+  // Trier TOP 8
+  const topClients = Object.entries(clients)
+    .sort((a,b) => b[1] - a[1])
+    .slice(0, 8);
+  
+  const container = document.getElementById('graphClients');
+  container.innerHTML = '';
+  
+  const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
+  
+  topClients.forEach(([client, tonnes], index) => {
+    const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
+    const div = document.createElement('div');
+    div.className = 'client-bar';
+    div.innerHTML = `
+      <div class="client-name">#${index+1} ${client.slice(0,15)}${client.length>15?'...':''}</div>
+      <div class="client-tonnes">${tonnes.toFixed(1)} T</div>
+      <div class="client-barre" style="width: ${Math.min(pourcent*2, 90)}%">
+        <div class="client-pourcent">${pourcent}%</div>
+      </div>
+    `;
+    container.appendChild(div);
+  });
 }
 
 // LOGIN
@@ -213,15 +302,12 @@ function ajouterCmd(e) {
 // CONFIRMER & ENVOYER EMAIL
 function confirmerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
-  
   if (!confirm(`✅ Confirmer l'envoi pour ${c.client} ?\n\nRéf: ${c.ref}\nEmail: ${c.email}`)) {
     return;
   }
-  
   c.nbEmails++;
   c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
   c.statut = 'CHARGÉE';
-  
   const envoiNum = c.nbEmails;
   const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'} - Solana France`;
   const msg = `${c.client},
@@ -240,13 +326,12 @@ ${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}`;
 
   const mailtoLink = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
   window.open(mailtoLink, '_blank');
-  
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   maj();
   alert('✅ Email ouvert ! Vérifiez votre client mail.');
 }
 
-// MISE A JOUR
+// ✅ MISE A JOUR MODIFIÉE : + Graphes TOP CLIENTS
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -288,6 +373,9 @@ function maj() {
     `;
     tb.appendChild(tr);
   });
+
+  // ✅ NOUVEAU : Mise à jour graphes
+  afficherTopClients();
 }
 
 // SAUVEGARDE AUTO
