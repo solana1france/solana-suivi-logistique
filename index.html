@@ -44,18 +44,19 @@
     .btn-charger:hover{background:#0284c7;transform:translateY(-2px);}
     .btn-email{background:#10b981;color:white;box-shadow:0 5px 15px rgba(16,185,129,.4);}
     .btn-email:hover{background:#059669;transform:translateY(-2px);}
+    .btn-resent{background:#f59e0b;color:white;box-shadow:0 5px 15px rgba(245,158,11,.4);}
+    .btn-resent:hover{background:#d97706;transform:translateY(-2px);}
   </style>
 </head>
 <body>
 
-<!-- LOGIN FIXÉ -->
+<!-- LOGIN -->
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <h1>🚚 Solana Logistique</h1>
     <p>Mot de passe: <strong>solana123</strong></p>
     <input type="password" id="loginPassword" class="login-input" placeholder="solana123">
     <button class="login-btn" onclick="login()">🔓 ACCÉDER</button>
-    <p style="color:#666;margin-top:20px;">Testé GitHub Pages</p>
   </div>
 </div>
 
@@ -67,7 +68,7 @@
     <button class="logout-btn" onclick="logout()">❌ Sortie</button>
   </div>
 
-  <!-- FORMULAIRE "Point départ" -->
+  <!-- FORMULAIRE -->
   <div class="add-section">
     <h2 style="color:#0077b6;">➕ Nouvelle commande</h2>
     <form onsubmit="ajouterCmd(event)">
@@ -150,26 +151,29 @@
 </div>
 
 <script>
-// LOGIN FIXÉ
+// DATA PERSISTANTE
+let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
+
+// LOGIN
 function login() {
   if (document.getElementById('loginPassword').value === 'solana123') {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('dashboardMain').style.display = 'block';
     maj();
   } else {
-    alert('Mot de passe: solana123');
+    alert('❌ Mot de passe: solana123');
   }
 }
 
 function logout() {
+  // SAUVEGARDE AUTOMATIQUE AVANT SORTIE
+  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboardMain').style.display = 'none';
+  document.getElementById('loginPassword').value = '';
 }
 
-// DATA
-let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
-
-// AJOUT
+// AJOUT COMMANDE
 function ajouterCmd(e) {
   e.preventDefault();
   const n = {
@@ -181,24 +185,31 @@ function ajouterCmd(e) {
     tonnes: parseFloat(document.getElementById('tonnesIn').value),
     immat: document.getElementById('immatIn').value,
     email: document.getElementById('emailIn').value,
-    statut: 'EN ATTENTE'
+    statut: 'EN ATTENTE',
+    nbEmails: 0, // COMPTEUR EMAILS
+    derniereDateEmail: null
   };
   cmds.unshift(n);
-  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
+  localStorage.setItem('solanaCmds', JSON.stringify(cmds)); // SAUVEGARDE IMMÉDIATE
   e.target.reset();
   maj();
 }
 
-// CHARGER + EMAIL
-function charger(ref) {
+// ENVOYER EMAIL (1er ou 2ème envoi)
+function envoyerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
+  
+  // INCRÉMENTER COMPTEUR
+  c.nbEmails++;
+  c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
   c.statut = 'CHARGÉE';
+  
+  // MESSAGE SANS SIGNATURE
+  const envoiNum = c.nbEmails;
+  const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'} - Solana France`;
+  const msg = `${c.client},
 
-  const sujet = `✅ ${c.ref.toUpperCase()} CHARGÉE - Solana France`;
-  const msg = `
-${c.client},
-
-Commande ${c.ref} CHARGÉE!
+Commande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!
 
 DÉTAILS:
 Réf: ${c.ref}
@@ -208,17 +219,17 @@ Immatriculation: ${c.immat}
 Pays: ${c.pays}
 Date: ${new Date().toLocaleDateString('fr-FR')}
 
-Solana France
-logistique@solana.de | +33 6 80 25 82 69
-www.solana.de
-  `;
+${envoiNum > 1 ? `📧 Ceci est le ${envoiNum}ème envoi.` : ''}`;
 
-  window.location.href = `mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
+  // OUVERTURE CLIENT MAIL
+  const mailtoLink = `mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
+  window.location.href = mailtoLink;
+  
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   maj();
 }
 
-// MAJ
+// MISE A JOUR AFFICHAGE
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -227,14 +238,27 @@ function maj() {
   document.getElementById('totT').innerHTML = tot.toFixed(1) + ' T';
   document.getElementById('att').textContent = att;
   document.getElementById('cha').textContent = ch;
-  document.getElementById('em').textContent = ch;
+  document.getElementById('em').textContent = cmds.reduce((s,c) => s + c.nbEmails, 0);
   document.getElementById('totalInfo').innerHTML = cmds.length + ' commandes | ' + new Date().toLocaleString('fr-FR');
 
   const tb = document.getElementById('tab');
   tb.innerHTML = '';
+  
   cmds.forEach(c => {
     const tr = document.createElement('tr');
-    tr.style.background = c.statut === 'CHARGÉE' ? '#f0fdf4' : '#fff';
+    tr.className = c.statut === 'CHARGÉE' ? 'chargee' : '';
+    
+    const statutText = c.statut === 'CHARGÉE' ? 
+      `CHARGÉE (${c.nbEmails} email${c.nbEmails > 1 ? 's' : ''}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : 
+      'EN ATTENTE';
+    
+    let btnHtml = '';
+    if (c.statut === 'EN ATTENTE') {
+      btnHtml = '<button class="action-btn btn-charger" onclick="envoyerEmail(\'' + c.ref + '\')">🚚 CHARGER & EMAIL</button>';
+    } else {
+      btnHtml = '<button class="action-btn btn-resent" onclick="envoyerEmail(\'' + c.ref + '\')">📧 RENVERSER</button>';
+    }
+    
     tr.innerHTML = `
       <td><b>${c.client}</b></td>
       <td>${c.ref}</td>
@@ -243,15 +267,19 @@ function maj() {
       <td>${c.pays}</td>
       <td><b>${c.tonnes.toFixed(2)} T</b></td>
       <td>${c.immat}</td>
-      <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${c.statut}</b></td>
-      <td>${c.statut === 'EN ATTENTE' ? '<button onclick="charger(\'${c.ref}\')" style="background:#00b4d8;color:white;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;">CHARGER & EMAIL</button>' : '✓ Email envoyé'}</td>
+      <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
+      <td>${btnHtml}</td>
     `;
     tb.appendChild(tr);
   });
 }
 
-// AUTO
-setInterval(maj, 60000);
+// SAUVEGARDE AUTO PERIODIQUE
+setInterval(() => {
+  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
+}, 30000); // Toutes les 30s
+
+// CHARGEMENT INITIAL
 maj();
 </script>
 </body>
