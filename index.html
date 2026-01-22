@@ -23,9 +23,6 @@
     .kpi-icon{font-size:4rem;margin-bottom:15px;}
     .kpi-value{font-size:3rem;font-weight:800;color:#0077b6;margin-bottom:8px;}
     .kpi-label{font-size:1.1rem;color:#6b7280;font-weight:500;}
-    .suppr-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
-    .suppr-btn{background:#ef4444;color:white;border:none;padding:20px 40px;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(239,68,68,.4);transition:all .3s;width:100%;}
-    .suppr-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(239,68,68,.5);}
     .add-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
     .add-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
     .form-group label{font-weight:600;color:#374151;margin-bottom:8px;display:block;}
@@ -39,14 +36,13 @@
     td{padding:18px 15px;border-bottom:2px solid #f3f4f6;vertical-align:middle;}
     tr:hover{background:#f8fafc;}
     tr.chargee{background:#f0fdf4;}
-    .status-badge{padding:8px 16px;border-radius:25px;font-weight:600;font-size:.9rem;}
-    .status-en-attente{background:#fef3c7;color:#92400e;}
-    .status-chargee{background:#d1fae5;color:#065f46;}
-    .action-btn{min-width:140px;padding:12px 20px;border:none;border-radius:12px;cursor:pointer;font-weight:600;transition:all .3s;margin:2px;font-size:.95rem;}
-    .btn-confirmer{background:#10b981;color:white;box-shadow:0 5px 15px rgba(16,185,129,.4);}
-    .btn-confirmer:hover{background:#059669;transform:translateY(-2px);}
-    .btn-resent{background:#f59e0b;color:white;box-shadow:0 5px 15px rgba(245,158,11,.4);}
-    .btn-resent:hover{background:#d97706;transform:translateY(-2px);}
+    .action-btn{min-width:110px;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-weight:600;transition:all .3s;margin:1px;font-size:.9rem;}
+    .btn-confirmer{background:#10b981;color:white;box-shadow:0 4px 12px rgba(16,185,129,.4);}
+    .btn-confirmer:hover{background:#059669;transform:translateY(-1px);}
+    .btn-resent{background:#f59e0b;color:white;box-shadow:0 4px 12px rgba(245,158,11,.4);}
+    .btn-resent:hover{background:#d97706;transform:translateY(-1px);}
+    .btn-supprimer{background:#ef4444;color:white;box-shadow:0 4px 12px rgba(239,68,68,.4);}
+    .btn-supprimer:hover{background:#dc2626;transform:translateY(-1px);}
   </style>
 </head>
 <body>
@@ -63,13 +59,6 @@
 
 <!-- DASHBOARD -->
 <div class="dashboard" id="dashboardMain">
-  <!-- SUPPRIMER TOUT -->
-  <div class="suppr-section">
-    <h2 style="color:#ef4444;">🗑️ Supprimer TOUTES les commandes</h2>
-    <p style="color:#6b7280;margin-bottom:20px;">⚠️ Cette action est irréversible</p>
-    <button class="suppr-btn" onclick="supprimerTout()">🗑️ SUPPRIMER TOUT</button>
-  </div>
-
   <div class="header">
     <h1>📊 Suivi Chargements Solana</h1>
     <p id="totalInfo">0 commandes | <span id="time"></span></p>
@@ -150,7 +139,7 @@
     <table>
       <thead>
         <tr>
-          <th>Client</th><th>Réf</th><th>Date</th><th>Point départ</th><th>Pays</th><th>T</th><th>Immat</th><th>Statut</th><th>Action</th>
+          <th>Client</th><th>Réf</th><th>Date</th><th>Point départ</th><th>Pays</th><th>T</th><th>Immat</th><th>Statut</th><th>Actions</th>
         </tr>
       </thead>
       <tbody id="tab"></tbody>
@@ -162,13 +151,14 @@
 // DATA PERSISTANTE
 let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
-// SUPPRIMER TOUT
-function supprimerTout() {
-  if (confirm(`⚠️ SUPPRIMER ${cmds.length} commande(s) ?\n\nCette action est IRREVERSIBLE !`)) {
-    cmds = [];
-    localStorage.removeItem('solanaCmds');
+// SUPPRIMER UNE COMMANDE
+function supprimerCmd(ref) {
+  const c = cmds.find(x => x.ref === ref);
+  if (confirm(`🗑️ SUPPRIMER cette commande ?\n\n${c.client}\nRéf: ${c.ref}\n${c.tonnes.toFixed(2)}T\n\nOK pour supprimer ?`)) {
+    cmds = cmds.filter(x => x.ref !== ref);
+    localStorage.setItem('solanaCmds', JSON.stringify(cmds));
     maj();
-    alert('✅ Toutes les commandes ont été supprimées !');
+    alert('✅ Commande supprimée !');
   }
 }
 
@@ -216,8 +206,7 @@ function ajouterCmd(e) {
 function confirmerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
   
-  // CONFIRMATION
-  if (!confirm(`Confirmer l'envoi pour ${c.client} ?\n\nRéf: ${c.ref}\nEmail: ${c.email}`)) {
+  if (!confirm(`✅ Confirmer l'envoi pour ${c.client} ?\n\nRéf: ${c.ref}\nEmail: ${c.email}`)) {
     return;
   }
   
@@ -241,7 +230,6 @@ DÉTAILS:
 
 ${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}`;
 
-  // EMAIL CORRIGÉ - FONCTIONNE À 100%
   const mailtoLink = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
   window.open(mailtoLink, '_blank');
   
@@ -273,12 +261,11 @@ function maj() {
       `CHARGÉE (${c.nbEmails} email${c.nbEmails > 1 ? 's' : ''}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : 
       'EN ATTENTE';
     
-    let btnHtml = '';
-    if (c.statut === 'EN ATTENTE') {
-      btnHtml = `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CONFIRMER</button>`;
-    } else {
-      btnHtml = `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENVERSER</button>`;
-    }
+    const btnConfirmer = c.statut === 'EN ATTENTE' ? 
+      `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')" title="Confirmer & Email">✅ CONFIRMER</button>` : 
+      `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')" title="Renvoyer email">📧 RENVERSER</button>`;
+    
+    const btnSupprimer = `<button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')" title="Supprimer">🗑️ SUPPR</button>`;
     
     tr.innerHTML = `
       <td><b>${c.client}</b></td>
@@ -289,7 +276,7 @@ function maj() {
       <td><b>${c.tonnes.toFixed(2)} T</b></td>
       <td>${c.immat}</td>
       <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
-      <td>${btnHtml}</td>
+      <td>${btnConfirmer}${btnSupprimer}</td>
     `;
     tb.appendChild(tr);
   });
