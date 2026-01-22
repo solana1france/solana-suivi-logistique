@@ -188,7 +188,7 @@
 
   <!-- ✅ NOUVEAU : GRAPHE TOP CLIENTS (après KPI, avant tableau) -->
   <div class="graph-clients" id="topClientsSection">
-    <h2 class="graph-title">👑 TOP 8 CLIENTS</h2>
+    <h2 class="graph-title">👑 TOP  CLIENTS</h2>
     <div id="graphClients"></div>
   </div>
 
@@ -234,7 +234,7 @@ function afficherTopClients() {
     clients[c.client] = (clients[c.client] || 0) + c.tonnes;
   });
   
-  // Trier TOP 8
+  // Trier TOP 
   const topClients = Object.entries(clients)
     .sort((a,b) => b[1] - a[1])
     .slice(0, 8);
