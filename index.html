@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
     body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
@@ -44,57 +46,66 @@
     .btn-supprimer{background:#ef4444;color:white;box-shadow:0 4px 12px rgba(239,68,68,.4);}
     .btn-supprimer:hover{background:#dc2626;transform:translateY(-1px);}
 
-    /* ✅ NOUVEAU CSS GRAPHIQUES TOP CLIENTS */
-    .graph-clients {
-      background: #fff;
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 15px 35px rgba(0,0,0,.12);
-      margin: 30px 0;
+    /* ✅ GRAPHIQUES TOP CLIENTS */
+    .graph-clients {background: #fff;border-radius: 20px;padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12);margin: 30px 0;}
+    .graph-title {color: #0077b6;font-size: 1.5rem;margin-bottom: 20px;text-align: center;}
+    .client-bar {display: flex;align-items: center;margin: 12px 0;background: #f1f5f9;border-radius: 12px;padding: 15px;transition: all .3s;}
+    .client-bar:hover {transform: translateX(10px);box-shadow: 0 10px 25px rgba(0,180,216,.2);}
+    .client-name {font-weight: 700;color: #374151;min-width: 120px;}
+    .client-tonnes {font-weight: 800;color: #0077b6;margin-left: 20px;}
+    .client-barre {flex: 1;height: 25px;background: linear-gradient(90deg, #10b981, #00b4d8);border-radius: 12px;margin: 0 20px;position: relative;overflow: hidden;}
+    .client-pourcent {position: absolute;right: 10px;color: white;font-weight: 600;}
+
+    /* ✅ EXPORT BUTTONS */
+    .export-section {
+      display: flex; gap: 15px; margin: 20px 0; padding: 20px;
+      background: linear-gradient(135deg, #f0fdf4, #d1fae5);
+      border-radius: 20px; border: 2px solid #10b981;
     }
-    .graph-title { 
-      color: #0077b6; 
-      font-size: 1.5rem; 
-      margin-bottom: 20px; 
-      text-align: center; 
+    .export-btn {
+      flex: 1; padding: 15px 20px; border: none; border-radius: 15px;
+      font-weight: 700; font-size: 16px; cursor: pointer; transition: all .3s;
+      display: flex; align-items: center; gap: 10px; justify-content: center;
     }
-    .client-bar {
-      display: flex; 
-      align-items: center; 
-      margin: 12px 0;
-      background: #f1f5f9; 
-      border-radius: 12px; 
-      padding: 15px;
-      transition: all .3s;
+    .btn-pdf { background: #dc2626; color: white; }
+    .btn-pdf:hover { background: #b91c1c; transform: scale(1.05); }
+    .btn-excel { background: #059669; color: white; }
+    .btn-excel:hover { background: #047857; transform: scale(1.05); }
+    
+    /* ✅ GLOBE 3D */
+    .globe-section {
+      background: #fff; border-radius: 20px; padding: 25px;
+      box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;
+      text-align: center;
     }
-    .client-bar:hover { 
-      transform: translateX(10px); 
-      box-shadow: 0 10px 25px rgba(0,180,216,.2); 
+    .globe-container {
+      position: relative; width: 100%; max-width: 500px; margin: 0 auto;
+      height: 400px; perspective: 1000px;
     }
-    .client-name { 
-      font-weight: 700; 
-      color: #374151; 
-      min-width: 120px; 
+    .globe {
+      width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+      transition: transform 0.5s; cursor: grab;
     }
-    .client-tonnes { 
-      font-weight: 800; 
-      color: #0077b6; 
-      margin-left: 20px; 
+    .globe:active { cursor: grabbing; }
+    .globe:hover { transform: rotateY(10deg) rotateX(5deg); }
+    .country {
+      position: absolute; border-radius: 50%; cursor: pointer;
+      transition: all 0.3s; font-weight: bold; color: white; text-shadow: 1px 1px 2px black;
     }
-    .client-barre {
-      flex: 1; 
-      height: 25px; 
-      background: linear-gradient(90deg, #10b981, #00b4d8);
-      border-radius: 12px; 
-      margin: 0 20px; 
-      position: relative; 
-      overflow: hidden;
+    .country:hover {
+      transform: scale(1.3) translateZ(20px); box-shadow: 0 10px 30px rgba(0,180,216,.6);
+      z-index: 10;
     }
-    .client-pourcent { 
-      position: absolute; 
-      right: 10px; 
-      color: white; 
-      font-weight: 600; 
+    .country.active { 
+      animation: pulse 2s infinite; box-shadow: 0 0 30px #10b981;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1.3) translateZ(20px); }
+      50% { transform: scale(1.5) translateZ(30px); }
+    }
+    .country-info {
+      margin-top: 20px; padding: 20px; background: #f0fdf4;
+      border-radius: 15px; border-left: 5px solid #10b981;
     }
   </style>
 </head>
@@ -141,9 +152,7 @@
       <div class="form-group">
         <label>Pays</label>
         <select id="paysIn" class="form-input">
-          <option value="PT">Portugal</option>
-          <option value="MA">Maroc</option>
-          <option value="FR">France</option>
+          <!-- Pays générés par JS -->
         </select>
       </div>
       <div class="form-group">
@@ -160,6 +169,16 @@
       </div>
       <button type="submit" class="add-btn">➕ AJOUTER</button>
     </form>
+  </div>
+
+  <!-- ✅ EXPORT BUTTONS -->
+  <div class="export-section">
+    <button class="export-btn btn-pdf" onclick="exportPDF()">
+      📄 PDF Rapport <span id="pdfSize">0T</span>
+    </button>
+    <button class="export-btn btn-excel" onclick="exportExcel()">
+      📊 Excel Données <span id="excelCount">0</span> lignes
+    </button>
   </div>
 
   <!-- KPI -->
@@ -186,10 +205,23 @@
     </div>
   </div>
 
-  <!-- ✅ NOUVEAU : GRAPHE TOP CLIENTS (après KPI, avant tableau) -->
+  <!-- ✅ GRAPHE TOP CLIENTS -->
   <div class="graph-clients" id="topClientsSection">
-    <h2 class="graph-title">👑 TOP  CLIENTS</h2>
+    <h2 class="graph-title">👑 TOP 8 CLIENTS</h2>
     <div id="graphClients"></div>
+  </div>
+
+  <!-- ✅ GLOBE 3D -->
+  <div class="globe-section">
+    <h2 class="graph-title">🌍 Destinations Export Solana</h2>
+    <div class="globe-container" id="globeContainer">
+      <div class="globe" id="globe" onmousedown="rotateGlobe(event)">
+        <!-- Pays générés par JS -->
+      </div>
+    </div>
+    <div class="country-info" id="countryInfo">
+      <strong>Sélectionnez un pays sur la carte</strong>
+    </div>
   </div>
 
   <!-- TABLEAU -->
@@ -210,7 +242,29 @@
 // DATA PERSISTANTE
 let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
-// ✅ SUPPRIMER UNE SEULE COMMANDE (CORRIGÉ)
+// ✅ DONNÉES PAYS GLOBE (+50 pays export agro)
+const paysData = {
+  PT: {name: 'Portugal', lat: 38.7, lng: -9.1, color: '#10b981', tonnes: 0},
+  MA: {name: 'Maroc', lat: 31.8, lng: -7.1, color: '#f59e0b', tonnes: 0},
+  FR: {name: 'France', lat: 46.2, lng: 2.2, color: '#0077b6', tonnes: 0},
+  ES: {name: 'Espagne', lat: 40.5, lng: -3.7, color: '#ef4444', tonnes: 0},
+  IT: {name: 'Italie', lat: 41.9, lng: 12.6, color: '#8b5cf6', tonnes: 0},
+  DE: {name: 'Allemagne', lat: 51.2, lng: 10.4, color: '#06b6d4', tonnes: 0},
+  BE: {name: 'Belgique', lat: 50.5, lng: 4.5, color: '#10b981', tonnes: 0},
+  NL: {name: 'Pays-Bas', lat: 52.4, lng: 4.9, color: '#f59e0b', tonnes: 0},
+  SN: {name: 'Sénégal', lat: 14.0, lng: -14.0, color: '#ec4899', tonnes: 0},
+  TN: {name: 'Tunisie', lat: 34.0, lng: 9.0, color: '#14b8a6', tonnes: 0},
+  DZ: {name: 'Algérie', lat: 28.0, lng: 1.7, color: '#f97316', tonnes: 0},
+  GB: {name: 'Royaume-Uni', lat: 55.4, lng: -4.4, color: '#3b82f6', tonnes: 0},
+  PL: {name: 'Pologne', lat: 51.9, lng: 19.4, color: '#ef4444', tonnes: 0},
+  RO: {name: 'Roumanie', lat: 45.9, lng: 24.9, color: '#f59e0b', tonnes: 0},
+  GR: {name: 'Grèce', lat: 39.1, lng: 21.8, color: '#10b981', tonnes: 0}
+};
+
+// GLOBE ROTATION
+let globeRotation = { x: 0, y: 0 }, isDragging = false;
+
+// SUPPRIMER UNE COMMANDE
 function supprimerCmd(refASupprimer) {
   const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
   if (index !== -1) {
@@ -226,22 +280,15 @@ function supprimerCmd(refASupprimer) {
   }
 }
 
-// ✅ NOUVELLE FONCTION : GRAPHE TOP CLIENTS (AVANT maj())
+// GRAPHE TOP CLIENTS
 function afficherTopClients() {
-  // Calculer tonnes par client
   const clients = {};
   cmds.forEach(c => {
     clients[c.client] = (clients[c.client] || 0) + c.tonnes;
   });
-  
-  // Trier TOP 
-  const topClients = Object.entries(clients)
-    .sort((a,b) => b[1] - a[1])
-    .slice(0, 8);
-  
+  const topClients = Object.entries(clients).sort((a,b) => b[1] - a[1]).slice(0, 8);
   const container = document.getElementById('graphClients');
   container.innerHTML = '';
-  
   const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
   
   topClients.forEach(([client, tonnes], index) => {
@@ -331,7 +378,122 @@ ${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}`;
   alert('✅ Email ouvert ! Vérifiez votre client mail.');
 }
 
-// ✅ MISE A JOUR MODIFIÉE : + Graphes TOP CLIENTS
+// ✅ EXPORT PDF
+async function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  // Header
+  doc.setFontSize(20);
+  doc.text('🚚 Solana France - Rapport Logistique', 20, 20);
+  doc.setFontSize(12);
+  doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 20, 35);
+  doc.text(`Total: ${document.getElementById('totT').textContent}`, 20, 45);
+  
+  // KPI
+  doc.text('📊 KPI', 20, 65);
+  doc.text(`En attente: ${document.getElementById('att').textContent}`, 30, 75);
+  doc.text(`Chargées: ${document.getElementById('cha').textContent}`, 30, 85);
+  
+  // Top Clients (canvas)
+  const clientsCanvas = await html2canvas(document.getElementById('topClientsSection'));
+  const imgData = clientsCanvas.toDataURL('image/png');
+  doc.addImage(imgData, 'PNG', 20, 100, 170, 120);
+  
+  doc.save(`Solana-Rapport-${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// ✅ EXPORT EXCEL (CSV)
+function exportExcel() {
+  let csv = 'Client,Réf,Date,Point départ,Pays,Tonnes,Immat,Statut,Emails\n';
+  cmds.forEach(c => {
+    csv += `"${c.client}","${c.ref}","${c.date}","${c.pointDepart}","${c.pays}",${c.tonnes},"${c.immat}","${c.statut}",${c.nbEmails}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Solana-Donnees-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  document.getElementById('excelCount').textContent = cmds.length;
+}
+
+// ✅ GLOBE 3D FONCTIONS
+function initPaysSelect() {
+  const select = document.getElementById('paysIn');
+  Object.entries(paysData).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([code, data]) => {
+    const option = document.createElement('option');
+    option.value = code;
+    option.textContent = `${data.name} (${code})`;
+    select.appendChild(option);
+  });
+}
+
+function initGlobe() {
+  const globe = document.getElementById('globe');
+  Object.entries(paysData).forEach(([code, data]) => {
+    const country = document.createElement('div');
+    country.className = 'country';
+    country.id = code;
+    country.style.background = data.color;
+    country.style.width = '25px';
+    country.style.height = '25px';
+    country.innerHTML = `<span style="font-size:9px;">${code}</span>`;
+    country.style.left = `${50 + 20 * Math.cos(data.lng * Math.PI/180) * Math.cos(data.lat * Math.PI/180)}%`;
+    country.style.top = `${50 - 20 * Math.sin(data.lat * Math.PI/180)}%`;
+    country.onclick = () => showCountryInfo(code);
+    globe.appendChild(country);
+  });
+  updateGlobe();
+}
+
+function rotateGlobe(e) {
+  isDragging = true;
+  const globe = document.getElementById('globe');
+  document.onmousemove = (e2) => {
+    globeRotation.y += (e2.clientX - e.clientX) * 0.5;
+    globeRotation.x += (e2.clientY - e.clientY) * 0.5;
+    updateGlobe();
+  };
+  document.onmouseup = () => { isDragging = false; document.onmousemove = null; };
+}
+
+function updateGlobe() {
+  const globe = document.getElementById('globe');
+  globe.style.transform = `rotateX(${globeRotation.x}deg) rotateY(${globeRotation.y}deg)`;
+}
+
+function getClientsByPays(code) {
+  return cmds.filter(c => c.pays === code);
+}
+
+function showCountryInfo(code) {
+  const data = paysData[code];
+  const clients = getClientsByPays(code);
+  document.getElementById('countryInfo').innerHTML = `
+    <h3>🌍 ${data.name} (${code})</h3>
+    <p><strong>${data.tonnes.toFixed(1)}T</strong> exportées</p>
+    <p>Clients: ${clients.length}</p>
+    <p>Commandes: ${clients.length}</p>
+  `;
+  document.querySelectorAll('.country').forEach(c => c.classList.remove('active'));
+  document.getElementById(code)?.classList.add('active');
+}
+
+function updateGlobeData() {
+  Object.entries(paysData).forEach(([code, data]) => {
+    const clients = getClientsByPays(code);
+    data.tonnes = clients.reduce((sum, c) => sum + c.tonnes, 0);
+    const countryEl = document.getElementById(code);
+    if (countryEl) {
+      countryEl.innerHTML = `<span style="font-size:9px;">${code}</span><br><span style="font-size:7px;">${data.tonnes.toFixed(1)}T</span>`;
+      countryEl.style.width = `${Math.max(25, 20 + data.tonnes * 2)}px`;
+      countryEl.style.height = countryEl.style.width;
+    }
+  });
+}
+
+// ✅ MAJ COMPLÈTE (AVEC TOUTES FONCTIONNALITÉS)
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -374,7 +536,10 @@ function maj() {
     tb.appendChild(tr);
   });
 
-  // ✅ NOUVEAU : Mise à jour graphes
+  // ✅ LIVE SYNC : Exports + Globe + Top Clients
+  document.getElementById('pdfSize').textContent = document.getElementById('totT').textContent;
+  document.getElementById('excelCount').textContent = cmds.length;
+  updateGlobeData();
   afficherTopClients();
 }
 
@@ -383,7 +548,11 @@ setInterval(() => {
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
 }, 30000);
 
+// ✅ INITIALISATION
+initPaysSelect();
+initGlobe();
 maj();
 </script>
 </body>
 </html>
+
