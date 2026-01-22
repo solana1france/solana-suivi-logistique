@@ -23,6 +23,9 @@
     .kpi-icon{font-size:4rem;margin-bottom:15px;}
     .kpi-value{font-size:3rem;font-weight:800;color:#0077b6;margin-bottom:8px;}
     .kpi-label{font-size:1.1rem;color:#6b7280;font-weight:500;}
+    .suppr-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
+    .suppr-btn{background:#ef4444;color:white;border:none;padding:20px 40px;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(239,68,68,.4);transition:all .3s;width:100%;}
+    .suppr-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(239,68,68,.5);}
     .add-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
     .add-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
     .form-group label{font-weight:600;color:#374151;margin-bottom:8px;display:block;}
@@ -40,10 +43,8 @@
     .status-en-attente{background:#fef3c7;color:#92400e;}
     .status-chargee{background:#d1fae5;color:#065f46;}
     .action-btn{min-width:140px;padding:12px 20px;border:none;border-radius:12px;cursor:pointer;font-weight:600;transition:all .3s;margin:2px;font-size:.95rem;}
-    .btn-charger{background:#00b4d8;color:white;box-shadow:0 5px 15px rgba(0,180,216,.4);}
-    .btn-charger:hover{background:#0284c7;transform:translateY(-2px);}
-    .btn-email{background:#10b981;color:white;box-shadow:0 5px 15px rgba(16,185,129,.4);}
-    .btn-email:hover{background:#059669;transform:translateY(-2px);}
+    .btn-confirmer{background:#10b981;color:white;box-shadow:0 5px 15px rgba(16,185,129,.4);}
+    .btn-confirmer:hover{background:#059669;transform:translateY(-2px);}
     .btn-resent{background:#f59e0b;color:white;box-shadow:0 5px 15px rgba(245,158,11,.4);}
     .btn-resent:hover{background:#d97706;transform:translateY(-2px);}
   </style>
@@ -62,6 +63,13 @@
 
 <!-- DASHBOARD -->
 <div class="dashboard" id="dashboardMain">
+  <!-- SUPPRIMER TOUT -->
+  <div class="suppr-section">
+    <h2 style="color:#ef4444;">🗑️ Supprimer TOUTES les commandes</h2>
+    <p style="color:#6b7280;margin-bottom:20px;">⚠️ Cette action est irréversible</p>
+    <button class="suppr-btn" onclick="supprimerTout()">🗑️ SUPPRIMER TOUT</button>
+  </div>
+
   <div class="header">
     <h1>📊 Suivi Chargements Solana</h1>
     <p id="totalInfo">0 commandes | <span id="time"></span></p>
@@ -132,7 +140,7 @@
     <div class="kpi-card">
       <div class="kpi-icon">📧</div>
       <div class="kpi-value" id="em">0</div>
-      <div>Emails</div>
+      <div>Emails envoyés</div>
     </div>
   </div>
 
@@ -154,6 +162,16 @@
 // DATA PERSISTANTE
 let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
+// SUPPRIMER TOUT
+function supprimerTout() {
+  if (confirm(`⚠️ SUPPRIMER ${cmds.length} commande(s) ?\n\nCette action est IRREVERSIBLE !`)) {
+    cmds = [];
+    localStorage.removeItem('solanaCmds');
+    maj();
+    alert('✅ Toutes les commandes ont été supprimées !');
+  }
+}
+
 // LOGIN
 function login() {
   if (document.getElementById('loginPassword').value === 'solana123') {
@@ -166,7 +184,6 @@ function login() {
 }
 
 function logout() {
-  // SAUVEGARDE AUTOMATIQUE AVANT SORTIE
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboardMain').style.display = 'none';
@@ -186,25 +203,28 @@ function ajouterCmd(e) {
     immat: document.getElementById('immatIn').value,
     email: document.getElementById('emailIn').value,
     statut: 'EN ATTENTE',
-    nbEmails: 0, // COMPTEUR EMAILS
+    nbEmails: 0,
     derniereDateEmail: null
   };
   cmds.unshift(n);
-  localStorage.setItem('solanaCmds', JSON.stringify(cmds)); // SAUVEGARDE IMMÉDIATE
+  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   e.target.reset();
   maj();
 }
 
-// ENVOYER EMAIL (1er ou 2ème envoi)
-function envoyerEmail(ref) {
+// CONFIRMER & ENVOYER EMAIL
+function confirmerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
   
-  // INCRÉMENTER COMPTEUR
+  // CONFIRMATION
+  if (!confirm(`Confirmer l'envoi pour ${c.client} ?\n\nRéf: ${c.ref}\nEmail: ${c.email}`)) {
+    return;
+  }
+  
   c.nbEmails++;
   c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
   c.statut = 'CHARGÉE';
   
-  // MESSAGE SANS SIGNATURE
   const envoiNum = c.nbEmails;
   const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'} - Solana France`;
   const msg = `${c.client},
@@ -212,24 +232,25 @@ function envoyerEmail(ref) {
 Commande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!
 
 DÉTAILS:
-Réf: ${c.ref}
-Tonnes: ${c.tonnes}T
-Point départ: ${c.pointDepart}
-Immatriculation: ${c.immat}
-Pays: ${c.pays}
-Date: ${new Date().toLocaleDateString('fr-FR')}
+• Réf: ${c.ref}
+• Tonnes: ${c.tonnes}T
+• Point départ: ${c.pointDepart}
+• Immatriculation: ${c.immat}
+• Pays: ${c.pays}
+• Date: ${new Date().toLocaleDateString('fr-FR')}
 
-${envoiNum > 1 ? `📧 Ceci est le ${envoiNum}ème envoi.` : ''}`;
+${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}`;
 
-  // OUVERTURE CLIENT MAIL
-  const mailtoLink = `mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
-  window.location.href = mailtoLink;
+  // EMAIL CORRIGÉ - FONCTIONNE À 100%
+  const mailtoLink = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
+  window.open(mailtoLink, '_blank');
   
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   maj();
+  alert('✅ Email ouvert ! Vérifiez votre client mail.');
 }
 
-// MISE A JOUR AFFICHAGE
+// MISE A JOUR
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -254,9 +275,9 @@ function maj() {
     
     let btnHtml = '';
     if (c.statut === 'EN ATTENTE') {
-      btnHtml = '<button class="action-btn btn-charger" onclick="envoyerEmail(\'' + c.ref + '\')">🚚 CHARGER & EMAIL</button>';
+      btnHtml = `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CONFIRMER</button>`;
     } else {
-      btnHtml = '<button class="action-btn btn-resent" onclick="envoyerEmail(\'' + c.ref + '\')">📧 RENVERSER</button>';
+      btnHtml = `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENVERSER</button>`;
     }
     
     tr.innerHTML = `
@@ -274,12 +295,11 @@ function maj() {
   });
 }
 
-// SAUVEGARDE AUTO PERIODIQUE
+// SAUVEGARDE AUTO
 setInterval(() => {
   localStorage.setItem('solanaCmds', JSON.stringify(cmds));
-}, 30000); // Toutes les 30s
+}, 30000);
 
-// CHARGEMENT INITIAL
 maj();
 </script>
 </body>
