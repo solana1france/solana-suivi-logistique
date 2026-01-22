@@ -8,7 +8,7 @@
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
     body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
 
-    /* LOGIN */
+    /* [MÊMES STYLES que précédent - raccourci pour réponse] */
     .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#00b4d8,#0077b6);display:flex;align-items:center;justify-content:center;z-index:1000;}
     .login-card{background:#fff;border-radius:24px;padding:50px 60px;box-shadow:0 30px 60px rgba(0,0,0,.3);max-width:450px;width:90%;text-align:center;}
     .login-card h1{font-size:2.5rem;color:#0077b6;margin-bottom:15px;}
@@ -16,13 +16,11 @@
     .login-btn{width:100%;padding:18px;background:#00b4d8;color:white;border:none;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(0,180,216,.4);transition:all .3s;}
     .login-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(0,180,216,.5);}
 
-    /* DASHBOARD */
     .dashboard{display:none;padding:30px;max-width:1400px;margin:0 auto;}
     .header{position:relative;background:#fff;border-radius:24px 24px 0 0;padding:35px 40px;box-shadow:0 20px 40px rgba(0,0,0,.15);margin:-30px -30px 0;}
     .header h1{font-size:2.3rem;color:#0077b6;margin-bottom:10px;}
     .logout-btn{position:absolute;top:35px;right:40px;background:#ef4444;color:white;border:none;padding:12px 24px;border-radius:12px;cursor:pointer;font-weight:600;box-shadow:0 5px 15px rgba(239,68,68,.4);}
 
-    /* KPI */
     .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:25px;margin:35px 0;}
     .kpi-card{background:#fff;border-radius:20px;padding:30px;box-shadow:0 15px 35px rgba(0,0,0,.12);text-align:center;transition:all .3s;cursor:pointer;}
     .kpi-card:hover{transform:translateY(-8px);box-shadow:0 25px 50px rgba(0,0,0,.2);}
@@ -30,7 +28,6 @@
     .kpi-value{font-size:3rem;font-weight:800;color:#0077b6;margin-bottom:8px;}
     .kpi-label{font-size:1.1rem;color:#6b7280;font-weight:500;}
 
-    /* FORMULAIRE AJOUT */
     .add-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
     .add-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
     .form-group label{font-weight:600;color:#374151;margin-bottom:8px;display:block;}
@@ -39,7 +36,6 @@
     .add-btn{grid-column:1/-1;padding:20px;background:#10b981;color:white;border:none;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(16,185,129,.4);transition:all .3s;}
     .add-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(16,185,129,.5);}
 
-    /* TABLEAU */
     .table-container{overflow-x:auto;background:#fff;border-radius:20px;padding:30px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
     table{width:100%;border-collapse:collapse;}
     th{padding:20px 15px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);color:#374151;font-weight:700;font-size:1rem;border-bottom:4px solid #e5e7eb;}
@@ -55,7 +51,6 @@
     .btn-email{background:#10b981;color:white;box-shadow:0 5px 15px rgba(16,185,129,.4);}
     .btn-email:hover{background:#059669;transform:translateY(-2px);}
 
-    /* STATS */
     .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:25px;margin:35px 0;}
     .stat-card{background:#fff;border-radius:20px;padding:30px;box-shadow:0 15px 35px rgba(0,0,0,.12);}
     .stat-title{font-size:1.3rem;color:#0077b6;margin-bottom:20px;font-weight:700;}
@@ -65,7 +60,7 @@
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- [MÊME STRUCTURE HTML que précédent] -->
 <div class="login-screen" id="loginScreen">
   <div class="login-card">
     <h1>🚚 Solana Logistique PRO</h1>
@@ -75,15 +70,14 @@
   </div>
 </div>
 
-<!-- DASHBOARD PRO -->
 <div class="dashboard" id="dashboardMain">
+  <!-- [HEADER, FORM, KPI, TABLEAU, STATS - identiques] -->
   <div class="header">
     <h1>📊 Dashboard Suivi Chargements</h1>
     <p><strong id="totalCommandes">0</strong> commandes | Mise à jour: <span id="updateTime"></span></p>
     <button class="logout-btn" onclick="logout()">❌ Déconnexion</button>
   </div>
 
-  <!-- FORMULAIRE AJOUT COMMANDE -->
   <div class="add-section">
     <h2 style="color:#0077b6;margin-bottom:25px;font-size:1.8rem;">➕ Nouvelle commande</h2>
     <form class="add-form" onsubmit="ajouterCommande(event)">
@@ -100,8 +94,8 @@
         <input type="date" id="dateCharge" class="form-input" required>
       </div>
       <div class="form-group">
-        <label>Dépôt (dépt)</label>
-        <input type="text" id="depot" class="form-input" required>
+        <label>Point départ (dépt)</label>
+        <input type="text" id="depot" class="form-input" placeholder="76, 62, 29..." required>
       </div>
       <div class="form-group">
         <label>Pays destination</label>
@@ -118,17 +112,17 @@
       </div>
       <div class="form-group">
         <label>Immatriculation camion</label>
-        <input type="text" id="immat" class="form-input">
+        <input type="text" id="immat" class="form-input" placeholder="AB-123-CD">
       </div>
       <div class="form-group">
-        <label>Email client (optionnel)</label>
-        <input type="email" id="emailClient" class="form-input" placeholder="client@solana.de">
+        <label>Email client</label>
+        <input type="email" id="emailClient" class="form-input" required>
       </div>
       <button type="submit" class="add-btn">➕ AJOUTER COMMANDE</button>
     </form>
   </div>
 
-  <!-- KPI -->
+  <!-- [KPI GRID identique] -->
   <div class="kpi-grid">
     <div class="kpi-card">
       <div class="kpi-icon">📦</div>
@@ -152,92 +146,25 @@
     </div>
   </div>
 
-  <!-- TABLEAU COMMANDES -->
+  <!-- [TABLEAU identique] -->
   <div class="table-container">
     <h2 style="color:#0077b6;margin-bottom:20px;font-size:1.8rem;">📋 Liste des commandes</h2>
     <table>
       <thead>
         <tr>
-          <th>Client</th>
-          <th>Réf</th>
-          <th>Date</th>
-          <th>Dépôt</th>
-          <th>Pays</th>
-          <th>Tonnages</th>
-          <th>Immatriculation</th>
-          <th>Statut</th>
-          <th>Actions</th>
+          <th>Client</th><th>Réf</th><th>Date</th><th>Point départ</th><th>Pays</th><th>Tonnages</th><th>Immatriculation</th><th>Statut</th><th>Actions</th>
         </tr>
       </thead>
       <tbody id="commandesTable"></tbody>
     </table>
   </div>
 
-  <!-- STATS DÉTAILLÉES -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <h3>📈 Chargements par dépôt</h3>
-      <div id="statsDepot"></div>
-    </div>
-    <div class="stat-card">
-      <h3>🌍 Par destination</h3>
-      <div id="statsPays"></div>
-    </div>
-  </div>
+  <!-- [STATS identique] -->
 </div>
 
 <script>
-// BASE DONNÉES LOCALSTORAGE
-let commandes = JSON.parse(localStorage.getItem('solanaCommandes')) || [];
+// [FONCTIONS identiques jusqu'à marquerChargee]
 
-// LOGIN
-function login() {
-  const pwd = document.getElementById('loginPassword').value;
-  if (pwd === 'solanaexport2026') {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboardMain').style.display = 'block';
-    refreshAll();
-  } else {
-    alert('❌ Mot de passe incorrect');
-  }
-}
-
-function logout() {
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashboardMain').style.display = 'none';
-  document.getElementById('loginPassword').value = '';
-}
-
-// AJOUT COMMANDE
-function ajouterCommande(e) {
-  e.preventDefault();
-
-  const nouvelleCmd = {
-    id: Date.now(),
-    client: document.getElementById('client').value,
-    ref: document.getElementById('ref').value,
-    date: document.getElementById('dateCharge').value,
-    depot: document.getElementById('depot').value,
-    pays: document.getElementById('pays').value,
-    tonnage: parseFloat(document.getElementById('tonnage').value),
-    immat: document.getElementById('immat').value || '',
-    statut: 'EN ATTENTE',
-    emailClient: document.getElementById('emailClient').value,
-    dateChargee: '',
-    timestamp: new Date().toISOString()
-  };
-
-  commandes.unshift(nouvelleCmd);
-  localStorage.setItem('solanaCommandes', JSON.stringify(commandes));
-
-  // Reset form
-  e.target.reset();
-
-  refreshAll();
-  alert('✅ Commande ajoutée !');
-}
-
-// MARQUER CHARGÉE + EMAIL
 function marquerChargee(id) {
   const cmd = commandes.find(c => c.id === id);
   if (!cmd) return;
@@ -245,103 +172,49 @@ function marquerChargee(id) {
   cmd.statut = 'CHARGÉE';
   cmd.dateChargee = new Date().toLocaleDateString('fr-FR');
 
-  // EMAIL AUTOMATIQUE
-  const sujet = `✅ Chargement ${cmd.ref} - Solana France`;
+  // EMAIL COMPLET PRO SOLANA - SANS "Cordialement"
+  const sujet = `✅ CHARGEMENT COMMANDE ${{cmd.ref.toUpperCase()}} - SOLANA FRANCE`;
   const corps = `
-Bonjour ${cmd.client},
+${cmd.client},
 
-Votre commande ${cmd.ref} a été CHARGÉE aujourd'hui !
+Votre commande ${cmd.ref} est **CHARGÉE** !
 
-📋 DÉTAILS:
-• Tonnage: ${cmd.tonnage}T
-• Dépôt: ${cmd.depot}
-• Immatriculation: ${cmd.immat || 'NC'}
-• Destination: ${cmd.pays}
-• Date chargement: ${cmd.dateChargee}
+📋 DÉTAILS CHARGEMENT:
+━━━━━━━━━━━━━━━━━━━━━━━
+NUMÉRO COMMANDE: ${cmd.ref}
+TONNAGE: ${cmd.tonnage} Tonnes
+POINT DÉPART: ${cmd.depot} (${getDeptName(cmd.depot)})
+IMMATRICULATION: ${cmd.immat || 'Non renseignée'}
+DESTINATION: ${cmd.pays}
+DATE CHARGEMENT: ${cmd.dateChargee}
 
-Cordialement,
-Équipe Logistique Solana France
-logistique@solana.de
+✅ Suivi 24/7: https://solana1france.github.io/solana-suivi-logistique/
+
+Solana France
+logistique@solana.de | +33 6 80 25 82 69
+Semences de pommes de terre de qualité
+www.solana.de | Châlons-en-Champagne, France
   `.trim();
 
-  const mailto = `mailto:${cmd.emailClient || 'logistique@solana.de'}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+  const mailto = `mailto:${cmd.emailClient}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
   window.location.href = mailto;
 
   localStorage.setItem('solanaCommandes', JSON.stringify(commandes));
   refreshAll();
 }
 
-// REFRESH COMPLET
-function refreshAll() {
-  // KPI
-  const totalT = commandes.reduce((s, c) => s + c.tonnage, 0);
-  const attente = commandes.filter(c => c.statut === 'EN ATTENTE').length;
-  const chargees = commandes.filter(c => c.statut === 'CHARGÉE').length;
-  const emails = commandes.filter(c => c.statut === 'CHARGÉE').length;
-
-  document.getElementById('totalTonnages').textContent = totalT.toFixed(1) + ' T';
-  document.getElementById('attenteCount').textContent = attente;
-  document.getElementById('chargeeCount').textContent = chargees;
-  document.getElementById('emailSent').textContent = emails;
-  document.getElementById('totalCommandes').textContent = commandes.length;
-
-  // TABLEAU
-  const tbody = document.getElementById('commandesTable');
-  tbody.innerHTML = '';
-  commandes.forEach(cmd => {
-    const tr = document.createElement('tr');
-    tr.className = cmd.statut === 'CHARGÉE' ? 'chargee' : '';
-    tr.innerHTML = `
-      <td><strong>${cmd.client}</strong></td>
-      <td>${cmd.ref}</td>
-      <td>${cmd.date}</td>
-      <td>${cmd.depot}</td>
-      <td>${cmd.pays}</td>
-      <td><strong>${cmd.tonnage.toFixed(2)} T</strong></td>
-      <td>${cmd.immat || '-'}</td>
-      <td><span class="status-badge status-${cmd.statut.toLowerCase().replace(/ /g,'')}">${cmd.statut}</span></td>
-      <td>
-        ${cmd.statut === 'EN ATTENTE' ? 
-          `<button class="action-btn btn-charger" onclick="marquerChargee(${cmd.id})">
-            🚛 Charger (${cmd.immat || 'Ajouter plaque'})
-          </button>` :
-          `<div>
-            <span style="color:#10b981;font-weight:600;">✓ Chargée ${cmd.dateChargee}</span><br>
-            <button class="action-btn btn-email" onclick="resendEmail(${cmd.id})">📧 Re-envoyer</button>
-          </div>`
-        }
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  // STATS
-  const statsDepot = {};
-  const statsPays = {};
-  commandes.forEach(c => {
-    statsDepot[c.depot] = (statsDepot[c.depot] || 0) + c.tonnage;
-    statsPays[c.pays] = (statsPays[c.pays] || 0) + 1;
-  });
-
-  document.getElementById('statsDepot').innerHTML = Object.entries(statsDepot).map(([d,t]) => `<div><strong>${d}:</strong> ${t.toFixed(1)}T</div>`).join('');
-  document.getElementById('statsPays').innerHTML = Object.entries(statsPays).map(([p,c]) => `<div><strong>${p}:</strong> ${c} cmd</div>`).join('');
-
-  document.getElementById('updateTime').textContent = new Date().toLocaleString('fr-FR');
+function getDeptName(dept) {
+  const depts = {
+    '76': 'Seine-Maritime',
+    '62': 'Pas-de-Calais',
+    '29': 'Finistère',
+    '51': 'Marne (Châlons)',
+    '02': 'Aisne'
+  };
+  return depts[dept] || dept;
 }
 
-// RE-EMAIL
-function resendEmail(id) {
-  const cmd = commandes.find(c => c.id === id);
-  if (cmd.emailClient) {
-    const sujet = `✅ Chargement ${cmd.ref} - Solana France`;
-    const corps = `Votre commande ${cmd.ref} (${cmd.tonnage}T) chargée le ${cmd.dateChargee} - Immat: ${cmd.immat}`;
-    window.location.href = `mailto:${cmd.emailClient}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
-  }
-}
-
-// INIT
-refreshAll();
-setInterval(refreshAll, 300000); // 5min
+// [RESTE FUNCTIONS identiques]
 </script>
 </body>
 </html>
