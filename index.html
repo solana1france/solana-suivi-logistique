@@ -36,7 +36,7 @@
     td{padding:18px 15px;border-bottom:2px solid #f3f4f6;vertical-align:middle;}
     tr:hover{background:#f8fafc;}
     tr.chargee{background:#f0fdf4;}
-    .action-btn{min-width:110px;padding:10px 16px;border:none;border-radius:10px;cursor:pointer;font-weight:600;transition:all .3s;margin:1px;font-size:.9rem;}
+    .action-btn{min-width:100px;padding:10px 14px;border:none;border-radius:10px;cursor:pointer;font-weight:600;transition:all .3s;margin:1px;font-size:.85rem;}
     .btn-confirmer{background:#10b981;color:white;box-shadow:0 4px 12px rgba(16,185,129,.4);}
     .btn-confirmer:hover{background:#059669;transform:translateY(-1px);}
     .btn-resent{background:#f59e0b;color:white;box-shadow:0 4px 12px rgba(245,158,11,.4);}
@@ -122,7 +122,7 @@
       <div>En attente</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-icon"></div>
+      <div class="kpi-icon">✅</div>
       <div class="kpi-value" id="cha">0</div>
       <div>Chargées</div>
     </div>
@@ -151,14 +151,22 @@
 // DATA PERSISTANTE
 let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
-// SUPPRIMER UNE COMMANDE
-function supprimerCmd(ref) {
-  const c = cmds.find(x => x.ref === ref);
-  if (confirm(`🗑️ SUPPRIMER cette commande ?\n\n${c.client}\nRéf: ${c.ref}\n${c.tonnes.toFixed(2)}T\n\nOK pour supprimer ?`)) {
-    cmds = cmds.filter(x => x.ref !== ref);
-    localStorage.setItem('solanaCmds', JSON.stringify(cmds));
-    maj();
-    alert('✅ Commande supprimée !');
+// ✅ SUPPRIMER UNE SEULE COMMANDE (CORRIGÉ)
+function supprimerCmd(refASupprimer) {
+  // TROUVER LA COMMANDE PAR RÉFÉRENCE EXACTE
+  const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
+  
+  if (index !== -1) {
+    const c = cmds[index];
+    if (confirm(`🗑️ SUPPRIMER SEULEMENT cette commande ?\n\n👤 ${c.client}\n📄 Réf: ${c.ref}\n⚖️ ${c.tonnes.toFixed(2)}T\n📧 ${c.email}\n\nOK pour supprimer UNIQUEMENT cette ligne ?`)) {
+      // SUPPRIMER UNIQUEMENT CETTE LIGNE
+      cmds.splice(index, 1);
+      localStorage.setItem('solanaCmds', JSON.stringify(cmds));
+      maj();
+      alert(`✅ Commande ${refASupprimer} supprimée !\nIl reste ${cmds.length} commande(s).`);
+    }
+  } else {
+    alert('❌ Commande non trouvée !');
   }
 }
 
@@ -265,7 +273,7 @@ function maj() {
       `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')" title="Confirmer & Email">✅ CONFIRMER</button>` : 
       `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')" title="Renvoyer email">📧 RENVERSER</button>`;
     
-    const btnSupprimer = `<button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')" title="Supprimer">🗑️ SUPPR</button>`;
+    const btnSupprimer = `<button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')" title="Supprimer cette commande">🗑️ SUPPR</button>`;
     
     tr.innerHTML = `
       <td><b>${c.client}</b></td>
@@ -276,7 +284,7 @@ function maj() {
       <td><b>${c.tonnes.toFixed(2)} T</b></td>
       <td>${c.immat}</td>
       <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
-      <td>${btnConfirmer}${btnSupprimer}</td>
+      <td>${btnConfirmer} ${btnSupprimer}</td>
     `;
     tb.appendChild(tr);
   });
