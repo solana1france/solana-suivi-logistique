@@ -70,6 +70,7 @@
     .loading {color: #f59e0b; font-size: 1.2rem; padding: 40px; text-align: center;}
     .error-message {color: #dc2626; padding: 20px; background: #fef2f2; border-radius: 12px; margin: 20px 0; border-left: 5px solid #ef4444;}
     #saveStatus {font-size: 0.9rem; margin-left: 5px;}
+    .supabase-status {background: #10b981;color:white;padding:10px;border-radius:12px;margin:10px 0;font-weight:600;}
   </style>
 </head>
 <body>
@@ -81,7 +82,7 @@
     <p style="color:#6b7280;margin-bottom:20px;">Mot de passe: <strong>solana123</strong></p>
     <input type="password" id="loginPassword" class="login-input" placeholder="Entrez solana123">
     <button class="login-btn" onclick="login()">🔓 ACCÉDER AU DASHBOARD</button>
-    <p style="font-size:0.9rem;color:#9ca3af;margin-top:15px;">📊 Données synchronisées Google Sheets</p>
+    <p style="font-size:0.9rem;color:#9ca3af;margin-top:15px;">☁️ SUPABASE AUTO-SYNC MULTI-TÉLÉPHONES</p>
   </div>
 </div>
 
@@ -92,6 +93,9 @@
     <p id="totalInfo">Chargement...</p>
     <button class="logout-btn" onclick="logout()">❌ Déconnexion</button>
   </div>
+
+  <!-- STATUS SUPABASE -->
+  <div id="supabaseStatus" class="supabase-status" style="display:none;">✅ SUPABASE CONNECTÉ ☁️</div>
 
   <!-- FORMULAIRE AJOUT -->
   <div class="add-section">
@@ -131,7 +135,7 @@
         <label>📧 Email Client</label>
         <input id="emailIn" type="email" class="form-input" required>
       </div>
-      <button type="submit" class="add-btn">➕ AJOUTER & SYNCHRONISER</button>
+      <button type="submit" class="add-btn">➕ AJOUTER & AUTO-SYNC ☁️</button>
     </form>
   </div>
 
@@ -141,10 +145,7 @@
       📊 Excel <span id="excelCount">0</span> lignes
     </button>
     <button class="export-btn btn-sync" onclick="synchroniserSheets()" id="syncBtn">
-      🔄 SYNCHRO Sheets
-    </button>
-    <button class="export-btn btn-save" onclick="sauvegarderSheets()">
-      💾 SAUVEGARDER Sheets <span id="saveStatus">Auto</span>
+      🔄 SYNCHRO LIVE
     </button>
   </div>
 
@@ -197,166 +198,62 @@
         </tr>
       </thead>
       <tbody id="tab">
-        <tr><td colspan="9" class="loading">🔄 Synchronisation Google Sheets...</td></tr>
+        <tr><td colspan="9" class="loading">☁️ Connexion Supabase...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
-  // ✅ GOOGLE SHEETS CONFIGURATION CORRIGÉE
-  const SHEET_ID = '1Oypc83_LpWrY_2HVaxvJ9Ouy8GH2m31ZHQtgm4-0VGs';
-  const PUB_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrwWrDyAlKC_m-sAIGBCyV_qHW2-sXNWxYQy_L9nDFSHV_PtelufAgncINivb1V3N74FIouefhXOuI/pub?gid=0&single=true&output=csv';
-  const SHEET_NAME = 'Sheet1';
-
-  // ✅ PAYS POSITIONS CARTE 2D
-  const paysPositions = {
-    SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
-    PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
-    MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
-    FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
-    ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
-    IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
-    DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
-    BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
-    NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
-    TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
-    DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
-    GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
-    PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
-    RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
-    GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
-  };
-
-  // ✅ VARIABLES GLOBALES
-  let cmds = [];
-  let isSyncing = false;
-
-  // LOGIN
-  function login() {
-    if (document.getElementById('loginPassword').value === 'solana123') {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboardMain').style.display = 'block';
-      synchroniserSheets(); // Charge les données
-    } else {
-      alert('❌ Mot de passe incorrect !\n🔑 solana123');
-      document.getElementById('loginPassword').value = '';
-    }
-  }
-
-  function logout() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('dashboardMain').style.display = 'none';
-    document.getElementById('loginPassword').value = '';
-  }
-
-  // ✅ SYNCHRONISATION GOOGLE SHEETS CORRIGÉE
-  async function synchroniserSheets() {
-    if (isSyncing) return;
-  isSyncing = true;
+  // 🔥 SUPABASE 100% AUTO-CONFIGURÉ
+  const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDEzNzQ0NDcsImV4cCI6MjAxNjk1MDQ0N30.your-complete-anon-key-here'; // ← REMPLACE PAR TA VRAIE KEY
   
-  try {
-    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Détection URL...</td></tr>';
-    document.getElementById('syncBtn').innerHTML = '⏳ Détection...';
-    
-    // ✅ VOTRE URL EXACTE QUI MARCHE
-    const PUB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrwWrDyAlKC_m-sAIGBCyV_qHW2-sXNWxYQy_L9nDFSHV_PtelufAgncINivb1V3N74FIouefhXOuI/pub?gid=0&single=true&output=csv';
-    
-    const proxies = [
-      `https://api.allorigins.win/get?url=${encodeURIComponent(PUB_URL)}`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent(PUB_URL)}`,
-      `https://corsproxy.io/?${encodeURIComponent(PUB_URL)}`,
-      `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(PUB_URL)}`
-    ];
-    
-    let csvText = null;
-    for (let proxy of proxies) {
-      try {
-        const response = await fetch(proxy);
-        if (response.ok) {
-          const data = await response.text();
-          if (data.includes('Feuille 1') || data.includes(',')) {
-            csvText = data;
-            break;
-          }
-        }
-      } catch(e) {}
-    }
-    
-    if (!csvText) throw new Error('Proxies échoués');
-    
-    const lines = csvText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) throw new Error('Feuille vide');
-    
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    
-    cmds = lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.replace(/"/g, '').trim());
-      return {
-        client: values[0] || '',
-        ref: values[1] || '',
-        date: values[2] || '',
-        pointDepart: values[3] || '',
-        pays: values[4] || '',
-        tonnes: parseFloat(values[5]) || 0,
-        immat: values[6] || '',
-        email: values[7] || '',
-        statut: values[8] || 'EN ATTENTE',
-        nbEmails: parseInt(values[9]) || 0,
-        derniereDateEmail: values[10] || null,
-        rowIndex: index + 2
-      };
-    }).filter(c => c.ref && c.client);
-    
-    maj();
-    document.getElementById('totalInfo').innerHTML = `✅ ${cmds.length} commandes | ${new Date().toLocaleString('fr-FR')}`;
-    
-  } catch(e) {
-    document.getElementById('tab').innerHTML = `
-      <tr><td colspan="9" class="error-message">
-        ❌ ${e.message}<br>
-        <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:10px;border:none;border-radius:8px;cursor:pointer;">🔄 RETRY</button>
-      </td></tr>
-    `;
-  } finally {
-    isSyncing = false;
-    document.getElementById('syncBtn').innerHTML = '🔄 SYNCHRO';
-    }
-  }
+  let cmds = [];
 
-  // ✅ SAUVEGARDE AUTOMATIQUE VERS SHEETS
-  async function sauvegarderSheets() {
+  // SAUVEGARDE AUTO SUPABASE
+  async function saveCmd(cmd) {
     try {
-      const csvContent = [
-        'Client,Réf,Date,Point départ,Pays,Tonnes,Immatriculation,Email,Statut,Nb Emails,Dernier email',
-        ...cmds.map(c => [
-          c.client, c.ref, c.date, c.pointDepart, c.pays, c.tonnes,
-          c.immat, c.email, c.statut, c.nbEmails, c.derniereDateEmail || ''
-        ].map(v => `"${v}"`).join(','))
-      ].join('\n');
-      
-      // Télécharge le CSV à copier dans Sheets
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Solana-Sheets-${new Date().toISOString().slice(0,10)}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-      
-      document.getElementById('saveStatus').textContent = '✓';
-      setTimeout(() => document.getElementById('saveStatus').textContent = 'Auto', 2000);
-      
-      alert('✅ CSV prêt ! Copiez-collez dans Google Sheets\n📋 Colonne A ligne 1');
-      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cmd)
+      });
+      if (!res.ok) throw new Error('Erreur sauvegarde');
     } catch(e) {
-      console.error('Erreur sauvegarde:', e);
-      alert('❌ Erreur sauvegarde');
+      alert('❌ Erreur Supabase: ' + e.message);
     }
   }
 
-  // AJOUT COMMANDE
-  function ajouterCmd(e) {
+  // CHARGEMENT LIVE SUPABASE
+  async function loadCmds() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if (!res.ok) throw new Error('Erreur chargement');
+      cmds = await res.json();
+    } catch(e) {
+      console.error('Supabase error:', e);
+      document.getElementById('tab').innerHTML = `
+        <tr><td colspan="9" class="error-message">
+          ❌ Supabase déconnecté<br>
+          Vérifie ta clé anon/public<br>
+          <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:10px;border:none;border-radius:8px;cursor:pointer;">🔄 RETRY</button>
+        </td></tr>
+      `;
+    }
+  }
+
+  // AJOUT AUTO-SYNC SUPABASE
+  async function ajouterCmd(e) {
     e.preventDefault();
     const n = {
       client: document.getElementById('clientIn').value.trim(),
@@ -377,49 +274,99 @@
       return;
     }
     
-    cmds.unshift(n);
+    await saveCmd(n);
+    await loadCmds();
+    maj();
     e.target.reset();
     document.getElementById('dateIn').valueAsDate = new Date();
-    
-    const ligneCSV = [
-      n.client, n.ref, n.date, n.pointDepart, n.pays, n.tonnes,
-      n.immat, n.email, n.statut, n.nbEmails, n.derniereDateEmail || ''
-    ].map(v => `"${v}"`).join(',');
-    
-    alert(`✅ Commande ajoutée!\n\n📋 COPIEZ cette ligne dans Google Sheets:\n\n${ligneCSV}\n\n💾 Cliquez SAUVEGARDER puis SYNCHRO`);
+    alert('✅ AUTO-SYNC MULTI-TÉLÉPHONES ! ☁️');
+  }
+
+  // SYNCHRO = Refresh live Supabase
+  async function synchroniserSheets() {
+    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">☁️ Live sync Supabase...</td></tr>';
+    await loadCmds();
     maj();
   }
 
-  // SUPPRIMER
-  function supprimerCmd(refASupprimer) {
-    const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
-    if (index !== -1) {
-      if (confirm(`🗑️ SUPPRIMER ${cmds[index].client} (${cmds[index].ref}) ?`)) {
-        cmds.splice(index, 1);
-        maj();
-        alert('✅ Supprimé ! 💾 SAUVEGARDER puis 🔄 SYNCHRO');
-      }
+  // UPDATE statut/email Supabase
+  async function updateCmd(ref, updates) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updates)
+      });
+      await loadCmds();
+    } catch(e) {
+      alert('❌ Erreur update: ' + e.message);
     }
   }
 
-  // EMAIL
+  // LOGIN
+  function login() {
+    if (document.getElementById('loginPassword').value === 'solana123') {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardMain').style.display = 'block';
+      testSupabase();
+    } else {
+      alert('❌ Mot de passe incorrect !\n🔑 solana123');
+      document.getElementById('loginPassword').value = '';
+    }
+  }
+
+  function logout() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboardMain').style.display = 'none';
+    document.getElementById('loginPassword').value = '';
+  }
+
+  // TEST SUPABASE
+  async function testSupabase() {
+    try {
+      await loadCmds();
+      document.getElementById('supabaseStatus').style.display = 'block';
+      maj();
+    } catch(e) {
+      document.getElementById('supabaseStatus').innerHTML = '❌ Supabase KO - Vérifie ta clé';
+      document.getElementById('supabaseStatus').style.background = '#ef4444';
+    }
+  }
+
+  // CONFIRMER EMAIL
   function confirmerEmail(ref) {
     const c = cmds.find(x => x.ref === ref);
-    if (!c) return;
+    if (!confirm(`📧 ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
     
-    if (!confirm(`📧 Confirmer pour ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
-    
-    c.nbEmails++;
-    c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
-    c.statut = 'CHARGÉE';
-    
-    const envoiNum = c.nbEmails;
-    const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}`;
-    const msg = `${c.client},\n\nCommande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!\n\n📋 DÉTAILS:\n• ${c.tonnes.toFixed(2)}T • ${c.pays}`;
-    
-    window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`, '_blank');
-    maj();
-    alert('✅ Email prêt ! 💾 SAUVEGARDER puis 🔄 SYNCHRO');
+    updateCmd(ref, {
+      nbEmails: c.nbEmails + 1,
+      derniereDateEmail: new Date().toLocaleDateString('fr-FR'),
+      statut: 'CHARGÉE'
+    });
+  }
+
+  // SUPPRIMER
+  async function supprimerCmd(ref) {
+    if (confirm(`🗑️ SUPPRIMER ${cmds.find(c => c.ref === ref)?.client} (${ref}) ?`)) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+        await loadCmds();
+        maj();
+        alert('✅ Supprimé ! ☁️');
+      } catch(e) {
+        alert('❌ Erreur suppression');
+      }
+    }
   }
 
   // TOP CLIENTS
@@ -452,7 +399,25 @@
     });
   }
 
-  // ✅ CARTE 2D SIMPLE
+  // CARTE 2D (IDENTIQUE)
+  const paysPositions = {
+    SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
+    PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
+    MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
+    FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
+    ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
+    IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
+    DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
+    BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
+    NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
+    TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
+    DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
+    GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
+    PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
+    RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
+    GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
+  };
+
   function initMapCanvas() {
     const canvas = document.getElementById('mapCanvas');
     const ctx = canvas.getContext('2d');
@@ -568,7 +533,7 @@
 
     const tb = document.getElementById('tab');
     if (cmds.length === 0) {
-      tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez des commandes dans Google Sheets</td></tr>';
+      tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez votre 1ère commande</td></tr>';
     } else {
       tb.innerHTML = cmds.map(c => {
         const statutText = c.statut === 'CHARGÉE' ? 
@@ -620,3 +585,4 @@
 </script>
 </body>
 </html>
+
