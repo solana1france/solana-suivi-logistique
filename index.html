@@ -252,63 +252,74 @@
   // ✅ SYNCHRONISATION GOOGLE SHEETS CORRIGÉE
   async function synchroniserSheets() {
     if (isSyncing) return;
-    isSyncing = true;
+  isSyncing = true;
+  
+  try {
+    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Détection URL...</td></tr>';
+    document.getElementById('syncBtn').innerHTML = '⏳ Détection...';
     
-    try {
-      document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Lecture Google Sheets...</td></tr>';
-      document.getElementById('syncBtn').innerHTML = '⏳ Sync...';
-      
-      // ✅ PROXY CORS pour éviter les erreurs
-      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(
-        `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
-      );
-      
-      const response = await fetch(proxyUrl);
-      if (!response.ok) throw new Error('Erreur réseau');
-      
-      const data = await response.json();
-      const csvText = data.contents;
-      
-      if (!csvText || csvText.trim().length < 10) {
-        throw new Error('Feuille vide ou URL incorrecte');
-      }
-      
-      const lines = csvText.split('\n').filter(line => line.trim());
-      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-      
-      cmds = lines.slice(1).map((line, index) => {
-        const values = line.split(',').map(v => v.replace(/"/g, '').trim());
-        return {
-          client: values[0] || '',
-          ref: values[1] || '',
-          date: values[2] || '',
-          pointDepart: values[3] || '',
-          pays: values[4] || '',
-          tonnes: parseFloat(values[5]) || 0,
-          immat: values[6] || '',
-          email: values[7] || '',
-          statut: values[8] || 'EN ATTENTE',
-          nbEmails: parseInt(values[9]) || 0,
-          derniereDateEmail: values[10] || null,
-          rowIndex: index + 2 // Pour mise à jour future
-        };
-      }).filter(c => c.ref && c.client);
-      
-      maj();
-      document.getElementById('totalInfo').innerHTML = `✅ ${cmds.length} lignes synchronisées | ${new Date().toLocaleString('fr-FR')}`;
-      
-    } catch(e) {
-      console.error('Erreur sync:', e);
-      document.getElementById('tab').innerHTML = `
-        <tr><td colspan="9" class="error-message">
-          ❌ Erreur connexion<br>
-          🔗 Vérifiez: <strong>${SHEET_ID}</strong><br>
-          📋 <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer">🔄 RETESSAYER</button>
-        </td></tr>
-      `;
-    } finally {
-      isSyncing = false;
-      document.getElementById('syncBtn').innerHTML = '🔄 SYNCHRO Sheets';
+    // ✅ VOTRE URL EXACTE QUI MARCHE
+    const PUB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQrwWrDyAlKC_m-sAIGBCyV_qHW2-sXNWxYQy_L9nDFSHV_PtelufAgncINivb1V3N74FIouefhXOuI/pub?gid=0&single=true&output=csv';
+    
+    const proxies = [
+      `https://api.allorigins.win/get?url=${encodeURIComponent(PUB_URL)}`,
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(PUB_URL)}`,
+      `https://corsproxy.io/?${encodeURIComponent(PUB_URL)}`,
+      `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(PUB_URL)}`
+    ];
+    
+    let csvText = null;
+    for (let proxy of proxies) {
+      try {
+        const response = await fetch(proxy);
+        if (response.ok) {
+          const data = await response.text();
+          if (data.includes('Feuille 1') || data.includes(',')) {
+            csvText = data;
+            break;
+          }
+        }
+      } catch(e) {}
+    }
+    
+    if (!csvText) throw new Error('Proxies échoués');
+    
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length < 2) throw new Error('Feuille vide');
+    
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    
+    cmds = lines.slice(1).map((line, index) => {
+      const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+      return {
+        client: values[0] || '',
+        ref: values[1] || '',
+        date: values[2] || '',
+        pointDepart: values[3] || '',
+        pays: values[4] || '',
+        tonnes: parseFloat(values[5]) || 0,
+        immat: values[6] || '',
+        email: values[7] || '',
+        statut: values[8] || 'EN ATTENTE',
+        nbEmails: parseInt(values[9]) || 0,
+        derniereDateEmail: values[10] || null,
+        rowIndex: index + 2
+      };
+    }).filter(c => c.ref && c.client);
+    
+    maj();
+    document.getElementById('totalInfo').innerHTML = `✅ ${cmds.length} commandes | ${new Date().toLocaleString('fr-FR')}`;
+    
+  } catch(e) {
+    document.getElementById('tab').innerHTML = `
+      <tr><td colspan="9" class="error-message">
+        ❌ ${e.message}<br>
+        <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:10px;border:none;border-radius:8px;cursor:pointer;">🔄 RETRY</button>
+      </td></tr>
+    `;
+  } finally {
+    isSyncing = false;
+    document.getElementById('syncBtn').innerHTML = '🔄 SYNCHRO';
     }
   }
 
