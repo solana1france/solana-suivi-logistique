@@ -665,9 +665,11 @@ Email: ${c.email}
     if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
       login();
     }
-       });  // 
-  </script>
- <script type="module">
+  });  // Sans espaces avant !
+
+</script>  <!-- FERME LE SCRIPT PRINCIPAL -->
+
+<script type="module">
   import { polyfillCountryFlagEmojis } from "https://cdn.skypack.dev/country-flag-emoji-polyfill";
   polyfillCountryFlagEmojis();
 </script>
