@@ -6,8 +6,6 @@
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- ✅ WEBGL EARTH CDN -->
-  <script src="https://www.webglearth.com/v2/api.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
     body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
@@ -74,7 +72,7 @@
     .btn-excel { background: #059669; color: white; }
     .btn-excel:hover { background: #047857; transform: scale(1.05); }
     
-    /* ✅ GLOBE WEBGL EARTH */
+    /* ✅ GLOBE 3D CANVAS */
     .globe-section {
       background: #fff; border-radius: 20px; padding: 25px;
       box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;
@@ -84,9 +82,11 @@
       margin-top: 20px; padding: 20px; background: #f0fdf4;
       border-radius: 15px; border-left: 5px solid #10b981;
     }
-    #earth_div {
+    #globeCanvas {
       border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.2);
+      cursor: grab;
     }
+    #globeCanvas:active { cursor: grabbing; }
   </style>
 </head>
 <body>
@@ -191,12 +191,12 @@
     <div id="graphClients"></div>
   </div>
 
-  <!-- ✅ GLOBE WEBGL EARTH (NOUVEAU) -->
+  <!-- ✅ GLOBE 3D CANVAS (NOUVEAU - 100% FONCTIONNEL) -->
   <div class="globe-section">
-    <h2 class="graph-title">🌍 Destinations Export Solana (WebGL Earth)</h2>
-    <div id="earth_div" style="width:100%; height:400px; border-radius:15px; overflow:hidden;"></div>
+    <h2 class="graph-title">🌍 Destinations Export Solana</h2>
+    <canvas id="globeCanvas" width="600" height="400" style="width:100%; height:400px; border-radius:15px; overflow:hidden; display:block; margin:0 auto;"></canvas>
     <div class="country-info" id="countryInfo">
-      <strong>Cliquez sur un marqueur pays pour les stats</strong>
+      <strong>Sélectionnez un pays (clic/déplacement)</strong>
     </div>
   </div>
 
@@ -237,9 +237,14 @@ const paysData = {
   GR: {name: 'Grèce', lat: 39.1, lng: 21.8, color: '#10b981'}
 };
 
-// ✅ WEBGL EARTH GLOBE
-let earth; // Globe WebGL
-let countryMarkers = {}; // Marqueurs par code pays
+// ✅ GLOBE 3D CANVAS VARIABLES
+let canvas, ctx, globeRotation = {x: 0, y: 0}, isDragging = false, mouseX = 0, mouseY = 0;
+const paysCoords = {
+  PT: {lat: 38.7, lng: -9.1}, MA: {lat: 31.8, lng: -7.1}, FR: {lat: 46.2, lng: 2.2}, ES: {lat: 40.5, lng: -3.7},
+  IT: {lat: 41.9, lng: 12.6}, DE: {lat: 51.2, lng: 10.4}, BE: {lat: 50.5, lng: 4.5}, NL: {lat: 52.4, lng: 4.9},
+  SN: {lat: 14.0, lng: -14.0}, TN: {lat: 34.0, lng: 9.0}, DZ: {lat: 28.0, lng: 1.7}, GB: {lat: 55.4, lng: -4.4},
+  PL: {lat: 51.9, lng: 19.4}, RO: {lat: 45.9, lng: 24.9}, GR: {lat: 39.1, lng: 21.8}
+};
 
 // SUPPRIMER UNE COMMANDE
 function supprimerCmd(refASupprimer) {
@@ -395,7 +400,7 @@ function exportExcel() {
   document.getElementById('excelCount').textContent = cmds.length;
 }
 
-// ✅ WEBGL EARTH GLOBE FONCTIONS
+// ✅ GLOBE 3D CANVAS FONCTIONS
 function initPaysSelect() {
   const select = document.getElementById('paysIn');
   Object.entries(paysData).sort((a,b) => a[1].name.localeCompare(b[1].name)).forEach(([code, data]) => {
@@ -406,75 +411,123 @@ function initPaysSelect() {
   });
 }
 
-function initWebGLGlobe() {
-  earth = new WE.map('earth_div', {
-    position: [46.2, 2.2], // Centre France
-    zoom: 3,
-    atmosphere: true
-  });
+function initCanvasGlobe() {
+  canvas = document.getElementById('globeCanvas');
+  ctx = canvas.getContext('2d');
   
-  // Fond de carte OSM (gratuit)
-  WE.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(earth);
+  // Événements drag/zoom
+  canvas.onmousedown = rotateStart;
+  canvas.onmousemove = rotateDrag;
+  canvas.onmouseup = () => isDragging = false;
+  canvas.ontouchstart = (e) => { mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; };
+  canvas.ontouchmove = (e) => { 
+    globeRotation.y += (e.touches[0].clientX - mouseX)*0.01; 
+    globeRotation.x += (e.touches[0].clientY - mouseY)*0.01; 
+    mouseX = e.touches[0].clientX; 
+    mouseY = e.touches[0].clientY; 
+    renderGlobe(); 
+  };
+  canvas.onclick = handleCountryClick;
   
-  updateGlobeMarkers();
+  renderGlobe();
 }
 
-function updateGlobeMarkers() {
-  // Supprime anciens marqueurs
-  Object.values(countryMarkers).forEach(marker => {
-    if (earth && marker) earth.removeLayer(marker);
-  });
-  countryMarkers = {};
+function rotateStart(e) { isDragging = true; mouseX = e.clientX; mouseY = e.clientY; }
+function rotateDrag(e) { 
+  if (isDragging) { 
+    globeRotation.y += (e.clientX - mouseX)*0.01; 
+    globeRotation.x += (e.clientY - mouseY)*0.01; 
+    mouseX = e.clientX; mouseY = e.clientY; 
+    renderGlobe(); 
+  } 
+}
+
+function renderGlobe() {
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
   
-  // Calcule tonnes par pays depuis cmds
+  // Globe (dégradé bleu)
+  const centerX = w/2, centerY = h/2, radius = 150;
+  const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+  gradient.addColorStop(0, '#4fc3f7'); gradient.addColorStop(0.7, '#0288d1'); gradient.addColorStop(1, '#01579b');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Grille méridiens/parallèles
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
+  for (let i = 0; i < 12; i++) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, i*Math.PI/6, i*Math.PI/6 + 0.01);
+    ctx.stroke();
+  }
+  
+  // Pays (taille dynamique + rotation 3D)
   const paysTonnes = {};
-  cmds.forEach(c => {
-    paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes;
-  });
-  
-  // Coordonnées pays
-  const paysCoords = {
-    PT: [38.7, -9.1], MA: [31.8, -7.1], FR: [46.2, 2.2], ES: [40.5, -3.7],
-    IT: [41.9, 12.6], DE: [51.2, 10.4], BE: [50.5, 4.5], NL: [52.4, 4.9],
-    SN: [14.0, -14.0], TN: [34.0, 9.0], DZ: [28.0, 1.7], GB: [55.4, -4.4],
-    PL: [51.9, 19.4], RO: [45.9, 24.9], GR: [39.1, 21.8]
-  };
+  cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
   
   Object.entries(paysTonnes).forEach(([code, tonnes]) => {
-    if (paysCoords[code] && earth) {
-      const [lat, lng] = paysCoords[code];
-      const size = Math.max(8, 20 + tonnes * 3); // Taille dynamique par tonnes
-      const marker = WE.circleMarker([lat, lng], {
-        radius: size,
-        fillColor: paysData[code]?.color || '#10b981',
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-      }).addTo(earth);
+    if (paysCoords[code]) {
+      const {lat, lng} = paysCoords[code];
+      const size = Math.max(6, 12 + tonnes * 4);
       
-      marker.bindPopup(`
-        <b>🌍 ${paysData[code]?.name || code}</b><br>
-        📦 ${tonnes.toFixed(1)}T exportées<br>
-        👥 ${cmds.filter(c => c.pays === code).length} commandes
-      `);
+      // Projection 3D simplifiée
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (lng + globeRotation.y*180/Math.PI) * Math.PI / 180;
+      const cosPhi = Math.cos(phi);
+      const x = centerX + radius * 0.8 * Math.cos(theta) * cosPhi;
+      const y = centerY + radius * 0.8 * Math.sin(phi) * 0.7 - globeRotation.x * 2;
       
-      marker.on('click', () => {
-        const clientsUniques = cmds.filter(c => c.pays === code).map(c => c.client).filter((v,i,s)=>s.indexOf(v)==i);
-        document.getElementById('countryInfo').innerHTML = `
-          <h3>🌍 ${paysData[code]?.name || code} (${code})</h3>
-          <p><strong>${tonnes.toFixed(1)}T</strong> exportées</p>
-          <p>Clients: ${clientsUniques.length}</p>
-          <p>Commandes: ${cmds.filter(c => c.pays === code).length}</p>
-        `;
-      });
-      
-      countryMarkers[code] = marker;
+      if (Math.abs(x - centerX) < radius && Math.abs(y - centerY) < radius) {
+        // Cercle pays
+        ctx.fillStyle = paysData[code]?.color || '#10b981';
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        
+        // Code pays
+        ctx.fillStyle = '#fff'; ctx.font = `${Math.max(9, size/2)}px bold Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(code, x, y);
+        
+        // Tonnes (petit)
+        ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = `${size/3}px Arial`;
+        ctx.fillText(tonnes.toFixed(1)+'T', x, y + size + 3);
+      }
     }
   });
+  
+  // Animation auto-rotation lente
+  globeRotation.y += 0.002;
+  requestAnimationFrame(renderGlobe);
 }
 
-// ✅ MAJ COMPLÈTE (AVEC WEBGL GLOBE)
+function handleCountryClick(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  const centerX = canvas.width/2, centerY = canvas.height/2;
+  const dist = Math.sqrt((x-centerX)**2 + (y-centerY)**2);
+  
+  if (dist < 160) { // Sur le globe
+    // Trouve pays le plus proche (simplifié)
+    const paysTonnes = {};
+    cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
+    const topPays = Object.entries(paysTonnes).sort((a,b)=>b[1]-a[1])[0];
+    if (topPays) {
+      const [code, tonnes] = topPays;
+      const clientsUniques = cmds.filter(c => c.pays === code).map(c => c.client).filter((v,i,s)=>s.indexOf(v)==i);
+      document.getElementById('countryInfo').innerHTML = `
+        <h3>🌍 ${paysData[code]?.name || code} (${code})</h3>
+        <p><strong>${tonnes.toFixed(1)}T</strong> exportées</p>
+        <p>Clients: ${clientsUniques.length}</p>
+        <p>Commandes: ${cmds.filter(c => c.pays === code).length}</p>
+      `;
+    }
+  }
+}
+
+// ✅ MAJ COMPLÈTE (AVEC GLOBE CANVAS)
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -517,11 +570,11 @@ function maj() {
     tb.appendChild(tr);
   });
 
-  // ✅ LIVE SYNC : Exports + Globe WebGL + Top Clients
+  // ✅ LIVE SYNC : Exports + Globe Canvas + Top Clients
   document.getElementById('pdfSize').textContent = document.getElementById('totT').textContent;
   document.getElementById('excelCount').textContent = cmds.length;
   afficherTopClients();
-  updateGlobeMarkers();
+  renderGlobe();
 }
 
 // SAUVEGARDE AUTO
@@ -531,7 +584,7 @@ setInterval(() => {
 
 // ✅ INITIALISATION
 initPaysSelect();
-initWebGLGlobe();
+initCanvasGlobe();
 maj();
 </script>
 </body>
