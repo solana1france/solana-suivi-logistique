@@ -432,23 +432,44 @@ function initCanvasGlobe() {
   canvas = document.getElementById('globeCanvas');
   ctx = canvas.getContext('2d');
 
-  const dpr  = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  // ✅ Attendre que le canvas ait une taille
+  function tryInit() {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      
+      // Événements
+      canvas.onmousedown = rotateStart;
+      canvas.onmousemove = rotateDrag;
+      canvas.onmouseup = () => isDragging = false;
+      canvas.onclick = handleCountryClick;
+      
+      renderGlobe();
+      console.log('✅ Globe initialisé:', rect.width, 'x', rect.height);
+    } else {
+      // Retry après 100ms
+      setTimeout(tryInit, 100);
+    }
+  }
+  
+  tryInit();
 
-  canvas.onmousedown = rotateStart;
-  canvas.onmousemove = rotateDrag;
-  canvas.onmouseup = () => isDragging = false;
-  canvas.ontouchstart = (e) => { mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; };
-  canvas.ontouchmove = (e) => {
-    globeRotation.y += (e.touches[0].clientX - mouseX)*0.01;
-    globeRotation.x += (e.touches[0].clientY - mouseY)*0.01;
-    mouseX = e.touches[0].clientX;
-    mouseY = e.touches[0].clientY;
-    renderGlobe();
-  };
+  // Resize
+  window.addEventListener('resize', () => {
+    const r = canvas.getBoundingClientRect();
+    const d = window.devicePixelRatio || 1;
+    if (r.width > 0 && r.height > 0) {
+      canvas.width = r.width * d;
+      canvas.height = r.height * d;
+      ctx.scale(d, d);
+      renderGlobe();
+    }
+  });
+}
+
   canvas.onclick = handleCountryClick;
 
   renderGlobe();
