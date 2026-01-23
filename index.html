@@ -364,10 +364,10 @@
   });
   
   // ✅ OUVRE GMAIL PRE-REMPLI
-  const sujet = `✅ CHARGÉE - ${c.ref} ${c.tonnes.toFixed(2)}T`;
+  const sujet = ` CHARGÉE - ${c.ref} ${c.tonnes.toFixed(2)}T`;
   const message = `Bonjour ${c.client},
 
-✅ COMMANDE CHARGÉE !
+ COMMANDE CHARGÉE !!!!
 
 REF: ${c.ref}
 Client: ${c.client}
@@ -380,13 +380,13 @@ Email: ${c.email}
 
 Livraison confirmée !
 
-Cordialement,
-Solana France Logistique`;
+Cordialement
+;
 
   const mailto = `mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`;
   window.open(mailto, '_blank');
 }
-}
+
 
   // SUPPRIMER
   async function supprimerCmd(ref) {
