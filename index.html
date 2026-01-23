@@ -229,6 +229,22 @@
   
   let cmds = [];
 
+  // ✅ EMOJIS PAYS - AJOUTÉ MANQUANT
+  const paysEmojis = {
+    SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
+    ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
+    GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷', FR: '🇫🇷'
+  };
+
+  // 🌐 NOMS PAYS
+  const paysNoms = {
+    SN: 'Sénégal 🇸🇳', PT: 'Portugal 🇵🇹', MA: 'Maroc 🇲🇦',
+    TN: 'Tunisie 🇹🇳', DZ: 'Algérie 🇩🇿', ES: 'Espagne 🇪🇸',
+    IT: 'Italie 🇮🇹', DE: 'Allemagne 🇩🇪', BE: 'Belgique 🇧🇪',
+    NL: 'Pays-Bas 🇳🇱', GB: 'Royaume-Uni 🇬🇧', PL: 'Pologne 🇵🇱',
+    RO: 'Roumanie 🇷🇴', GR: 'Grèce 🇬🇷', FR: 'France 🇫🇷'
+  };
+
   // ✅ SAVE CMD - AVEC DEBUG COMPLET
   async function saveCmd(cmd) {
     try {
@@ -413,26 +429,7 @@ Email: ${c.email}
     } catch(e) {}
   }
 
-  // 🗺️ NOUVELLE CARTE SIMPLIFIÉE STYLE SHOPIFY
- const paysNoms = {  // ← Renommé clair
-  SN: 'Sénégal 🇸🇳',
-  PT: 'Portugal 🇵🇹', 
-  MA: 'Maroc 🇲🇦',
-  TN: 'Tunisie 🇹🇳',
-  DZ: 'Algérie 🇩🇿',
-  ES: 'Espagne 🇪🇸',
-  IT: 'Italie 🇮🇹',
-  DE: 'Allemagne 🇩🇪',
-  BE: 'Belgique 🇧🇪',
-  NL: 'Pays-Bas 🇳🇱',
-  GB: 'Royaume-Uni 🇬🇧',
-  PL: 'Pologne 🇵🇱',
-  RO: 'Roumanie 🇷🇴',
-  GR: 'Grèce 🇬🇷',
-  FR: 'France 🇫🇷'
-};
-
-
+  // 🗺️ CARTE SIMPLIFIÉE STYLE SHOPIFY
   function afficherCarteShopify() {
     const grid = document.getElementById('mapGrid');
     const paysTonnes = {};
@@ -534,7 +531,7 @@ Email: ${c.email}
     }
   }
 
-  // LOGIN + autres fonctions identiques...
+  // LOGIN
   function login() {
     if (document.getElementById('loginPassword').value === 'solana123') {
       document.getElementById('loginScreen').style.display = 'none';
@@ -563,7 +560,7 @@ Email: ${c.email}
     }
   }
 
-  // TOP CLIENTS (identique)
+  // TOP CLIENTS
   function afficherTopClients() {
     const clients = {};
     cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
@@ -593,7 +590,7 @@ Email: ${c.email}
     });
   }
 
-  // EXPORT EXCEL (identique)
+  // EXPORT EXCEL
   function exportExcel() {
     const wb = XLSX.utils.book_new();
     const ws_data = cmds.map(c => ({
@@ -652,35 +649,33 @@ Email: ${c.email}
           </tr>
         `;
       }).join('');
-      
-      notificationsUniverSel(cmds.find(c => c.statut === 'CHARGÉE'));
     }
     
     afficherTopClients();
-    afficherCarteShopify(); // ✅ NOUVEAU !
+    afficherCarteShopify();
   }
 
   // INIT
-window.addEventListener('load', () => {
-  document.getElementById('loginPassword').focus();
-  
-  const select = document.getElementById('paysIn');
-Object.keys(paysNoms).sort().forEach(code => {
-  const option = document.createElement('option');
-  option.value = code;
-  option.textContent = paysNoms[code];  // ← "Sénégal 🇸🇳" parfait !
-  select.appendChild(option);
-});
+  window.addEventListener('load', () => {
+    document.getElementById('loginPassword').focus();
+    
+    const select = document.getElementById('paysIn');
+    Object.keys(paysNoms).sort().forEach(code => {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = paysNoms[code];
+      select.appendChild(option);
+    });
 
-  document.getElementById('dateIn').valueAsDate = new Date();
-});
+    document.getElementById('dateIn').valueAsDate = new Date();
+  });
 
-document.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-    login();
-  }
-});
-
+  document.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+      login();
+    }
+  });
 </script>
 </body>
 </html>
+
