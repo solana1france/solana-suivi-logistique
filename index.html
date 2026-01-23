@@ -354,13 +354,38 @@
   // ✅ BUG 2 FIXÉ - confirmerEmail() avec bons noms de colonnes
   function confirmerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
-  if (!confirm(`📧 Confirmer CHARGÉE pour ${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T ?`)) return;
+  if (!confirm(`📧 Ouvrir email pour ${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T ?`)) return;
   
+  // ✅ MARQUE CHARGÉE en DB
   updateCmd(ref, {
-    nb_emails: (parseInt(c.nb_emails) || 0) + 1,  // ✅ nb_emails int
+    nb_emails: (parseInt(c.nb_emails) || 0) + 1,
     derniere_date_email: new Date().toLocaleDateString('fr-FR'),
     statut: 'CHARGÉE'
   });
+  
+  // ✅ OUVRE GMAIL PRE-REMPLI
+  const sujet = `✅ CHARGÉE - ${c.ref} ${c.tonnes.toFixed(2)}T`;
+  const message = `Bonjour ${c.client},
+
+✅ COMMANDE CHARGÉE !
+
+REF: ${c.ref}
+Client: ${c.client}
+Date: ${c.date}
+Départ: ${c.point_depart}
+Destination: ${c.pays}
+Tonnes: ${c.tonnes.toFixed(2)}T
+Camion: ${c.immat || 'N/A'}
+Email: ${c.email}
+
+Livraison confirmée !
+
+Cordialement,
+Solana France Logistique`;
+
+  const mailto = `mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`;
+  window.open(mailto, '_blank');
+}
 }
 
   // SUPPRIMER
