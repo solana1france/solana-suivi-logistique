@@ -6,6 +6,9 @@
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- ✅ Librairie Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
     body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
@@ -71,13 +74,22 @@
     .btn-pdf:hover { background: #b91c1c; transform: scale(1.05); }
     .btn-excel { background: #059669; color: white; }
     .btn-excel:hover { background: #047857; transform: scale(1.05); }
-    
+
     /* ✅ GLOBE 3D CANVAS */
     .globe-section {
       background: #fff; border-radius: 20px; padding: 25px;
       box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;
       text-align: center;
     }
+
+    /* ✅ Correctif taille canvas */
+    .globe-section canvas {
+      width: 100% !important;
+      height: 400px !important;
+      min-height: 350px;
+      display: block;
+    }
+
     .country-info {
       margin-top: 20px; padding: 20px; background: #f0fdf4;
       border-radius: 15px; border-left: 5px solid #10b981;
@@ -191,10 +203,10 @@
     <div id="graphClients"></div>
   </div>
 
-  <!-- ✅ GLOBE 3D CANVAS (MODIFIÉ - SANS width/height fixes) -->
+  <!-- ✅ GLOBE 3D CORRIGÉ -->
   <div class="globe-section">
     <h2 class="graph-title">🌍 Destinations Export Solana</h2>
-    <canvas id="globeCanvas"></canvas>
+    <canvas id="globeCanvas" style="width:100%; height:400px; display:block;"></canvas>
     <div class="country-info" id="countryInfo">
       <strong>Sélectionnez un pays (clic/déplacement)</strong>
     </div>
@@ -218,7 +230,7 @@
 // DATA PERSISTANTE
 let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
 
-// ✅ DONNÉES PAYS GLOBE (+50 pays export agro)
+// ✅ DONNÉES PAYS GLOBE
 const paysData = {
   PT: {name: 'Portugal', lat: 38.7, lng: -9.1, color: '#10b981'},
   MA: {name: 'Maroc', lat: 31.8, lng: -7.1, color: '#f59e0b'},
@@ -272,7 +284,7 @@ function afficherTopClients() {
   const container = document.getElementById('graphClients');
   container.innerHTML = '';
   const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
-  
+
   topClients.forEach(([client, tonnes], index) => {
     const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
     const div = document.createElement('div');
@@ -364,39 +376,44 @@ ${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}`;
 async function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  
+
   // Header
   doc.setFontSize(20);
   doc.text('🚚 Solana France - Rapport Logistique', 20, 20);
   doc.setFontSize(12);
   doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 20, 35);
   doc.text(`Total: ${document.getElementById('totT').textContent}`, 20, 45);
-  
+
   // KPI
   doc.text('📊 KPI', 20, 65);
   doc.text(`En attente: ${document.getElementById('att').textContent}`, 30, 75);
   doc.text(`Chargées: ${document.getElementById('cha').textContent}`, 30, 85);
-  
+
   // Top Clients (canvas)
   const clientsCanvas = await html2canvas(document.getElementById('topClientsSection'));
   const imgData = clientsCanvas.toDataURL('image/png');
   doc.addImage(imgData, 'PNG', 20, 100, 170, 120);
-  
+
   doc.save(`Solana-Rapport-${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-// ✅ EXPORT EXCEL (CSV)
+// ✅ EXPORT EXCEL XLSX
 function exportExcel() {
-  let csv = 'Client,Réf,Date,Point départ,Pays,Tonnes,Immat,Statut,Emails\n';
-  cmds.forEach(c => {
-    csv += `"${c.client}","${c.ref}","${c.date}","${c.pointDepart}","${c.pays}",${c.tonnes},"${c.immat}","${c.statut}",${c.nbEmails}\n`;
-  });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Solana-Donnees-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+  const wb = XLSX.utils.book_new();
+  const ws_data = cmds.map(c => ({
+    Client: c.client,
+    'Réf': c.ref,
+    Date: c.date,
+    'Point départ': c.pointDepart,
+    Pays: c.pays,
+    Tonnes: c.tonnes,
+    Immat: c.immat,
+    Statut: c.statut,
+    Emails: c.nbEmails
+  }));
+  const ws = XLSX.utils.json_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, "Solana Export");
+  XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
   document.getElementById('excelCount').textContent = cmds.length;
 }
 
@@ -415,30 +432,27 @@ function initCanvasGlobe() {
   canvas = document.getElementById('globeCanvas');
   ctx = canvas.getContext('2d');
 
-  // ✅ AJOUT : forcer une vraie taille au canvas
   const dpr  = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
   canvas.width  = rect.width  * dpr;
   canvas.height = rect.height * dpr;
   ctx.scale(dpr, dpr);
-  
-  // Événements drag/zoom
+
   canvas.onmousedown = rotateStart;
   canvas.onmousemove = rotateDrag;
   canvas.onmouseup = () => isDragging = false;
   canvas.ontouchstart = (e) => { mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; };
-  canvas.ontouchmove = (e) => { 
-    globeRotation.y += (e.touches[0].clientX - mouseX)*0.01; 
-    globeRotation.x += (e.touches[0].clientY - mouseY)*0.01; 
-    mouseX = e.touches[0].clientX; 
-    mouseY = e.touches[0].clientY; 
-    renderGlobe(); 
+  canvas.ontouchmove = (e) => {
+    globeRotation.y += (e.touches[0].clientX - mouseX)*0.01;
+    globeRotation.x += (e.touches[0].clientY - mouseY)*0.01;
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+    renderGlobe();
   };
   canvas.onclick = handleCountryClick;
-  
+
   renderGlobe();
 
-  // ✅ AJOUT : Resize handler
   window.addEventListener('resize', () => {
     const r = canvas.getBoundingClientRect();
     const d = window.devicePixelRatio || 1;
@@ -450,20 +464,19 @@ function initCanvasGlobe() {
 }
 
 function rotateStart(e) { isDragging = true; mouseX = e.clientX; mouseY = e.clientY; }
-function rotateDrag(e) { 
-  if (isDragging) { 
-    globeRotation.y += (e.clientX - mouseX)*0.01; 
-    globeRotation.x += (e.clientY - mouseY)*0.01; 
-    mouseX = e.clientX; mouseY = e.clientY; 
-    renderGlobe(); 
-  } 
+function rotateDrag(e) {
+  if (isDragging) {
+    globeRotation.y += (e.clientX - mouseX)*0.01;
+    globeRotation.x += (e.clientY - mouseY)*0.01;
+    mouseX = e.clientX; mouseY = e.clientY;
+    renderGlobe();
+  }
 }
 
 function renderGlobe() {
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0, 0, w, h);
-  
-  // Globe (dégradé bleu)
+
   const centerX = w/2, centerY = h/2, radius = 150;
   const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
   gradient.addColorStop(0, '#4fc3f7'); gradient.addColorStop(0.7, '#0288d1'); gradient.addColorStop(1, '#01579b');
@@ -471,51 +484,44 @@ function renderGlobe() {
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI*2);
   ctx.fill();
-  
-  // Grille méridiens/parallèles
+
   ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1;
   for (let i = 0; i < 12; i++) {
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, i*Math.PI/6, i*Math.PI/6 + 0.01);
     ctx.stroke();
   }
-  
-  // Pays (taille dynamique + rotation 3D)
+
   const paysTonnes = {};
   cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
-  
+
   Object.entries(paysTonnes).forEach(([code, tonnes]) => {
     if (paysCoords[code]) {
       const {lat, lng} = paysCoords[code];
       const size = Math.max(6, 12 + tonnes * 4);
-      
-      // Projection 3D simplifiée
+
       const phi = (90 - lat) * Math.PI / 180;
       const theta = (lng + globeRotation.y*180/Math.PI) * Math.PI / 180;
       const cosPhi = Math.cos(phi);
       const x = centerX + radius * 0.8 * Math.cos(theta) * cosPhi;
       const y = centerY + radius * 0.8 * Math.sin(phi) * 0.7 - globeRotation.x * 2;
-      
+
       if (Math.abs(x - centerX) < radius && Math.abs(y - centerY) < radius) {
-        // Cercle pays
         ctx.fillStyle = paysData[code]?.color || '#10b981';
         ctx.beginPath();
         ctx.arc(x, y, size, 0, Math.PI*2);
         ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-        
-        // Code pays
+
         ctx.fillStyle = '#fff'; ctx.font = `${Math.max(9, size/2)}px bold Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(code, x, y);
-        
-        // Tonnes (petit)
+
         ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = `${size/3}px Arial`;
         ctx.fillText(tonnes.toFixed(1)+'T', x, y + size + 3);
       }
     }
   });
-  
-  // Animation auto-rotation lente
+
   globeRotation.y += 0.002;
   requestAnimationFrame(renderGlobe);
 }
@@ -525,9 +531,8 @@ function handleCountryClick(e) {
   const x = e.clientX - rect.left, y = e.clientY - rect.top;
   const centerX = canvas.width/2, centerY = canvas.height/2;
   const dist = Math.sqrt((x-centerX)**2 + (y-centerY)**2);
-  
-  if (dist < 160) { // Sur le globe
-    // Trouve pays le plus proche (simplifié)
+
+  if (dist < 160) {
     const paysTonnes = {};
     cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
     const topPays = Object.entries(paysTonnes).sort((a,b)=>b[1]-a[1])[0];
@@ -544,7 +549,7 @@ function handleCountryClick(e) {
   }
 }
 
-// ✅ MAJ COMPLÈTE (AVEC GLOBE CANVAS)
+// ✅ MAJ COMPLÈTE
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -558,21 +563,21 @@ function maj() {
 
   const tb = document.getElementById('tab');
   tb.innerHTML = '';
-  
+
   cmds.forEach(c => {
     const tr = document.createElement('tr');
     tr.className = c.statut === 'CHARGÉE' ? 'chargee' : '';
-    
-    const statutText = c.statut === 'CHARGÉE' ? 
-      `CHARGÉE (${c.nbEmails} email${c.nbEmails > 1 ? 's' : ''}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : 
+
+    const statutText = c.statut === 'CHARGÉE' ?
+      `CHARGÉE (${c.nbEmails} email${c.nbEmails > 1 ? 's' : ''}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` :
       'EN ATTENTE';
-    
-    const btnConfirmer = c.statut === 'EN ATTENTE' ? 
-      `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')" title="Confirmer & Email">✅ CONFIRMER</button>` : 
+
+    const btnConfirmer = c.statut === 'EN ATTENTE' ?
+      `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')" title="Confirmer & Email">✅ CONFIRMER</button>` :
       `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')" title="Renvoyer email">📧 RENVERSER</button>`;
-    
+
     const btnSupprimer = `<button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')" title="Supprimer cette commande">🗑️ SUPPR</button>`;
-    
+
     tr.innerHTML = `
       <td><b>${c.client}</b></td>
       <td>${c.ref}</td>
@@ -587,7 +592,6 @@ function maj() {
     tb.appendChild(tr);
   });
 
-  // ✅ LIVE SYNC : Exports + Globe Canvas + Top Clients
   document.getElementById('pdfSize').textContent = document.getElementById('totT').textContent;
   document.getElementById('excelCount').textContent = cmds.length;
   afficherTopClients();
@@ -606,4 +610,5 @@ maj();
 </script>
 </body>
 </html>
+
 
