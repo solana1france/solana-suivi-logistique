@@ -333,59 +333,64 @@
     }
   }
 
-  // ✅ FONCTION EMAIL COMPLÈTEMENT CORRIGÉE
+  // 🌐 UNIVERSEL MOBILE/PC + EMAIL AUTO - NOUVELLE FONCTION REMPLACÉE COMPLETEMENT
   async function confirmerEmail(ref) {
     const c = cmds.find(x => x.ref === ref);
-    if (!c) {
-      alert('❌ Commande non trouvée');
-      return;
-    }
+    if (!c) return alert('❌ Commande introuvable');
 
-    // Confirmation
-    if (!confirm(`📧 Confirmer envoi email pour:\n${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T\n\nOuvrir Gmail ?`)) {
-      return;
-    }
+    if (!confirm(`🚚 ${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T\n\n📧 Ouvrir email + notif ?`)) return;
 
-    // 1. UPDATE SUPABASE D'ABORD
-    const updates = {
+    // 1️⃣ UPDATE SUPABASE
+    await updateCmd(ref, {
       nb_emails: (parseInt(c.nb_emails || 0) + 1),
       derniere_date_email: new Date().toLocaleDateString('fr-FR'),
       statut: 'CHARGÉE'
-    };
+    });
 
-    await updateCmd(ref, updates);
-
-    // 2. OUVRIR EMAIL PRE-REMPLI
-    const sujet = encodeURIComponent(`✅ CHARGÉE - ${c.ref} - ${c.tonnes.toFixed(2)}T`);
-    
+    // 2️⃣ OUVRIR EMAIL
+    const sujet = `✅ CHARGÉE - ${c.ref} - ${c.tonnes.toFixed(2)}T`;
     const message = `Bonjour ${c.client},
 
-🎉 COMMANDE CHARGÉE ET PRÊTE À PARTIR ! 🎉
+🚚 COMMANDE CHARGÉE !
 
-📋 DÉTAILS DE VOTRE COMMANDE :
-──────────────────────────────
-REF: ${c.ref}
-Client: ${c.client}
-Date: ${c.date}
-Point départ: ${c.point_depart}
-Destination: ${c.pays}
-Tonnes: ${c.tonnes.toFixed(2)}T
-Camion: ${c.immat || 'Non spécifié'}
-Email: ${c.email}
+REF: ${c.ref} | ${c.tonnes.toFixed(2)}T | ${c.pays}
+Camion: ${c.immat || 'N/A'}
 
-✅ Statut: LIVRAISON CONFIRMÉE
-📧 Cet email a été envoyé automatiquement
+Cordialement, Solana France`;
 
-Cordialement,
-L'équipe Solana France
-Export Logistique`;
+    window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
 
-    const mailto = `mailto:${c.email}?subject=${sujet}&body=${encodeURIComponent(message)}`;
+    // 3️⃣ NOTIF UNIVERSELLE
+    setTimeout(() => notificationsUniverSel(c), 500);
+  }
+
+  // 🔥 NOUVELLE FONCTION UNIVERSELLE
+  function notificationsUniverSel(c) {
+    // 📱 MOBILE : Vibration + Titre
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+      document.title = `🚚 ${c.ref} CHARGÉE !`;
+      setTimeout(() => document.title = 'Solana Dashboard', 3000);
+    }
     
-    // Ouvrir dans nouvel onglet
-    window.open(mailto, '_blank');
+    // 💻 PC : Notifications web
+    if (typeof Notification !== 'undefined') {
+      if (Notification.permission === 'granted') {
+        new Notification('🚚 CHARGEMENT OK !', {
+          body: `${c.client} - ${c.tonnes.toFixed(1)}T → ${c.pays}`,
+          icon: '🚛'
+        });
+      } else if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
     
-    console.log('📧 Email ouvert pour:', c.ref);
+    // 🎵 SON (tous appareils)
+    try {
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVKMbF1fdJivrJBhNjV');
+      audio.volume = 0.3;
+      audio.play().catch(() => {});
+    } catch(e) {}
   }
 
   // SUPPRIMER
@@ -594,7 +599,7 @@ Export Logistique`;
     XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  // MAJ COMPLÈTE
+  // MAJ COMPLÈTE - AVEC LA LIGNE AJOUTÉE
   function maj() {
     const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
     const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -633,7 +638,9 @@ Export Logistique`;
           </tr>
         `;
       }).join('');
-      notificationsPush();
+      
+      // 📱 + AJOUTÉ DANS maj() : notificationsUniverSel pour les chargées
+      notificationsUniverSel(cmds.find(c => c.statut === 'CHARGÉE'));
     }
     
     afficherTopClients();
@@ -660,28 +667,7 @@ Export Logistique`;
       login();
     }
   });
-  function notificationsPush() {
-  if (Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-  
-  // 🚚 Nouvelle commande chargée aujourd'hui
-  const nouvellesChargees = cmds.filter(c => 
-    c.statut === 'CHARGÉE' && 
-    c.derniere_date_email === new Date().toLocaleDateString('fr-FR')
-  );
-  
-  nouvellesChargees.forEach(c => {
-    if (Notification.permission === 'granted') {
-      new Notification('🚚 CHARGEMENT CONFIRMÉ !', {
-        body: `${c.client} - ${c.ref} (${c.tonnes.toFixed(1)}T)`,
-        icon: '📦',
-        badge: '🚛',
-        tag: 'solana-chargement'
-      });
-    }
-  });
-}
 </script>
 </body>
 </html>
+
