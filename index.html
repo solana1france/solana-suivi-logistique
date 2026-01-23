@@ -211,27 +211,31 @@
   
   let cmds = [];
 
-  // SAUVEGARDE AUTO SUPABASE
+  // ✅ BUG 1 FIXÉ - saveCmd() avec debug complet
   async function saveCmd(cmd) {
-  try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify([cmd])  // ← ARRAY [cmd] obligatoire !
-    });
-    if (!res.ok) {
+    try {
+      console.log('Envoi:', cmd);  // DEBUG
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify([cmd])
+      });
       const errorText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errorText}`);
+      console.log('Réponse Supabase:', res.status, errorText);  // DEBUG
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      console.log('✅ INSERT OK');
+    } catch(e) {
+      console.error('ERREUR DÉTAILLÉE:', e);
+      alert('❌ HTTP ' + e.message);
     }
-  } catch(e) {
-    alert('❌ Erreur: ' + e.message);
   }
-}
 
   // CHARGEMENT LIVE SUPABASE
   async function loadCmds() {
@@ -258,34 +262,33 @@
 
   // AJOUT AUTO-SYNC SUPABASE
   async function ajouterCmd(e) {
-  e.preventDefault();
-  const n = {
-    client: document.getElementById('clientIn').value.trim(),
-    ref: document.getElementById('refIn').value.trim(),
-    date: document.getElementById('dateIn').value,
-    point_depart: document.getElementById('pointDepart').value.trim(),  // ← point_depart
-    pays: document.getElementById('paysIn').value,
-    tonnes: parseFloat(document.getElementById('tonnesIn').value),
-    immat: document.getElementById('immatIn').value.trim(),  // ← immat
-    email: document.getElementById('emailIn').value.trim(),
-    statut: 'EN ATTENTE',  // ← statut
-    nb_emails: 0,  // ← nb_emails (nombre)
-    derniere_date_email: null  // ← derniere_date_email
-  };
-  
-  if (cmds.find(c => c.ref === n.ref)) {
-    alert('⚠️ Référence DUPLIQUÉE !');
-    return;
+    e.preventDefault();
+    const n = {
+      client: document.getElementById('clientIn').value.trim(),
+      ref: document.getElementById('refIn').value.trim(),
+      date: document.getElementById('dateIn').value,
+      point_depart: document.getElementById('pointDepart').value.trim(),
+      pays: document.getElementById('paysIn').value,
+      tonnes: parseFloat(document.getElementById('tonnesIn').value),
+      immat: document.getElementById('immatIn').value.trim(),
+      email: document.getElementById('emailIn').value.trim(),
+      statut: 'EN ATTENTE',
+      nb_emails: 0,
+      derniere_date_email: null
+    };
+    
+    if (cmds.find(c => c.ref === n.ref)) {
+      alert('⚠️ Référence DUPLIQUÉE !');
+      return;
+    }
+    
+    await saveCmd(n);
+    await loadCmds();
+    maj();
+    e.target.reset();
+    document.getElementById('dateIn').valueAsDate = new Date();
+    alert('✅ AUTO-SYNC MULTI-TÉLÉPHONES ! ☁️');
   }
-  
-  await saveCmd(n);  // Passe à saveCmd
-  await loadCmds();
-  maj();
-  e.target.reset();
-  document.getElementById('dateIn').valueAsDate = new Date();
-  alert('✅ AUTO-SYNC MULTI-TÉLÉPHONES ! ☁️');
-}
-
 
   // SYNCHRO = Refresh live Supabase
   async function synchroniserSheets() {
@@ -294,7 +297,7 @@
     maj();
   }
 
-  // UPDATE statut/email Supabase
+  // ✅ BUG 2 FIXÉ - updateCmd avec array + ref
   async function updateCmd(ref, updates) {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
@@ -304,7 +307,7 @@
           'Authorization': `Bearer ${SUPABASE_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify([{ref: ref, ...updates}])
       });
       await loadCmds();
     } catch(e) {
@@ -342,14 +345,14 @@
     }
   }
 
-  // CONFIRMER EMAIL
+  // ✅ BUG 2 FIXÉ - confirmerEmail() avec bons noms de colonnes
   function confirmerEmail(ref) {
     const c = cmds.find(x => x.ref === ref);
     if (!confirm(`📧 ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
     
     updateCmd(ref, {
-      nbEmails: c.nbEmails + 1,
-      derniereDateEmail: new Date().toLocaleDateString('fr-FR'),
+      nb_emails: (c.nb_emails || 0) + 1,
+      derniere_date_email: new Date().toLocaleDateString('fr-FR'),
       statut: 'CHARGÉE'
     });
   }
@@ -509,25 +512,25 @@
     }
   }
 
-  // EXPORT EXCEL
+  // EXPORT EXCEL ✅ FIXÉ noms colonnes
   function exportExcel() {
     const wb = XLSX.utils.book_new();
     const ws_data = cmds.map(c => ({
-      Client: c.client, 'Réf': c.ref, Date: c.date, 'Point départ': c.pointDepart,
+      Client: c.client, 'Réf': c.ref, Date: c.date, 'Point départ': c.point_depart,
       Pays: c.pays, Tonnes: c.tonnes, Immatriculation: c.immat,
-      Statut: c.statut, 'Nb Emails': c.nbEmails, 'Dernier email': c.derniereDateEmail || ''
+      Statut: c.statut, 'Nb Emails': c.nb_emails, 'Dernier email': c.derniere_date_email || ''
     }));
     const ws = XLSX.utils.json_to_sheet(ws_data);
     XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
     XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  // MAJ INTERFACE
+  // ✅ BUG 2 FIXÉ - maj() avec nb_emails + table HTML corrigée
   function maj() {
     const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
     const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
     const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
-    const totalEmails = cmds.reduce((s,c) => s + c.nbEmails, 0);
+    const totalEmails = cmds.reduce((s,c) => s + (c.nb_emails || 0), 0);
 
     document.getElementById('totT').innerHTML = tot.toFixed(1) + ' T';
     document.getElementById('att').textContent = att;
@@ -542,7 +545,7 @@
     } else {
       tb.innerHTML = cmds.map(c => {
         const statutText = c.statut === 'CHARGÉE' ? 
-          `✅ CHARGÉE (${c.nbEmails}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : '⏳ EN ATTENTE';
+          `✅ CHARGÉE (${c.nb_emails}${c.derniere_date_email ? ` - ${c.derniere_date_email}` : ''})` : '⏳ EN ATTENTE';
         const btnConfirmer = c.statut === 'EN ATTENTE' ? 
           `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CHARGER</button>` :
           `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENV</button>`;
@@ -552,7 +555,7 @@
             <td><b>${c.client}</b></td>
             <td>${c.ref}</td>
             <td>${c.date}</td>
-            <td>${c.pointDepart}</td>
+            <td>${c.point_depart}</td>
             <td>${c.pays}</td>
             <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
             <td>${c.immat || '-'}</td>
@@ -590,4 +593,5 @@
 </script>
 </body>
 </html>
+
 
