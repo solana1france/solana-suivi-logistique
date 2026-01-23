@@ -368,12 +368,19 @@
     const sujet = `✅ CHARGÉE - ${c.ref} - ${c.tonnes.toFixed(2)}T`;
     const message = `Bonjour ${c.client},
 
-🚚 COMMANDE CHARGÉE !
+🎉 COMMANDE CHARGÉE ET PRÊTE À PARTIR ! 🎉
+📋 DÉTAILS DE VOTRE COMMANDE :
+──────────────────────────────
+REF: ${c.ref}
 
-REF: ${c.ref} | ${c.tonnes.toFixed(2)}T | ${c.pays}
-Camion: ${c.immat || 'N/A'}
+Point départ: ${c.point_depart}
+Destination: ${c.pays}
+Tonnes: ${c.tonnes.toFixed(2)}T
+Camion: ${c.immat || 'Non spécifié'}
+Email: ${c.email}
 
-Cordialement, Solana France`;
+✅ Statut: LIVRAISON CONFIRMÉE
+📧 Cet email a été envoyé automatiquement`;
 
     window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
 
