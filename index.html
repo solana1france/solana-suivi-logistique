@@ -665,7 +665,11 @@ Email: ${c.email}
     if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
       login();
     }
-  });
+  <script src="https://cdn.jsdelivr.net/npm/country-flag-emoji@2.2.1/dist/index.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  CountryFlagEmojiPolyfill.init();
+});
 </script>
 </body>
 </html>
