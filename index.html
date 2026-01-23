@@ -414,23 +414,24 @@ Email: ${c.email}
   }
 
   // 🗺️ NOUVELLE CARTE SIMPLIFIÉE STYLE SHOPIFY
- const paysEmojis = {
-  SN: '<img src="https://flagcdn.com/w20/sn.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Sénégal',
-  PT: '<img src="https://flagcdn.com/w20/pt.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Portugal',
-  MA: '<img src="https://flagcdn.com/w20/ma.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Maroc',
-  TN: '<img src="https://flagcdn.com/w20/tn.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Tunisie',
-  DZ: '<img src="https://flagcdn.com/w20/dz.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Algérie',
-  ES: '<img src="https://flagcdn.com/w20/es.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Espagne',
-  IT: '<img src="https://flagcdn.com/w20/it.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Italie',
-  DE: '<img src="https://flagcdn.com/w20/de.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Allemagne',
-  BE: '<img src="https://flagcdn.com/w20/be.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Belgique',
-  NL: '<img src="https://flagcdn.com/w20/nl.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Pays-Bas',
-  GB: '<img src="https://flagcdn.com/w20/gb.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Royaume-Uni',
-  PL: '<img src="https://flagcdn.com/w20/pl.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Pologne',
-  RO: '<img src="https://flagcdn.com/w20/ro.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Roumanie',
-  GR: '<img src="https://flagcdn.com/w20/gr.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> Grèce',
-  FR: '<img src="https://flagcdn.com/w20/fr.png" style="vertical-align:middle;width:20px;height:15px;margin-right:4px"> France'
+ const paysNoms = {  // ← Renommé clair
+  SN: 'Sénégal 🇸🇳',
+  PT: 'Portugal 🇵🇹', 
+  MA: 'Maroc 🇲🇦',
+  TN: 'Tunisie 🇹🇳',
+  DZ: 'Algérie 🇩🇿',
+  ES: 'Espagne 🇪🇸',
+  IT: 'Italie 🇮🇹',
+  DE: 'Allemagne 🇩🇪',
+  BE: 'Belgique 🇧🇪',
+  NL: 'Pays-Bas 🇳🇱',
+  GB: 'Royaume-Uni 🇬🇧',
+  PL: 'Pologne 🇵🇱',
+  RO: 'Roumanie 🇷🇴',
+  GR: 'Grèce 🇬🇷',
+  FR: 'France 🇫🇷'
 };
+
 
   function afficherCarteShopify() {
     const grid = document.getElementById('mapGrid');
@@ -664,12 +665,13 @@ window.addEventListener('load', () => {
   document.getElementById('loginPassword').focus();
   
   const select = document.getElementById('paysIn');
-  Object.keys(paysEmojis).sort().forEach(code => {
-    const option = document.createElement('option');
-    option.value = code;
-    option.textContent = paysEmojis[code];  // ← NOUVEAU : nom complet "🇸🇳 Sénégal"
-    select.appendChild(option);
-  });
+Object.keys(paysNoms).sort().forEach(code => {
+  const option = document.createElement('option');
+  option.value = code;
+  option.textContent = paysNoms[code];  // ← "Sénégal 🇸🇳" parfait !
+  select.appendChild(option);
+});
+
   document.getElementById('dateIn').valueAsDate = new Date();
 });
 
