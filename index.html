@@ -633,6 +633,7 @@ Export Logistique`;
           </tr>
         `;
       }).join('');
+      notificationsPush();
     }
     
     afficherTopClients();
@@ -659,6 +660,28 @@ Export Logistique`;
       login();
     }
   });
+  function notificationsPush() {
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+  
+  // 🚚 Nouvelle commande chargée aujourd'hui
+  const nouvellesChargees = cmds.filter(c => 
+    c.statut === 'CHARGÉE' && 
+    c.derniere_date_email === new Date().toLocaleDateString('fr-FR')
+  );
+  
+  nouvellesChargees.forEach(c => {
+    if (Notification.permission === 'granted') {
+      new Notification('🚚 CHARGEMENT CONFIRMÉ !', {
+        body: `${c.client} - ${c.ref} (${c.tonnes.toFixed(1)}T)`,
+        icon: '📦',
+        badge: '🚛',
+        tag: 'solana-chargement'
+      });
+    }
+  });
+}
 </script>
 </body>
 </html>
