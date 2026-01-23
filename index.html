@@ -213,21 +213,25 @@
 
   // SAUVEGARDE AUTO SUPABASE
   async function saveCmd(cmd) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cmd)
-      });
-      if (!res.ok) throw new Error('Erreur sauvegarde');
-    } catch(e) {
-      alert('❌ Erreur Supabase: ' + e.message);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify([cmd])  // ← ARRAY [cmd] obligatoire !
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
     }
+  } catch(e) {
+    alert('❌ Erreur: ' + e.message);
   }
+}
 
   // CHARGEMENT LIVE SUPABASE
   async function loadCmds() {
@@ -254,33 +258,34 @@
 
   // AJOUT AUTO-SYNC SUPABASE
   async function ajouterCmd(e) {
-    e.preventDefault();
-    const n = {
-      client: document.getElementById('clientIn').value.trim(),
-      ref: document.getElementById('refIn').value.trim(),
-      date: document.getElementById('dateIn').value,
-      pointDepart: document.getElementById('pointDepart').value.trim(),
-      pays: document.getElementById('paysIn').value,
-      tonnes: parseFloat(document.getElementById('tonnesIn').value),
-      immat: document.getElementById('immatIn').value.trim(),
-      email: document.getElementById('emailIn').value.trim(),
-      statut: 'EN ATTENTE',
-      nbEmails: 0,
-      derniereDateEmail: null
-    };
-    
-    if (cmds.find(c => c.ref === n.ref)) {
-      alert('⚠️ Référence DUPLIQUÉE !');
-      return;
-    }
-    
-    await saveCmd(n);
-    await loadCmds();
-    maj();
-    e.target.reset();
-    document.getElementById('dateIn').valueAsDate = new Date();
-    alert('✅ AUTO-SYNC MULTI-TÉLÉPHONES ! ☁️');
+  e.preventDefault();
+  const n = {
+    client: document.getElementById('clientIn').value.trim(),
+    ref: document.getElementById('refIn').value.trim(),
+    date: document.getElementById('dateIn').value,
+    point_depart: document.getElementById('pointDepart').value.trim(),  // ← point_depart
+    pays: document.getElementById('paysIn').value,
+    tonnes: parseFloat(document.getElementById('tonnesIn').value),
+    immat: document.getElementById('immatIn').value.trim(),  // ← immat
+    email: document.getElementById('emailIn').value.trim(),
+    statut: 'EN ATTENTE',  // ← statut
+    nb_emails: 0,  // ← nb_emails (nombre)
+    derniere_date_email: null  // ← derniere_date_email
+  };
+  
+  if (cmds.find(c => c.ref === n.ref)) {
+    alert('⚠️ Référence DUPLIQUÉE !');
+    return;
   }
+  
+  await saveCmd(n);  // Passe à saveCmd
+  await loadCmds();
+  maj();
+  e.target.reset();
+  document.getElementById('dateIn').valueAsDate = new Date();
+  alert('✅ AUTO-SYNC MULTI-TÉLÉPHONES ! ☁️');
+}
+
 
   // SYNCHRO = Refresh live Supabase
   async function synchroniserSheets() {
