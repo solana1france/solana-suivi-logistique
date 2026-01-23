@@ -4,9 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
     body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
@@ -58,14 +57,13 @@
     .client-pourcent {position: absolute;right: 10px;color: white;font-weight: 600;}
     .export-section {display: flex; gap: 15px; margin: 20px 0; padding: 20px;background: linear-gradient(135deg, #f0fdf4, #d1fae5);border-radius: 20px; border: 2px solid #10b981;}
     .export-btn {flex: 1; padding: 15px 20px; border: none; border-radius: 15px;font-weight: 700; font-size: 16px; cursor: pointer; transition: all .3s;display: flex; align-items: center; gap: 10px; justify-content: center;}
-    .btn-pdf { background: #dc2626; color: white; }
-    .btn-pdf:hover { background: #b91c1c; transform: scale(1.05); }
     .btn-excel { background: #059669; color: white; }
     .btn-excel:hover { background: #047857; transform: scale(1.05); }
-    .globe-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;text-align: center;}
-    .globe-section canvas {width: 100% !important;height: 400px !important;min-height: 350px;display: block;border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.2);cursor: grab;}
-    .globe-section canvas:active { cursor: grabbing; }
+    /* CARTE SIMPLE 2D */
+    .map-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;text-align: center;}
+    #mapCanvas {width: 100%; height: 450px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.2); cursor: pointer; background: #e0f2fe;}
     .country-info {margin-top: 20px; padding: 20px; background: #f0fdf4;border-radius: 15px; border-left: 5px solid #10b981;}
+    .loading {color: #f59e0b; font-size: 1.2rem; padding: 40px; text-align: center;}
     .error-message {color: #dc2626; padding: 20px; background: #fef2f2; border-radius: 12px; margin: 20px 0; border-left: 5px solid #ef4444;}
   </style>
 </head>
@@ -78,7 +76,7 @@
     <p style="color:#6b7280;margin-bottom:20px;">Mot de passe: <strong>solana123</strong></p>
     <input type="password" id="loginPassword" class="login-input" placeholder="Entrez solana123">
     <button class="login-btn" onclick="login()">🔓 ACCÉDER AU DASHBOARD</button>
-    <p style="font-size:0.9rem;color:#9ca3af;margin-top:15px;">💾 Données sauvegardées automatiquement</p>
+    <p style="font-size:0.9rem;color:#9ca3af;margin-top:15px;">📊 Données synchronisées Google Sheets</p>
   </div>
 </div>
 
@@ -86,7 +84,7 @@
 <div class="dashboard" id="dashboardMain">
   <div class="header">
     <h1>📊 Suivi Chargements Solana France</h1>
-    <p id="totalInfo">0 commandes | <span id="time"></span></p>
+    <p id="totalInfo">Chargement...</p>
     <button class="logout-btn" onclick="logout()">❌ Déconnexion</button>
   </div>
 
@@ -128,15 +126,12 @@
         <label>📧 Email Client</label>
         <input id="emailIn" type="email" class="form-input" required>
       </div>
-      <button type="submit" class="add-btn">➕ AJOUTER COMMANDE</button>
+      <button type="submit" class="add-btn">➕ AJOUTER & SYNCHRONISER</button>
     </form>
   </div>
 
-  <!-- EXPORT -->
+  <!-- EXPORT EXCEL SEULEMENT -->
   <div class="export-section">
-    <button class="export-btn btn-pdf" onclick="exportPDF()">
-      📄 PDF Rapport <span id="pdfSize">0T</span>
-    </button>
     <button class="export-btn btn-excel" onclick="exportExcel()">
       📊 Excel <span id="excelCount">0</span> lignes
     </button>
@@ -169,13 +164,13 @@
   <!-- TOP CLIENTS -->
   <div class="graph-clients" id="topClientsSection">
     <h2 class="graph-title">👑 TOP 8 CLIENTS (Tonnes)</h2>
-    <div id="graphClients">Ajoutez des commandes pour voir le classement !</div>
+    <div id="graphClients">Chargement...</div>
   </div>
 
-  <!-- GLOBE 3D -->
-  <div class="globe-section">
-    <h2 class="graph-title">🌍 Destinations Export Solana</h2>
-    <canvas id="globeCanvas"></canvas>
+  <!-- CARTE 2D SIMPLE -->
+  <div class="map-section">
+    <h2 class="graph-title">🗺️ Destinations Export</h2>
+    <canvas id="mapCanvas"></canvas>
     <div class="country-info" id="countryInfo">
       <strong>👆 Cliquez sur les points pour voir les stats par pays</strong>
     </div>
@@ -191,175 +186,198 @@
         </tr>
       </thead>
       <tbody id="tab">
-        <tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">👆 Ajoutez votre première commande ci-dessus</td></tr>
+        <tr><td colspan="9" class="loading">🔄 Synchronisation Google Sheets...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
-// ✅ DATA PERSISTANTE
-let cmds = JSON.parse(localStorage.getItem('solanaCmds')) || [];
+// ✅ GOOGLE SHEETS CSV URL (votre feuille)
+const SHEET_ID = '1Oypc83_LpWrY_2HVaxvJ9Ouy8GH2m31ZHQtgm4-0VGs';
+const SHEET_NAME = 'Sheet1'; // Changez si différent
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
 
-// ✅ PAYS GLOBE (avec Sénégal prioritaire)
-const paysData = {
-  SN: {name: 'Sénégal', lat: 14.0, lng: -14.0, color: '#ec4899'},
-  PT: {name: 'Portugal', lat: 38.7, lng: -9.1, color: '#10b981'},
-  MA: {name: 'Maroc', lat: 31.8, lng: -7.1, color: '#f59e0b'},
-  FR: {name: 'France', lat: 46.2, lng: 2.2, color: '#0077b6'},
-  ES: {name: 'Espagne', lat: 40.5, lng: -3.7, color: '#ef4444'},
-  IT: {name: 'Italie', lat: 41.9, lng: 12.6, color: '#8b5cf6'},
-  DE: {name: 'Allemagne', lat: 51.2, lng: 10.4, color: '#06b6d4'},
-  BE: {name: 'Belgique', lat: 50.5, lng: 4.5, color: '#10b981'},
-  NL: {name: 'Pays-Bas', lat: 52.4, lng: 4.9, color: '#f59e0b'},
-  TN: {name: 'Tunisie', lat: 34.0, lng: 9.0, color: '#14b8a6'},
-  DZ: {name: 'Algérie', lat: 28.0, lng: 1.7, color: '#f97316'},
-  GB: {name: 'Royaume-Uni', lat: 55.4, lng: -4.4, color: '#3b82f6'},
-  PL: {name: 'Pologne', lat: 51.9, lng: 19.4, color: '#ef4444'},
-  RO: {name: 'Roumanie', lat: 45.9, lng: 24.9, color: '#f59e0b'},
-  GR: {name: 'Grèce', lat: 39.1, lng: 21.8, color: '#10b981'}
+// ✅ PAYS POSITIONS CARTE 2D
+const paysPositions = {
+  SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
+  PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
+  MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
+  FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
+  ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
+  IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
+  DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
+  BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
+  NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
+  TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
+  DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
+  GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
+  PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
+  RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
+  GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
 };
 
-// ✅ VARIABLES GLOBE 3D
-let canvas, ctx, globeRotation = {x: 0, y: 0}, isDragging = false, mouseX = 0, mouseY = 0;
+// ✅ VARIABLES GLOBALES
+let cmds = [];
+let isSyncing = false;
 
-// LOGIN ✅ CORRIGÉ
+// LOGIN
 function login() {
-  try {
-    if (document.getElementById('loginPassword').value === 'solana123') {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboardMain').style.display = 'block';
-      maj();
-    } else {
-      alert('❌ Mot de passe incorrect !\n\n🔑 Utilisez: solana123');
-      document.getElementById('loginPassword').value = '';
-      document.getElementById('loginPassword').focus();
-    }
-  } catch(e) {
-    alert('❌ Erreur login: ' + e.message);
+  if (document.getElementById('loginPassword').value === 'solana123') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('dashboardMain').style.display = 'block';
+    synchroniserSheets(); // Charge les données
+  } else {
+    alert('❌ Mot de passe incorrect !\n🔑 solana123');
+    document.getElementById('loginPassword').value = '';
   }
 }
 
 function logout() {
-  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('dashboardMain').style.display = 'none';
   document.getElementById('loginPassword').value = '';
-  document.getElementById('loginPassword').focus();
 }
 
-// AJOUT COMMANDE ✅
-function ajouterCmd(e) {
-  e.preventDefault();
+// ✅ SYNCHRONISATION GOOGLE SHEETS
+async function synchroniserSheets() {
+  if (isSyncing) return;
+  isSyncing = true;
+  
   try {
-    const n = {
-      client: document.getElementById('clientIn').value.trim(),
-      ref: document.getElementById('refIn').value.trim(),
-      date: document.getElementById('dateIn').value,
-      pointDepart: document.getElementById('pointDepart').value.trim(),
-      pays: document.getElementById('paysIn').value,
-      tonnes: parseFloat(document.getElementById('tonnesIn').value),
-      immat: document.getElementById('immatIn').value.trim(),
-      email: document.getElementById('emailIn').value.trim(),
-      statut: 'EN ATTENTE',
-      nbEmails: 0,
-      derniereDateEmail: null
-    };
+    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Lecture Google Sheets...</td></tr>';
     
-    if (cmds.find(c => c.ref === n.ref)) {
-      alert('⚠️ Référence commande DUPLIQUÉE !\n\nChoisissez une autre référence.');
-      return;
+    const response = await fetch(CSV_URL);
+    const csvText = await response.text();
+    const lines = csvText.split('\n').filter(line => line.trim());
+    
+    if (lines.length < 2) {
+      throw new Error('Aucune donnée dans la feuille');
     }
     
-    cmds.unshift(n);
-    localStorage.setItem('solanaCmds', JSON.stringify(cmds));
-    e.target.reset();
-    document.getElementById('dateIn').valueAsDate = new Date();
+    // Headers = première ligne
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    
+    // Parser les données
+    cmds = lines.slice(1).map(line => {
+      const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+      return {
+        client: values[0] || '',
+        ref: values[1] || '',
+        date: values[2] || '',
+        pointDepart: values[3] || '',
+        pays: values[4] || '',
+        tonnes: parseFloat(values[5]) || 0,
+        immat: values[6] || '',
+        email: values[7] || '',
+        statut: values[8] || 'EN ATTENTE',
+        nbEmails: parseInt(values[9]) || 0,
+        derniereDateEmail: values[10] || null
+      };
+    }).filter(c => c.ref && c.client); // Filtrer les lignes vides
+    
     maj();
-    alert('✅ Commande ajoutée !');
+    console.log(`✅ ${cmds.length} commandes synchronisées depuis Google Sheets`);
+    
   } catch(e) {
-    alert('❌ Erreur ajout: ' + e.message);
+    console.error('Erreur sync:', e);
+    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="error-message">❌ Erreur connexion Google Sheets<br>Vérifiez l\'URL et les permissions</td></tr>';
+  } finally {
+    isSyncing = false;
   }
 }
 
-// SUPPRIMER ✅
+// AJOUT COMMANDE (vers localStorage ET alerte pour copier dans Sheets)
+function ajouterCmd(e) {
+  e.preventDefault();
+  const n = {
+    client: document.getElementById('clientIn').value.trim(),
+    ref: document.getElementById('refIn').value.trim(),
+    date: document.getElementById('dateIn').value,
+    pointDepart: document.getElementById('pointDepart').value.trim(),
+    pays: document.getElementById('paysIn').value,
+    tonnes: parseFloat(document.getElementById('tonnesIn').value),
+    immat: document.getElementById('immatIn').value.trim(),
+    email: document.getElementById('emailIn').value.trim(),
+    statut: 'EN ATTENTE',
+    nbEmails: 0,
+    derniereDateEmail: null
+  };
+  
+  if (cmds.find(c => c.ref === n.ref)) {
+    alert('⚠️ Référence DUPLIQUÉE !');
+    return;
+  }
+  
+  // AJOUT LOCAL + alerte pour copier dans Sheets
+  cmds.unshift(n);
+  e.target.reset();
+  document.getElementById('dateIn').valueAsDate = new Date();
+  
+  const ligneCSV = [
+    n.client, n.ref, n.date, n.pointDepart, n.pays, n.tonnes,
+    n.immat, n.email, n.statut, n.nbEmails, n.derniereDateEmail || ''
+  ].map(v => `"${v}"`).join(',');
+  
+  alert(`✅ Commande ajoutée localement!\n\n📋 COPIEZ cette ligne dans Google Sheets:\n\n${ligneCSV}\n\n🔄 Cliquez SYNCHRONISER après`);
+  maj();
+}
+
+// SUPPRIMER
 function supprimerCmd(refASupprimer) {
   const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
   if (index !== -1) {
-    const c = cmds[index];
-    if (confirm(`🗑️ SUPPRIMER cette commande ?\n\n👤 ${c.client}\n📄 ${c.ref}\n⚖️ ${c.tonnes.toFixed(2)}T\n📧 ${c.email}\n\nConfirmez la suppression ?`)) {
+    if (confirm(`🗑️ SUPPRIMER ${cmds[index].client} (${cmds[index].ref}) ?`)) {
       cmds.splice(index, 1);
-      localStorage.setItem('solanaCmds', JSON.stringify(cmds));
       maj();
-      alert(`✅ Commande ${refASupprimer} supprimée !\n📊 ${cmds.length} commande(s) restante(s)`);
+      alert('✅ Supprimé ! Copiez la feuille mise à jour');
     }
   }
 }
 
-// EMAIL ✅
+// EMAIL
 function confirmerEmail(ref) {
   const c = cmds.find(x => x.ref === ref);
-  if (!c) return alert('❌ Commande introuvable');
+  if (!c) return;
   
-  if (!confirm(`📧 Confirmer l'envoi pour ${c.client} ?\n\n📄 ${c.ref}\n⚖️ ${c.tonnes.toFixed(2)}T\n📧 ${c.email}`)) {
-    return;
-  }
+  if (!confirm(`📧 Confirmer pour ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
   
   c.nbEmails++;
   c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
   c.statut = 'CHARGÉE';
   
   const envoiNum = c.nbEmails;
-  const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'} - Solana France`;
-  const msg = `${c.client},
-
-Commande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!
-
-📋 DÉTAILS:
-• Référence: ${c.ref}
-• Tonnes: ${c.tonnes.toFixed(2)}T
-• Départ: ${c.pointDepart}
-• Immatriculation: ${c.immat || 'N/C'}
-• Destination: ${c.pays}
-• Date: ${new Date().toLocaleDateString('fr-FR')}
-
-${envoiNum > 1 ? `📧 ${envoiNum}ème envoi.` : ''}
-
-Cordialement,
-Solana France`;
-
-  const mailtoLink = `mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`;
-  window.open(mailtoLink, '_blank');
-  localStorage.setItem('solanaCmds', JSON.stringify(cmds));
+  const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}`;
+  const msg = `${c.client},\n\nCommande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!\n\n📋 DÉTAILS:\n• ${c.tonnes.toFixed(2)}T • ${c.pays}`;
+  
+  window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`, '_blank');
   maj();
-  alert('✅ Email PRÊT ! Ouvrez votre client mail.');
+  alert('✅ Email prêt ! Copiez la mise à jour dans Sheets');
 }
 
-// TOP CLIENTS ✅
+// TOP CLIENTS
 function afficherTopClients() {
   const clients = {};
-  cmds.forEach(c => {
-    clients[c.client] = (clients[c.client] || 0) + c.tonnes;
-  });
+  cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
   const topClients = Object.entries(clients).sort((a,b) => b[1] - a[1]).slice(0, 8);
-  const container = document.getElementById('graphClients');
   
   if (topClients.length === 0) {
-    container.innerHTML = '<div style="text-align:center;padding:40px;color:#9ca3af;">📈 Ajoutez des commandes pour voir le top clients</div>';
+    document.getElementById('graphClients').innerHTML = '<div style="padding:40px;color:#9ca3af;">📈 Ajoutez des commandes</div>';
     return;
   }
   
   const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
+  const container = document.getElementById('graphClients');
   container.innerHTML = '';
   
-  topClients.forEach(([client, tonnes], index) => {
+  topClients.forEach(([client, tonnes], i) => {
     const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
     const div = document.createElement('div');
     div.className = 'client-bar';
     div.innerHTML = `
-      <div class="client-name">#${index+1} ${client.length > 15 ? client.slice(0,15)+'...' : client}</div>
-      <div class="client-tonnes">${tonnes.toFixed(1)} T</div>
-      <div class="client-barre" style="width: ${Math.min(pourcent*2.5, 95)}%">
+      <div class="client-name">#${i+1} ${client.slice(0,15)}${client.length>15?'...':''}</div>
+      <div class="client-tonnes">${tonnes.toFixed(1)}T</div>
+      <div class="client-barre" style="width:${Math.min(pourcent*2.5,95)}%">
         <div class="client-pourcent">${pourcent}%</div>
       </div>
     `;
@@ -367,234 +385,111 @@ function afficherTopClients() {
   });
 }
 
-// EXPORT PDF ✅
-async function exportPDF() {
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    doc.setFontSize(22);
-    doc.text('🚚 Solana France - Rapport Logistique', 20, 25);
-    doc.setFontSize(14);
-    doc.text(`📅 ${new Date().toLocaleDateString('fr-FR')}`, 20, 45);
-    doc.text(`📦 Total: ${document.getElementById('totT').textContent}`, 20, 60);
-    
-    doc.text('📊 INDICATEURS', 20, 85);
-    doc.setFontSize(12);
-    doc.text(`⏳ En attente: ${document.getElementById('att').textContent}`, 25, 100);
-    doc.text(`✅ Chargées: ${document.getElementById('cha').textContent}`, 25, 115);
-    doc.text(`📧 Emails: ${document.getElementById('em').textContent}`, 25, 130);
-    
-    const clientsCanvas = await html2canvas(document.getElementById('topClientsSection'), {scale: 2});
-    const imgData = clientsCanvas.toDataURL('image/png');
-    doc.addImage(imgData, 'PNG', 15, 150, 180, 110);
-    
-    doc.save(`Solana-Rapport-${new Date().toISOString().slice(0,10)}.pdf`);
-  } catch(e) {
-    alert('❌ Erreur PDF: ' + e.message);
-  }
-}
-
-// EXPORT EXCEL ✅
-function exportExcel() {
-  try {
-    const wb = XLSX.utils.book_new();
-    const ws_data = cmds.map(c => ({
-      Client: c.client,
-      'Réf': c.ref,
-      Date: c.date,
-      'Point départ': c.pointDepart,
-      Pays: c.pays,
-      Tonnes: c.tonnes,
-      Immatriculation: c.immat,
-      Statut: c.statut,
-      'Nb Emails': c.nbEmails,
-      'Dernier email': c.derniereDateEmail || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
-    XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
-  } catch(e) {
-    alert('❌ Erreur Excel: ' + e.message);
-  }
-}
-
-// ✅ GLOBE 3D COMPLÈTEMENT RÉPARÉ
-function initPaysSelect() {
-  const select = document.getElementById('paysIn');
-  Object.entries(paysData)
-    .sort((a,b) => a[1].name.localeCompare(b[1].name))
-    .forEach(([code, data]) => {
-      const option = document.createElement('option');
-      option.value = code;
-      option.textContent = `${data.name} (${code})`;
-      select.appendChild(option);
-    });
-  document.getElementById('dateIn').valueAsDate = new Date();
-}
-
-function initCanvasGlobe() {
-  canvas = document.getElementById('globeCanvas');
-  ctx = canvas.getContext('2d');
+// ✅ CARTE 2D SIMPLE
+function initMapCanvas() {
+  const canvas = document.getElementById('mapCanvas');
+  const ctx = canvas.getContext('2d');
   
-  function tryInit() {
+  function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    renderMap();
+  }
+  
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+  
+  canvas.onclick = function(e) {
     const rect = canvas.getBoundingClientRect();
-    if (rect.width > 10 && rect.height > 10) {
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
-      
-      // ✅ TOUS LES ÉVÉNEMENTS DANS LA FONCTION
-      canvas.onmousedown = rotateStart;
-      canvas.onmousemove = rotateDrag;
-      canvas.onmouseup = () => isDragging = false;
-      canvas.onclick = handleCountryClick;
-      
-      renderGlobe();
-      console.log('✅ Globe 3D initialisé');
-    } else {
-      setTimeout(tryInit, 50);
-    }
-  }
-  
-  tryInit();
-  
-  // Resize handler
-  let resizeTimeout;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-      const rect = canvas.getBoundingClientRect();
-      if (rect.width > 10 && rect.height > 10) {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
-        renderGlobe();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Trouver pays cliqué
+    for (const [code, pos] of Object.entries(paysPositions)) {
+      const dist = Math.sqrt((x - pos.x * canvas.width/800)**2 + (y - pos.y * canvas.height/500)**2);
+      if (dist < 25) {
+        showCountryInfo(code);
+        return;
       }
-    }, 100);
-  });
-}
-
-function rotateStart(e) { 
-  isDragging = true; 
-  mouseX = e.clientX; 
-  mouseY = e.clientY; 
-}
-
-function rotateDrag(e) {
-  if (isDragging) {
-    globeRotation.y += (e.clientX - mouseX) * 0.01;
-    globeRotation.x += (e.clientY - mouseY) * 0.01;
-    globeRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, globeRotation.x));
-    mouseX = e.clientX; 
-    mouseY = e.clientY; 
-    renderGlobe();
-  }
-}
-
-function renderGlobe() {
-  if (!canvas || !ctx) return;
+    }
+  };
   
-  const w = canvas.width / (window.devicePixelRatio || 1);
-  const h = canvas.height / (window.devicePixelRatio || 1);
-  ctx.clearRect(0, 0, w, h);
-
-  const centerX = w / 2, centerY = h / 2, radius = Math.min(w, h) * 0.35;
-  
-  // Globe gradient
-  const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-  gradient.addColorStop(0, '#4fc3f7'); 
-  gradient.addColorStop(0.7, '#0288d1'); 
-  gradient.addColorStop(1, '#01579b');
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Graticules
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; 
-  ctx.lineWidth = 1;
-  for (let i = 0; i < 12; i++) {
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, i * Math.PI / 6, i * Math.PI / 6 + 0.01);
-    ctx.stroke();
-  }
-  for (let i = 0; i < 7; i++) {
-    const lat = (i - 3) * 30 * Math.PI / 180;
-    ctx.beginPath();
-    ctx.ellipse(centerX, centerY, radius * 0.9, radius * 0.6, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Points pays avec tonnage
-  const paysTonnes = {};
-  cmds.forEach(c => {
-    paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes;
-  });
-
-  Object.entries(paysTonnes).forEach(([code, tonnes]) => {
-    if (paysData[code]) {
-      const {lat, lng} = paysData[code];
-      const size = Math.max(8, 15 + tonnes * 3);
-      
-      const phi = (90 - lat) * Math.PI / 180;
-      const theta = (lng + globeRotation.y * 180 / Math.PI) * Math.PI / 180;
-      const cosPhi = Math.cos(phi);
-      
-      const x = centerX + radius * 0.75 * Math.cos(theta) * cosPhi;
-      const y = centerY + radius * 0.75 * Math.sin(phi) * 0.7 - globeRotation.x * 80;
-      
-      if (Math.abs(x - centerX) < radius && Math.abs(y - centerY) < radius) {
-        ctx.fillStyle = paysData[code].color;
+  function renderMap() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    
+    // Fond mer
+    const gradient = ctx.createLinearGradient(0, 0, 0, h);
+    gradient.addColorStop(0, '#e0f2fe');
+    gradient.addColorStop(1, '#bae6fd');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, w, h);
+    
+    // Continents stylisés
+    ctx.fillStyle = '#a8ddb5';
+    ctx.fillRect(w*0.1, h*0.4, w*0.15, h*0.25); // Europe Ouest
+    ctx.fillRect(w*0.3, h*0.35, w*0.12, h*0.18); // Europe Centre
+    ctx.fillRect(w*0.5, h*0.45, w*0.12, h*0.2);  // Afrique
+    
+    // Points pays avec tonnage
+    const paysTonnes = {};
+    cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
+    
+    Object.entries(paysTonnes).forEach(([code, tonnes]) => {
+      if (paysPositions[code]) {
+        const pos = paysPositions[code];
+        const scaleX = w / 800, scaleY = h / 500;
+        const x = pos.x * scaleX, y = pos.y * scaleY;
+        const size = Math.max(12, tonnes * 4);
+        
+        ctx.fillStyle = paysPositions[code].color;
         ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.arc(x, y, size, 0, Math.PI*2);
         ctx.fill();
-        ctx.strokeStyle = '#fff'; 
-        ctx.lineWidth = 2.5; 
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
         ctx.stroke();
-
-        ctx.fillStyle = '#fff'; 
-        ctx.font = `${Math.max(10, size / 1.8)}px bold Arial`; 
-        ctx.textAlign = 'center'; 
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = `${Math.max(12, size/1.5)}px bold Arial`;
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(code, x, y);
-
-        ctx.fillStyle = 'rgba(255,255,255,0.9)'; 
-        ctx.font = `${size / 3.5}px Arial`;
-        ctx.fillText(tonnes.toFixed(1) + 'T', x, y + size + 4);
       }
-    }
-  });
-
-  globeRotation.y += 0.0015;
-  requestAnimationFrame(renderGlobe);
-}
-
-function handleCountryClick(e) {
-  const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-  const centerX = canvas.width / 2, centerY = canvas.height / 2;
+    });
+    
+    requestAnimationFrame(renderMap);
+  }
   
-  const paysTonnes = {};
-  cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
-  const topPays = Object.entries(paysTonnes).sort((a,b) => b[1] - a[1])[0];
-  
-  if (topPays) {
-    const [code, tonnes] = topPays;
-    const clientsUniques = [...new Set(cmds.filter(c => c.pays === code).map(c => c.client))];
+  function showCountryInfo(code) {
+    const pos = paysPositions[code];
+    const paysCmds = cmds.filter(c => c.pays === code);
+    const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
+    const clientsUniques = [...new Set(paysCmds.map(c => c.client))];
+    
     document.getElementById('countryInfo').innerHTML = `
-      <h3 style="color:${paysData[code]?.color || '#0077b6'}">🌍 ${paysData[code]?.name || code} (${code})</h3>
-      <p><strong>⚖️ ${tonnes.toFixed(1)}T</strong> exportées</p>
-      <p>👥 ${clientsUniques.length} clients uniques</p>
-      <p>📦 ${cmds.filter(c => c.pays === code).length} commandes</p>
+      <h3 style="color:${pos.color}">🌍 ${pos.name} (${code})</h3>
+      <p><strong>⚖️ ${totalTonnes.toFixed(1)}T</strong> exportées</p>
+      <p>👥 ${clientsUniques.length} clients</p>
+      <p>📦 ${paysCmds.length} commandes</p>
     `;
   }
 }
 
-// ✅ FONCTION MAJ COMPLÈTE
+// EXPORT EXCEL
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const ws_data = cmds.map(c => ({
+    Client: c.client, 'Réf': c.ref, Date: c.date, 'Point départ': c.pointDepart,
+    Pays: c.pays, Tonnes: c.tonnes, Immatriculation: c.immat,
+    Statut: c.statut, 'Nb Emails': c.nbEmails, 'Dernier email': c.derniereDateEmail || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
+  XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// MAJ INTERFACE
 function maj() {
   const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
   const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -606,65 +501,57 @@ function maj() {
   document.getElementById('cha').textContent = ch;
   document.getElementById('em').textContent = totalEmails;
   document.getElementById('totalInfo').innerHTML = `${cmds.length} commande(s) | ${new Date().toLocaleString('fr-FR')}`;
+  document.getElementById('excelCount').textContent = cmds.length;
 
+  // Tableau
   const tb = document.getElementById('tab');
   if (cmds.length === 0) {
-    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez votre première commande avec le formulaire ci-dessus</td></tr>';
+    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez des commandes dans Google Sheets</td></tr>';
   } else {
-    tb.innerHTML = '';
-    cmds.forEach(c => {
-      const tr = document.createElement('tr');
-      tr.className = c.statut === 'CHARGÉE' ? 'chargee' : '';
+    tb.innerHTML = cmds.map(c => {
+      const statutText = c.statut === 'CHARGÉE' ? 
+        `✅ CHARGÉE (${c.nbEmails}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : '⏳ EN ATTENTE';
+      const btnConfirmer = c.statut === 'EN ATTENTE' ? 
+        `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CHARGER</button>` :
+        `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENV</button>`;
       
-      const statutText = c.statut === 'CHARGÉE' ?
-        `✅ CHARGÉE (${c.nbEmails} email${c.nbEmails > 1 ? 's' : ''}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` :
-        '⏳ EN ATTENTE';
-
-      const btnConfirmer = c.statut === 'EN ATTENTE' ?
-        `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')" title="Confirmer et envoyer email">✅ CHARGER</button>` :
-        `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')" title="Renvoyer l'email">📧 RENV</button>`;
-
-      tr.innerHTML = `
-        <td><b>${c.client}</b></td>
-        <td>${c.ref}</td>
-        <td>${c.date}</td>
-        <td>${c.pointDepart}</td>
-        <td>${c.pays}</td>
-        <td><b style="color:#10b981">${c.tonnes.toFixed(2)} T</b></td>
-        <td>${c.immat || '-'}</td>
-        <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
-        <td>${btnConfirmer} <button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')" title="Supprimer">🗑️</button></td>
+      return `
+        <tr class="${c.statut === 'CHARGÉE' ? 'chargee' : ''}">
+          <td><b>${c.client}</b></td>
+          <td>${c.ref}</td>
+          <td>${c.date}</td>
+          <td>${c.pointDepart}</td>
+          <td>${c.pays}</td>
+          <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
+          <td>${c.immat || '-'}</td>
+          <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
+          <td>${btnConfirmer} <button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')">🗑️</button></td>
+        </tr>
       `;
-      tb.appendChild(tr);
-    });
+    }).join('');
   }
-
-  document.getElementById('pdfSize').textContent = tot.toFixed(1) + 'T';
-  document.getElementById('excelCount').textContent = cmds.length;
+  
   afficherTopClients();
 }
 
-// SAUVEGARDE AUTO
-setInterval(() => {
-  if (cmds.length > 0) {
-    localStorage.setItem('solanaCmds', JSON.stringify(cmds));
-  }
-}, 30000);
-
-// ⏰ HEURE REELLE
-setInterval(() => {
-  document.getElementById('time').textContent = new Date().toLocaleTimeString('fr-FR');
-}, 1000);
-
-// ✅ INITIALISATION COMPLÈTE
+// INIT
 window.addEventListener('load', () => {
-  initPaysSelect();
-  initCanvasGlobe();
+  initMapCanvas();
   document.getElementById('loginPassword').focus();
-  console.log('✅ Solana Dashboard PRO chargé - Mot de passe: solana123');
+  
+  // Select pays
+  const select = document.getElementById('paysIn');
+  Object.entries(paysPositions).sort((a,b) => a[1].name.localeCompare(b[1].name))
+    .forEach(([code, data]) => {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = `${data.name} (${code})`;
+      select.appendChild(option);
+    });
+  document.getElementById('dateIn').valueAsDate = new Date();
 });
 
-// Touche Entrée login
+// Entrée login
 document.addEventListener('keypress', (e) => {
   if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
     login();
@@ -673,4 +560,3 @@ document.addEventListener('keypress', (e) => {
 </script>
 </body>
 </html>
-
