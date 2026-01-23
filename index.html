@@ -63,9 +63,19 @@
     .btn-save:hover { background: #7c3aed; transform: scale(1.05); }
     .btn-sync { background: #10b981; color: white; }
     .btn-sync:hover { background: #059669; transform: scale(1.05); }
-    .map-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;text-align: center;}
-    #mapCanvas {width: 100%; height: 450px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.2); cursor: pointer; background: #e0f2fe;}
-    .country-info {margin-top: 20px; padding: 20px; background: #f0fdf4;border-radius: 15px; border-left: 5px solid #10b981;}
+    .map-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;}
+    .map-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;}
+    .map-card {background: linear-gradient(135deg, #f0fdf4, #d1fae5); border: 3px solid #10b981; border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: all .3s;}
+    .map-card:hover {transform: scale(1.05); box-shadow: 0 15px 35px rgba(16,185,129,.3);}
+    .map-flag {font-size: 3rem; margin-bottom: 10px;}
+    .map-tonnes {font-size: 1.8rem; font-weight: 800; color: #10b981; margin-bottom: 5px;}
+    .map-cmds {color: #6b7280; font-weight: 600;}
+    .country-detail {background: #fff; border-radius: 16px; padding: 25px; border-left: 6px solid #10b981; display: none;}
+    .country-detail.active {display: block; animation: slideIn 0.3s ease;}
+    @keyframes slideIn {from {opacity: 0; transform: translateX(-20px);} to {opacity: 1; transform: translateX(0);}}
+    .detail-table {width: 100%; margin-top: 20px; border-collapse: collapse;}
+    .detail-table th, .detail-table td {padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;}
+    .detail-table th {background: #f0fdf4; font-weight: 700; color: #374151;}
     .loading {color: #f59e0b; font-size: 1.2rem; padding: 40px; text-align: center;}
     .error-message {color: #dc2626; padding: 20px; background: #fef2f2; border-radius: 12px; margin: 20px 0; border-left: 5px solid #ef4444;}
     #saveStatus {font-size: 0.9rem; margin-left: 5px;}
@@ -88,7 +98,7 @@
 <!-- DASHBOARD -->
 <div class="dashboard" id="dashboardMain">
   <div class="header">
-    <h1>                 📊 Suivi Chargements Solana France</h1>
+    <h1>📊 Suivi Chargements Solana France</h1>
     <p id="totalInfo">Chargement...</p>
     <button class="logout-btn" onclick="logout()">❌ Déconnexion</button>
   </div>
@@ -174,16 +184,25 @@
 
   <!-- TOP CLIENTS -->
   <div class="graph-clients" id="topClientsSection">
-    <h2 class="graph-title">👑 TOP CLIENTS (Tonnes)</h2>
+    <h2 class="graph-title">👑 TOP 8 CLIENTS (Tonnes)</h2>
     <div id="graphClients">Chargement...</div>
   </div>
 
-  <!-- CARTE 2D SIMPLE -->
+  <!-- 🗺️ CARTE SIMPLIFIÉE STYLE SHOPIFY -->
   <div class="map-section">
-    <h2 class="graph-title">🗺️ Destinations Export</h2>
-    <canvas id="mapCanvas"></canvas>
-    <div class="country-info" id="countryInfo">
-      <strong>👆 Cliquez sur les points pour voir les stats par pays</strong>
+    <h2 class="graph-title">🗺️ Destinations Export (Cliquez pour détails)</h2>
+    
+    <!-- GRILLE PAYS -->
+    <div class="map-grid" id="mapGrid">
+      <div class="loading">Chargement destinations...</div>
+    </div>
+    
+    <!-- DÉTAIL PAYS -->
+    <div id="countryDetail" class="country-detail">
+      <h3 id="detailTitle"></h3>
+      <p id="detailStats"></p>
+      <table class="detail-table" id="detailTable"></table>
+      <button onclick="closeCountryDetail()" style="margin-top:15px;padding:10px 20px;background:#ef4444;color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600;">✕ Fermer</button>
     </div>
   </div>
 
@@ -333,21 +352,19 @@
     }
   }
 
-  // 🌐 UNIVERSEL MOBILE/PC + EMAIL AUTO - NOUVELLE FONCTION REMPLACÉE COMPLETEMENT
+  // 🌐 UNIVERSEL MOBILE/PC + EMAIL AUTO
   async function confirmerEmail(ref) {
     const c = cmds.find(x => x.ref === ref);
     if (!c) return alert('❌ Commande introuvable');
 
     if (!confirm(`🚚 ${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T\n\n📧 Ouvrir email + notif ?`)) return;
 
-    // 1️⃣ UPDATE SUPABASE
     await updateCmd(ref, {
       nb_emails: (parseInt(c.nb_emails || 0) + 1),
       derniere_date_email: new Date().toLocaleDateString('fr-FR'),
       statut: 'CHARGÉE'
     });
 
-    // 2️⃣ OUVRIR EMAIL
     const sujet = `✅ CHARGÉE - ${c.ref} - ${c.tonnes.toFixed(2)}T`;
     const message = `Bonjour ${c.client},
 
@@ -360,20 +377,17 @@ Cordialement, Solana France`;
 
     window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
 
-    // 3️⃣ NOTIF UNIVERSELLE
     setTimeout(() => notificationsUniverSel(c), 500);
   }
 
-  // 🔥 NOUVELLE FONCTION UNIVERSELLE
+  // 🔥 NOTIFICATIONS UNIVERSELLES
   function notificationsUniverSel(c) {
-    // 📱 MOBILE : Vibration + Titre
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
       document.title = `🚚 ${c.ref} CHARGÉE !`;
       setTimeout(() => document.title = 'Solana Dashboard', 3000);
     }
     
-    // 💻 PC : Notifications web
     if (typeof Notification !== 'undefined') {
       if (Notification.permission === 'granted') {
         new Notification('🚚 CHARGEMENT OK !', {
@@ -385,12 +399,98 @@ Cordialement, Solana France`;
       }
     }
     
-    // 🎵 SON (tous appareils)
     try {
       const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVKMbF1fdJivrJBhNjV');
       audio.volume = 0.3;
       audio.play().catch(() => {});
     } catch(e) {}
+  }
+
+  // 🗺️ NOUVELLE CARTE SIMPLIFIÉE STYLE SHOPIFY
+  const paysEmojis = {
+    SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', FR: '🇫🇷', ES: '🇪🇸', 
+    IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱', TN: '🇹🇳',
+    DZ: '🇩🇿', GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷'
+  };
+
+  function afficherCarteShopify() {
+    const grid = document.getElementById('mapGrid');
+    const paysTonnes = {};
+    
+    // Calcul stats par pays
+    cmds.forEach(c => {
+      paysTonnes[c.pays] = (paysTonnes[c.pays] || {tonnes: 0, cmds: 0, clients: new Set()});
+      paysTonnes[c.pays].tonnes += c.tonnes;
+      paysTonnes[c.pays].cmds++;
+      paysTonnes[c.pays].clients.add(c.client);
+    });
+    
+    if (Object.keys(paysTonnes).length === 0) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;">🌍 Ajoutez des commandes pour voir les destinations</div>';
+      return;
+    }
+    
+    grid.innerHTML = Object.entries(paysTonnes).map(([code, stats]) => {
+      const emoji = paysEmojis[code] || '🌍';
+      const totalTonnes = stats.tonnes.toFixed(1);
+      return `
+        <div class="map-card" onclick="showCountryDetail('${code}')" data-code="${code}">
+          <div class="map-flag">${emoji} ${code}</div>
+          <div class="map-tonnes">${totalTonnes}T</div>
+          <div class="map-cmds">${stats.cmds} cmds • ${stats.clients.size} clients</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // DÉTAIL PAYS
+  function showCountryDetail(code) {
+    const paysCmds = cmds.filter(c => c.pays === code);
+    const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
+    const emoji = paysEmojis[code] || '🌍';
+    
+    document.getElementById('detailTitle').innerHTML = `${emoji} ${code} • ${totalTonnes.toFixed(1)}T exportées`;
+    document.getElementById('detailStats').innerHTML = `
+      📦 ${paysCmds.length} commandes • 
+      👥 ${new Set(paysCmds.map(c => c.client)).size} clients uniques
+    `;
+    
+    const table = document.getElementById('detailTable');
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Réf</th>
+          <th>Client</th>
+          <th>Date</th>
+          <th>Départ</th>
+          <th>Tonnes</th>
+          <th>Immat</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${paysCmds.slice(0, 10).map(c => `
+          <tr>
+            <td><b>${c.ref}</b></td>
+            <td>${c.client}</td>
+            <td>${c.date}</td>
+            <td>${c.point_depart}</td>
+            <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
+            <td>${c.immat || '-'}</td>
+            <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}">
+              ${c.statut === 'CHARGÉE' ? '✅ CHARGÉE' : '⏳ EN ATTENTE'}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    `;
+    
+    document.getElementById('countryDetail').classList.add('active');
+    document.getElementById('countryDetail').scrollIntoView({behavior: 'smooth'});
+  }
+
+  function closeCountryDetail() {
+    document.getElementById('countryDetail').classList.remove('active');
   }
 
   // SUPPRIMER
@@ -414,7 +514,7 @@ Cordialement, Solana France`;
     }
   }
 
-  // LOGIN
+  // LOGIN + autres fonctions identiques...
   function login() {
     if (document.getElementById('loginPassword').value === 'solana123') {
       document.getElementById('loginScreen').style.display = 'none';
@@ -432,7 +532,6 @@ Cordialement, Solana France`;
     document.getElementById('loginPassword').value = '';
   }
 
-  // TEST SUPABASE
   async function testSupabase() {
     try {
       await loadCmds();
@@ -444,7 +543,7 @@ Cordialement, Solana France`;
     }
   }
 
-  // TOP CLIENTS
+  // TOP CLIENTS (identique)
   function afficherTopClients() {
     const clients = {};
     cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
@@ -474,112 +573,7 @@ Cordialement, Solana France`;
     });
   }
 
-  // CARTE 2D
-  const paysPositions = {
-    SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
-    PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
-    MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
-    FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
-    ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
-    IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
-    DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
-    BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
-    NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
-    TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
-    DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
-    GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
-    PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
-    RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
-    GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
-  };
-
-  function initMapCanvas() {
-    const canvas = document.getElementById('mapCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    function resizeCanvas() {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-      renderMap();
-    }
-    
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    
-    canvas.onclick = function(e) {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      
-      for (const [code, pos] of Object.entries(paysPositions)) {
-        const dist = Math.sqrt((x - pos.x * canvas.width/800)**2 + (y - pos.y * canvas.height/500)**2);
-        if (dist < 25) {
-          showCountryInfo(code);
-          return;
-        }
-      }
-    };
-    
-    function renderMap() {
-      const w = canvas.width, h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      
-      const gradient = ctx.createLinearGradient(0, 0, 0, h);
-      gradient.addColorStop(0, '#e0f2fe');
-      gradient.addColorStop(1, '#bae6fd');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, w, h);
-      
-      ctx.fillStyle = '#a8ddb5';
-      ctx.fillRect(w*0.1, h*0.4, w*0.15, h*0.25);
-      ctx.fillRect(w*0.3, h*0.35, w*0.12, h*0.18);
-      ctx.fillRect(w*0.5, h*0.45, w*0.12, h*0.2);
-      
-      const paysTonnes = {};
-      cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
-      
-      Object.entries(paysTonnes).forEach(([code, tonnes]) => {
-        if (paysPositions[code]) {
-          const pos = paysPositions[code];
-          const scaleX = w / 800, scaleY = h / 500;
-          const x = pos.x * scaleX, y = pos.y * scaleY;
-          const size = Math.max(12, tonnes * 4);
-          
-          ctx.fillStyle = paysPositions[code].color;
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI*2);
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          
-          ctx.fillStyle = '#fff';
-          ctx.font = `${Math.max(12, size/1.5)}px bold Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(code, x, y);
-        }
-      });
-      
-      requestAnimationFrame(renderMap);
-    }
-    
-    function showCountryInfo(code) {
-      const pos = paysPositions[code];
-      const paysCmds = cmds.filter(c => c.pays === code);
-      const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
-      const clientsUniques = [...new Set(paysCmds.map(c => c.client))];
-      
-      document.getElementById('countryInfo').innerHTML = `
-        <h3 style="color:${pos.color}">🌍 ${pos.name} (${code})</h3>
-        <p><strong>⚖️ ${totalTonnes.toFixed(1)}T</strong> exportées</p>
-        <p>👥 ${clientsUniques.length} clients</p>
-        <p>📦 ${paysCmds.length} commandes</p>
-      `;
-    }
-  }
-
-  // EXPORT EXCEL
+  // EXPORT EXCEL (identique)
   function exportExcel() {
     const wb = XLSX.utils.book_new();
     const ws_data = cmds.map(c => ({
@@ -599,7 +593,7 @@ Cordialement, Solana France`;
     XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
-  // MAJ COMPLÈTE - AVEC LA LIGNE AJOUTÉE
+  // MAJ COMPLÈTE
   function maj() {
     const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
     const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
@@ -639,26 +633,24 @@ Cordialement, Solana France`;
         `;
       }).join('');
       
-      // 📱 + AJOUTÉ DANS maj() : notificationsUniverSel pour les chargées
       notificationsUniverSel(cmds.find(c => c.statut === 'CHARGÉE'));
     }
     
     afficherTopClients();
+    afficherCarteShopify(); // ✅ NOUVEAU !
   }
 
   // INIT
   window.addEventListener('load', () => {
-    initMapCanvas();
     document.getElementById('loginPassword').focus();
     
     const select = document.getElementById('paysIn');
-    Object.entries(paysPositions).sort((a,b) => a[1].name.localeCompare(b[1].name))
-      .forEach(([code, data]) => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = `${data.name} (${code})`;
-        select.appendChild(option);
-      });
+    Object.keys(paysEmojis).sort().forEach(code => {
+      const option = document.createElement('option');
+      option.value = code;
+      option.textContent = `${paysEmojis[code]} ${code}`;
+      select.appendChild(option);
+    });
     document.getElementById('dateIn').valueAsDate = new Date();
   });
 
