@@ -414,11 +414,23 @@ Email: ${c.email}
   }
 
   // 🗺️ NOUVELLE CARTE SIMPLIFIÉE STYLE SHOPIFY
-  const paysEmojis = {
-    SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', FR: '🇫🇷', ES: '🇪🇸', 
-    IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱', TN: '🇹🇳',
-    DZ: '🇩🇿', GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷'
-  };
+ const paysEmojis = {
+  SN: '<img src="https://flagcdn.com/w20/sn.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  PT: '<img src="https://flagcdn.com/w20/pt.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  MA: '<img src="https://flagcdn.com/w20/ma.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  FR: '<img src="https://flagcdn.com/w20/fr.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  ES: '<img src="https://flagcdn.com/w20/es.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  IT: '<img src="https://flagcdn.com/w20/it.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  DE: '<img src="https://flagcdn.com/w20/de.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  BE: '<img src="https://flagcdn.com/w20/be.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  NL: '<img src="https://flagcdn.com/w20/nl.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  TN: '<img src="https://flagcdn.com/w20/tn.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  DZ: '<img src="https://flagcdn.com/w20/dz.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  GB: '<img src="https://flagcdn.com/w20/gb.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  PL: '<img src="https://flagcdn.com/w20/pl.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  RO: '<img src="https://flagcdn.com/w20/ro.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">',
+  GR: '<img src="https://flagcdn.com/w20/gr.png" style="vertical-align:middle;width:32px;height:24px;margin-right:5px">'
+};
 
   function afficherCarteShopify() {
     const grid = document.getElementById('mapGrid');
@@ -665,13 +677,8 @@ Email: ${c.email}
     if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
       login();
     }
-  });  // Sans espaces avant !
-
-</script>  <!-- FERME LE SCRIPT PRINCIPAL -->
-
-<script type="module">
-  import { polyfillCountryFlagEmojis } from "https://cdn.skypack.dev/country-flag-emoji-polyfill";
-  polyfillCountryFlagEmojis();
+  });
+}
 </script>
 </body>
 </html>
