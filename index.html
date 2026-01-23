@@ -59,12 +59,17 @@
     .export-btn {flex: 1; padding: 15px 20px; border: none; border-radius: 15px;font-weight: 700; font-size: 16px; cursor: pointer; transition: all .3s;display: flex; align-items: center; gap: 10px; justify-content: center;}
     .btn-excel { background: #059669; color: white; }
     .btn-excel:hover { background: #047857; transform: scale(1.05); }
+    .btn-save { background: #8b5cf6; color: white; }
+    .btn-save:hover { background: #7c3aed; transform: scale(1.05); }
+    .btn-sync { background: #10b981; color: white; }
+    .btn-sync:hover { background: #059669; transform: scale(1.05); }
     /* CARTE SIMPLE 2D */
     .map-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;text-align: center;}
     #mapCanvas {width: 100%; height: 450px; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.2); cursor: pointer; background: #e0f2fe;}
     .country-info {margin-top: 20px; padding: 20px; background: #f0fdf4;border-radius: 15px; border-left: 5px solid #10b981;}
     .loading {color: #f59e0b; font-size: 1.2rem; padding: 40px; text-align: center;}
     .error-message {color: #dc2626; padding: 20px; background: #fef2f2; border-radius: 12px; margin: 20px 0; border-left: 5px solid #ef4444;}
+    #saveStatus {font-size: 0.9rem; margin-left: 5px;}
   </style>
 </head>
 <body>
@@ -130,10 +135,16 @@
     </form>
   </div>
 
-  <!-- EXPORT EXCEL SEULEMENT -->
+  <!-- EXPORT & SYNC SECTION -->
   <div class="export-section">
     <button class="export-btn btn-excel" onclick="exportExcel()">
       📊 Excel <span id="excelCount">0</span> lignes
+    </button>
+    <button class="export-btn btn-sync" onclick="synchroniserSheets()" id="syncBtn">
+      🔄 SYNCHRO Sheets
+    </button>
+    <button class="export-btn btn-save" onclick="sauvegarderSheets()">
+      💾 SAUVEGARDER Sheets <span id="saveStatus">Auto</span>
     </button>
   </div>
 
@@ -193,370 +204,407 @@
 </div>
 
 <script>
-// ✅ GOOGLE SHEETS CSV URL (votre feuille)
-const SHEET_ID = '1Oypc83_LpWrY_2HVaxvJ9Ouy8GH2m31ZHQtgm4-0VGs'; // Votre ID;
-const SHEET_NAME = 'Sheet1'; // Changez si différent
-const CSV_URL = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vQrwWrDyAlKC_m-sAIGBCyV_qHW2-sXNWxYQy_L9nDFSHV_PtelufAgncINivb1V3N74FIouefhXOuI/pub?gid=0&single=true&output=csv');
+  // ✅ GOOGLE SHEETS CONFIGURATION CORRIGÉE
+  const SHEET_ID = '1Oypc83_LpWrY_2HVaxvJ9Ouy8GH2m31ZHQtgm4-0VGs';
+  const SHEET_NAME = 'Sheet1';
 
-// ✅ PAYS POSITIONS CARTE 2D
-const paysPositions = {
-  SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
-  PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
-  MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
-  FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
-  ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
-  IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
-  DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
-  BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
-  NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
-  TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
-  DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
-  GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
-  PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
-  RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
-  GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
-};
+  // ✅ PAYS POSITIONS CARTE 2D
+  const paysPositions = {
+    SN: {x: 450, y: 220, name: 'Sénégal', color: '#ec4899'},
+    PT: {x: 150, y: 280, name: 'Portugal', color: '#10b981'},
+    MA: {x: 350, y: 320, name: 'Maroc', color: '#f59e0b'},
+    FR: {x: 250, y: 250, name: 'France', color: '#0077b6'},
+    ES: {x: 200, y: 270, name: 'Espagne', color: '#ef4444'},
+    IT: {x: 320, y: 260, name: 'Italie', color: '#8b5cf6'},
+    DE: {x: 300, y: 200, name: 'Allemagne', color: '#06b6d4'},
+    BE: {x: 280, y: 220, name: 'Belgique', color: '#10b981'},
+    NL: {x: 290, y: 190, name: 'Pays-Bas', color: '#f59e0b'},
+    TN: {x: 420, y: 280, name: 'Tunisie', color: '#14b8a6'},
+    DZ: {x: 380, y: 290, name: 'Algérie', color: '#f97316'},
+    GB: {x: 220, y: 170, name: 'Royaume-Uni', color: '#3b82f6'},
+    PL: {x: 380, y: 150, name: 'Pologne', color: '#ef4444'},
+    RO: {x: 420, y: 190, name: 'Roumanie', color: '#f59e0b'},
+    GR: {x: 450, y: 260, name: 'Grèce', color: '#10b981'}
+  };
 
-// ✅ VARIABLES GLOBALES
-let cmds = [];
-let isSyncing = false;
+  // ✅ VARIABLES GLOBALES
+  let cmds = [];
+  let isSyncing = false;
 
-// LOGIN
-function login() {
-  if (document.getElementById('loginPassword').value === 'solana123') {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('dashboardMain').style.display = 'block';
-    synchroniserSheets(); // Charge les données
-  } else {
-    alert('❌ Mot de passe incorrect !\n🔑 solana123');
+  // LOGIN
+  function login() {
+    if (document.getElementById('loginPassword').value === 'solana123') {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardMain').style.display = 'block';
+      synchroniserSheets(); // Charge les données
+    } else {
+      alert('❌ Mot de passe incorrect !\n🔑 solana123');
+      document.getElementById('loginPassword').value = '';
+    }
+  }
+
+  function logout() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('dashboardMain').style.display = 'none';
     document.getElementById('loginPassword').value = '';
   }
-}
 
-function logout() {
-  document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('dashboardMain').style.display = 'none';
-  document.getElementById('loginPassword').value = '';
-}
-
-// ✅ SYNCHRONISATION GOOGLE SHEETS
-async function synchroniserSheets() {
-  if (isSyncing) return;
-  isSyncing = true;
-  
-  try {
-    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Lecture Google Sheets...</td></tr>';
+  // ✅ SYNCHRONISATION GOOGLE SHEETS CORRIGÉE
+  async function synchroniserSheets() {
+    if (isSyncing) return;
+    isSyncing = true;
     
-    const response = await fetch(CSV_URL);
-    const csvText = await response.text();
-    const lines = csvText.split('\n').filter(line => line.trim());
-    
-    if (lines.length < 2) {
-      throw new Error('Aucune donnée dans la feuille');
-    }
-    
-    // Headers = première ligne
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-    
-    // Parser les données
-    cmds = lines.slice(1).map(line => {
-      const values = line.split(',').map(v => v.replace(/"/g, '').trim());
-      return {
-        client: values[0] || '',
-        ref: values[1] || '',
-        date: values[2] || '',
-        pointDepart: values[3] || '',
-        pays: values[4] || '',
-        tonnes: parseFloat(values[5]) || 0,
-        immat: values[6] || '',
-        email: values[7] || '',
-        statut: values[8] || 'EN ATTENTE',
-        nbEmails: parseInt(values[9]) || 0,
-        derniereDateEmail: values[10] || null
-      };
-    }).filter(c => c.ref && c.client); // Filtrer les lignes vides
-    
-    maj();
-    console.log(`✅ ${cmds.length} commandes synchronisées depuis Google Sheets`);
-    
-  } catch(e) {
-    console.error('Erreur sync:', e);
-    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="error-message">❌ Erreur connexion Google Sheets<br>Vérifiez l\'URL et les permissions</td></tr>';
-  } finally {
-    isSyncing = false;
-  }
-}
-
-// AJOUT COMMANDE (vers localStorage ET alerte pour copier dans Sheets)
-function ajouterCmd(e) {
-  e.preventDefault();
-  const n = {
-    client: document.getElementById('clientIn').value.trim(),
-    ref: document.getElementById('refIn').value.trim(),
-    date: document.getElementById('dateIn').value,
-    pointDepart: document.getElementById('pointDepart').value.trim(),
-    pays: document.getElementById('paysIn').value,
-    tonnes: parseFloat(document.getElementById('tonnesIn').value),
-    immat: document.getElementById('immatIn').value.trim(),
-    email: document.getElementById('emailIn').value.trim(),
-    statut: 'EN ATTENTE',
-    nbEmails: 0,
-    derniereDateEmail: null
-  };
-  
-  if (cmds.find(c => c.ref === n.ref)) {
-    alert('⚠️ Référence DUPLIQUÉE !');
-    return;
-  }
-  
-  // AJOUT LOCAL + alerte pour copier dans Sheets
-  cmds.unshift(n);
-  e.target.reset();
-  document.getElementById('dateIn').valueAsDate = new Date();
-  
-  const ligneCSV = [
-    n.client, n.ref, n.date, n.pointDepart, n.pays, n.tonnes,
-    n.immat, n.email, n.statut, n.nbEmails, n.derniereDateEmail || ''
-  ].map(v => `"${v}"`).join(',');
-  
-  alert(`✅ Commande ajoutée localement!\n\n📋 COPIEZ cette ligne dans Google Sheets:\n\n${ligneCSV}\n\n🔄 Cliquez SYNCHRONISER après`);
-  maj();
-}
-
-// SUPPRIMER
-function supprimerCmd(refASupprimer) {
-  const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
-  if (index !== -1) {
-    if (confirm(`🗑️ SUPPRIMER ${cmds[index].client} (${cmds[index].ref}) ?`)) {
-      cmds.splice(index, 1);
-      maj();
-      alert('✅ Supprimé ! Copiez la feuille mise à jour');
-    }
-  }
-}
-
-// EMAIL
-function confirmerEmail(ref) {
-  const c = cmds.find(x => x.ref === ref);
-  if (!c) return;
-  
-  if (!confirm(`📧 Confirmer pour ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
-  
-  c.nbEmails++;
-  c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
-  c.statut = 'CHARGÉE';
-  
-  const envoiNum = c.nbEmails;
-  const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}`;
-  const msg = `${c.client},\n\nCommande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!\n\n📋 DÉTAILS:\n• ${c.tonnes.toFixed(2)}T • ${c.pays}`;
-  
-  window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`, '_blank');
-  maj();
-  alert('✅ Email prêt ! Copiez la mise à jour dans Sheets');
-}
-
-// TOP CLIENTS
-function afficherTopClients() {
-  const clients = {};
-  cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
-  const topClients = Object.entries(clients).sort((a,b) => b[1] - a[1]).slice(0, 8);
-  
-  if (topClients.length === 0) {
-    document.getElementById('graphClients').innerHTML = '<div style="padding:40px;color:#9ca3af;">📈 Ajoutez des commandes</div>';
-    return;
-  }
-  
-  const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
-  const container = document.getElementById('graphClients');
-  container.innerHTML = '';
-  
-  topClients.forEach(([client, tonnes], i) => {
-    const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
-    const div = document.createElement('div');
-    div.className = 'client-bar';
-    div.innerHTML = `
-      <div class="client-name">#${i+1} ${client.slice(0,15)}${client.length>15?'...':''}</div>
-      <div class="client-tonnes">${tonnes.toFixed(1)}T</div>
-      <div class="client-barre" style="width:${Math.min(pourcent*2.5,95)}%">
-        <div class="client-pourcent">${pourcent}%</div>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-// ✅ CARTE 2D SIMPLE
-function initMapCanvas() {
-  const canvas = document.getElementById('mapCanvas');
-  const ctx = canvas.getContext('2d');
-  
-  function resizeCanvas() {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    renderMap();
-  }
-  
-  window.addEventListener('resize', resizeCanvas);
-  resizeCanvas();
-  
-  canvas.onclick = function(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
-    // Trouver pays cliqué
-    for (const [code, pos] of Object.entries(paysPositions)) {
-      const dist = Math.sqrt((x - pos.x * canvas.width/800)**2 + (y - pos.y * canvas.height/500)**2);
-      if (dist < 25) {
-        showCountryInfo(code);
-        return;
-      }
-    }
-  };
-  
-  function renderMap() {
-    const w = canvas.width, h = canvas.height;
-    ctx.clearRect(0, 0, w, h);
-    
-    // Fond mer
-    const gradient = ctx.createLinearGradient(0, 0, 0, h);
-    gradient.addColorStop(0, '#e0f2fe');
-    gradient.addColorStop(1, '#bae6fd');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, w, h);
-    
-    // Continents stylisés
-    ctx.fillStyle = '#a8ddb5';
-    ctx.fillRect(w*0.1, h*0.4, w*0.15, h*0.25); // Europe Ouest
-    ctx.fillRect(w*0.3, h*0.35, w*0.12, h*0.18); // Europe Centre
-    ctx.fillRect(w*0.5, h*0.45, w*0.12, h*0.2);  // Afrique
-    
-    // Points pays avec tonnage
-    const paysTonnes = {};
-    cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
-    
-    Object.entries(paysTonnes).forEach(([code, tonnes]) => {
-      if (paysPositions[code]) {
-        const pos = paysPositions[code];
-        const scaleX = w / 800, scaleY = h / 500;
-        const x = pos.x * scaleX, y = pos.y * scaleY;
-        const size = Math.max(12, tonnes * 4);
-        
-        ctx.fillStyle = paysPositions[code].color;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-        
-        ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(12, size/1.5)}px bold Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(code, x, y);
-      }
-    });
-    
-    requestAnimationFrame(renderMap);
-  }
-  
-  function showCountryInfo(code) {
-    const pos = paysPositions[code];
-    const paysCmds = cmds.filter(c => c.pays === code);
-    const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
-    const clientsUniques = [...new Set(paysCmds.map(c => c.client))];
-    
-    document.getElementById('countryInfo').innerHTML = `
-      <h3 style="color:${pos.color}">🌍 ${pos.name} (${code})</h3>
-      <p><strong>⚖️ ${totalTonnes.toFixed(1)}T</strong> exportées</p>
-      <p>👥 ${clientsUniques.length} clients</p>
-      <p>📦 ${paysCmds.length} commandes</p>
-    `;
-  }
-}
-
-// EXPORT EXCEL
-function exportExcel() {
-  const wb = XLSX.utils.book_new();
-  const ws_data = cmds.map(c => ({
-    Client: c.client, 'Réf': c.ref, Date: c.date, 'Point départ': c.pointDepart,
-    Pays: c.pays, Tonnes: c.tonnes, Immatriculation: c.immat,
-    Statut: c.statut, 'Nb Emails': c.nbEmails, 'Dernier email': c.derniereDateEmail || ''
-  }));
-  const ws = XLSX.utils.json_to_sheet(ws_data);
-  XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
-  XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-// MAJ INTERFACE
-function maj() {
-  const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
-  const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
-  const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
-  const totalEmails = cmds.reduce((s,c) => s + c.nbEmails, 0);
-
-  document.getElementById('totT').innerHTML = tot.toFixed(1) + ' T';
-  document.getElementById('att').textContent = att;
-  document.getElementById('cha').textContent = ch;
-  document.getElementById('em').textContent = totalEmails;
-  document.getElementById('totalInfo').innerHTML = `${cmds.length} commande(s) | ${new Date().toLocaleString('fr-FR')}`;
-  document.getElementById('excelCount').textContent = cmds.length;
-
-  // Tableau
-  const tb = document.getElementById('tab');
-  if (cmds.length === 0) {
-    tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez des commandes dans Google Sheets</td></tr>';
-  } else {
-    tb.innerHTML = cmds.map(c => {
-      const statutText = c.statut === 'CHARGÉE' ? 
-        `✅ CHARGÉE (${c.nbEmails}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : '⏳ EN ATTENTE';
-      const btnConfirmer = c.statut === 'EN ATTENTE' ? 
-        `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CHARGER</button>` :
-        `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENV</button>`;
+    try {
+      document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">🔄 Lecture Google Sheets...</td></tr>';
+      document.getElementById('syncBtn').innerHTML = '⏳ Sync...';
       
-      return `
-        <tr class="${c.statut === 'CHARGÉE' ? 'chargee' : ''}">
-          <td><b>${c.client}</b></td>
-          <td>${c.ref}</td>
-          <td>${c.date}</td>
-          <td>${c.pointDepart}</td>
-          <td>${c.pays}</td>
-          <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
-          <td>${c.immat || '-'}</td>
-          <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
-          <td>${btnConfirmer} <button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')">🗑️</button></td>
-        </tr>
+      // ✅ PROXY CORS pour éviter les erreurs
+      const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(
+        `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`
+      );
+      
+      const response = await fetch(proxyUrl);
+      if (!response.ok) throw new Error('Erreur réseau');
+      
+      const data = await response.json();
+      const csvText = data.contents;
+      
+      if (!csvText || csvText.trim().length < 10) {
+        throw new Error('Feuille vide ou URL incorrecte');
+      }
+      
+      const lines = csvText.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+      
+      cmds = lines.slice(1).map((line, index) => {
+        const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+        return {
+          client: values[0] || '',
+          ref: values[1] || '',
+          date: values[2] || '',
+          pointDepart: values[3] || '',
+          pays: values[4] || '',
+          tonnes: parseFloat(values[5]) || 0,
+          immat: values[6] || '',
+          email: values[7] || '',
+          statut: values[8] || 'EN ATTENTE',
+          nbEmails: parseInt(values[9]) || 0,
+          derniereDateEmail: values[10] || null,
+          rowIndex: index + 2 // Pour mise à jour future
+        };
+      }).filter(c => c.ref && c.client);
+      
+      maj();
+      document.getElementById('totalInfo').innerHTML = `✅ ${cmds.length} lignes synchronisées | ${new Date().toLocaleString('fr-FR')}`;
+      
+    } catch(e) {
+      console.error('Erreur sync:', e);
+      document.getElementById('tab').innerHTML = `
+        <tr><td colspan="9" class="error-message">
+          ❌ Erreur connexion<br>
+          🔗 Vérifiez: <strong>${SHEET_ID}</strong><br>
+          📋 <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer">🔄 RETESSAYER</button>
+        </td></tr>
       `;
-    }).join('');
+    } finally {
+      isSyncing = false;
+      document.getElementById('syncBtn').innerHTML = '🔄 SYNCHRO Sheets';
+    }
   }
-  
-  afficherTopClients();
-}
 
-// INIT
-window.addEventListener('load', () => {
-  initMapCanvas();
-  document.getElementById('loginPassword').focus();
-  
-  // Select pays
-  const select = document.getElementById('paysIn');
-  Object.entries(paysPositions).sort((a,b) => a[1].name.localeCompare(b[1].name))
-    .forEach(([code, data]) => {
-      const option = document.createElement('option');
-      option.value = code;
-      option.textContent = `${data.name} (${code})`;
-      select.appendChild(option);
+  // ✅ SAUVEGARDE AUTOMATIQUE VERS SHEETS
+  async function sauvegarderSheets() {
+    try {
+      const csvContent = [
+        'Client,Réf,Date,Point départ,Pays,Tonnes,Immatriculation,Email,Statut,Nb Emails,Dernier email',
+        ...cmds.map(c => [
+          c.client, c.ref, c.date, c.pointDepart, c.pays, c.tonnes,
+          c.immat, c.email, c.statut, c.nbEmails, c.derniereDateEmail || ''
+        ].map(v => `"${v}"`).join(','))
+      ].join('\n');
+      
+      // Télécharge le CSV à copier dans Sheets
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Solana-Sheets-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      document.getElementById('saveStatus').textContent = '✓';
+      setTimeout(() => document.getElementById('saveStatus').textContent = 'Auto', 2000);
+      
+      alert('✅ CSV prêt ! Copiez-collez dans Google Sheets\n📋 Colonne A ligne 1');
+      
+    } catch(e) {
+      console.error('Erreur sauvegarde:', e);
+      alert('❌ Erreur sauvegarde');
+    }
+  }
+
+  // AJOUT COMMANDE
+  function ajouterCmd(e) {
+    e.preventDefault();
+    const n = {
+      client: document.getElementById('clientIn').value.trim(),
+      ref: document.getElementById('refIn').value.trim(),
+      date: document.getElementById('dateIn').value,
+      pointDepart: document.getElementById('pointDepart').value.trim(),
+      pays: document.getElementById('paysIn').value,
+      tonnes: parseFloat(document.getElementById('tonnesIn').value),
+      immat: document.getElementById('immatIn').value.trim(),
+      email: document.getElementById('emailIn').value.trim(),
+      statut: 'EN ATTENTE',
+      nbEmails: 0,
+      derniereDateEmail: null
+    };
+    
+    if (cmds.find(c => c.ref === n.ref)) {
+      alert('⚠️ Référence DUPLIQUÉE !');
+      return;
+    }
+    
+    cmds.unshift(n);
+    e.target.reset();
+    document.getElementById('dateIn').valueAsDate = new Date();
+    
+    const ligneCSV = [
+      n.client, n.ref, n.date, n.pointDepart, n.pays, n.tonnes,
+      n.immat, n.email, n.statut, n.nbEmails, n.derniereDateEmail || ''
+    ].map(v => `"${v}"`).join(',');
+    
+    alert(`✅ Commande ajoutée!\n\n📋 COPIEZ cette ligne dans Google Sheets:\n\n${ligneCSV}\n\n💾 Cliquez SAUVEGARDER puis SYNCHRO`);
+    maj();
+  }
+
+  // SUPPRIMER
+  function supprimerCmd(refASupprimer) {
+    const index = cmds.findIndex(cmd => cmd.ref === refASupprimer);
+    if (index !== -1) {
+      if (confirm(`🗑️ SUPPRIMER ${cmds[index].client} (${cmds[index].ref}) ?`)) {
+        cmds.splice(index, 1);
+        maj();
+        alert('✅ Supprimé ! 💾 SAUVEGARDER puis 🔄 SYNCHRO');
+      }
+    }
+  }
+
+  // EMAIL
+  function confirmerEmail(ref) {
+    const c = cmds.find(x => x.ref === ref);
+    if (!c) return;
+    
+    if (!confirm(`📧 Confirmer pour ${c.client} ?\n${c.ref} - ${c.tonnes.toFixed(2)}T`)) return;
+    
+    c.nbEmails++;
+    c.derniereDateEmail = new Date().toLocaleDateString('fr-FR');
+    c.statut = 'CHARGÉE';
+    
+    const envoiNum = c.nbEmails;
+    const sujet = `✅ ${c.ref.toUpperCase()} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}`;
+    const msg = `${c.client},\n\nCommande ${c.ref} ${envoiNum === 1 ? 'CHARGÉE' : 'RENVOYÉE'}!\n\n📋 DÉTAILS:\n• ${c.tonnes.toFixed(2)}T • ${c.pays}`;
+    
+    window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(msg)}`, '_blank');
+    maj();
+    alert('✅ Email prêt ! 💾 SAUVEGARDER puis 🔄 SYNCHRO');
+  }
+
+  // TOP CLIENTS
+  function afficherTopClients() {
+    const clients = {};
+    cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
+    const topClients = Object.entries(clients).sort((a,b) => b[1] - a[1]).slice(0, 8);
+    
+    if (topClients.length === 0) {
+      document.getElementById('graphClients').innerHTML = '<div style="padding:40px;color:#9ca3af;">📈 Ajoutez des commandes</div>';
+      return;
+    }
+    
+    const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
+    const container = document.getElementById('graphClients');
+    container.innerHTML = '';
+    
+    topClients.forEach(([client, tonnes], i) => {
+      const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
+      const div = document.createElement('div');
+      div.className = 'client-bar';
+      div.innerHTML = `
+        <div class="client-name">#${i+1} ${client.slice(0,15)}${client.length>15?'...':''}</div>
+        <div class="client-tonnes">${tonnes.toFixed(1)}T</div>
+        <div class="client-barre" style="width:${Math.min(pourcent*2.5,95)}%">
+          <div class="client-pourcent">${pourcent}%</div>
+        </div>
+      `;
+      container.appendChild(div);
     });
-  document.getElementById('dateIn').valueAsDate = new Date();
-});
-
-// Entrée login
-document.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-    login();
   }
-});
+
+  // ✅ CARTE 2D SIMPLE
+  function initMapCanvas() {
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+      renderMap();
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    canvas.onclick = function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      for (const [code, pos] of Object.entries(paysPositions)) {
+        const dist = Math.sqrt((x - pos.x * canvas.width/800)**2 + (y - pos.y * canvas.height/500)**2);
+        if (dist < 25) {
+          showCountryInfo(code);
+          return;
+        }
+      }
+    };
+    
+    function renderMap() {
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+      
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, '#e0f2fe');
+      gradient.addColorStop(1, '#bae6fd');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.fillStyle = '#a8ddb5';
+      ctx.fillRect(w*0.1, h*0.4, w*0.15, h*0.25);
+      ctx.fillRect(w*0.3, h*0.35, w*0.12, h*0.18);
+      ctx.fillRect(w*0.5, h*0.45, w*0.12, h*0.2);
+      
+      const paysTonnes = {};
+      cmds.forEach(c => paysTonnes[c.pays] = (paysTonnes[c.pays] || 0) + c.tonnes);
+      
+      Object.entries(paysTonnes).forEach(([code, tonnes]) => {
+        if (paysPositions[code]) {
+          const pos = paysPositions[code];
+          const scaleX = w / 800, scaleY = h / 500;
+          const x = pos.x * scaleX, y = pos.y * scaleY;
+          const size = Math.max(12, tonnes * 4);
+          
+          ctx.fillStyle = paysPositions[code].color;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI*2);
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          
+          ctx.fillStyle = '#fff';
+          ctx.font = `${Math.max(12, size/1.5)}px bold Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(code, x, y);
+        }
+      });
+      
+      requestAnimationFrame(renderMap);
+    }
+    
+    function showCountryInfo(code) {
+      const pos = paysPositions[code];
+      const paysCmds = cmds.filter(c => c.pays === code);
+      const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
+      const clientsUniques = [...new Set(paysCmds.map(c => c.client))];
+      
+      document.getElementById('countryInfo').innerHTML = `
+        <h3 style="color:${pos.color}">🌍 ${pos.name} (${code})</h3>
+        <p><strong>⚖️ ${totalTonnes.toFixed(1)}T</strong> exportées</p>
+        <p>👥 ${clientsUniques.length} clients</p>
+        <p>📦 ${paysCmds.length} commandes</p>
+      `;
+    }
+  }
+
+  // EXPORT EXCEL
+  function exportExcel() {
+    const wb = XLSX.utils.book_new();
+    const ws_data = cmds.map(c => ({
+      Client: c.client, 'Réf': c.ref, Date: c.date, 'Point départ': c.pointDepart,
+      Pays: c.pays, Tonnes: c.tonnes, Immatriculation: c.immat,
+      Statut: c.statut, 'Nb Emails': c.nbEmails, 'Dernier email': c.derniereDateEmail || ''
+    }));
+    const ws = XLSX.utils.json_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
+    XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  // MAJ INTERFACE
+  function maj() {
+    const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
+    const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
+    const totalEmails = cmds.reduce((s,c) => s + c.nbEmails, 0);
+
+    document.getElementById('totT').innerHTML = tot.toFixed(1) + ' T';
+    document.getElementById('att').textContent = att;
+    document.getElementById('cha').textContent = ch;
+    document.getElementById('em').textContent = totalEmails;
+    document.getElementById('totalInfo').innerHTML = `${cmds.length} commande(s) | ${new Date().toLocaleString('fr-FR')}`;
+    document.getElementById('excelCount').textContent = cmds.length;
+
+    const tb = document.getElementById('tab');
+    if (cmds.length === 0) {
+      tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez des commandes dans Google Sheets</td></tr>';
+    } else {
+      tb.innerHTML = cmds.map(c => {
+        const statutText = c.statut === 'CHARGÉE' ? 
+          `✅ CHARGÉE (${c.nbEmails}${c.derniereDateEmail ? ` - ${c.derniereDateEmail}` : ''})` : '⏳ EN ATTENTE';
+        const btnConfirmer = c.statut === 'EN ATTENTE' ? 
+          `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CHARGER</button>` :
+          `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENV</button>`;
+        
+        return `
+          <tr class="${c.statut === 'CHARGÉE' ? 'chargee' : ''}">
+            <td><b>${c.client}</b></td>
+            <td>${c.ref}</td>
+            <td>${c.date}</td>
+            <td>${c.pointDepart}</td>
+            <td>${c.pays}</td>
+            <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
+            <td>${c.immat || '-'}</td>
+            <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
+            <td>${btnConfirmer} <button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')">🗑️</button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+    
+    afficherTopClients();
+  }
+
+  // INIT
+  window.addEventListener('load', () => {
+    initMapCanvas();
+    document.getElementById('loginPassword').focus();
+    
+    const select = document.getElementById('paysIn');
+    Object.entries(paysPositions).sort((a,b) => a[1].name.localeCompare(b[1].name))
+      .forEach(([code, data]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = `${data.name} (${code})`;
+        select.appendChild(option);
+      });
+    document.getElementById('dateIn').valueAsDate = new Date();
+  });
+
+  document.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+      login();
+    }
+  });
 </script>
 </body>
 </html>
