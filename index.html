@@ -4,302 +4,531 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:"Segoe UI",sans-serif;}
-    body{background:linear-gradient(135deg,#f5f7fa 0%,#e2e8f0 100%);color:#1f2937;min-height:100vh;}
-    .login-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#00b4d8,#0077b6);display:flex;align-items:center;justify-content:center;z-index:1000;}
-    .login-card{background:#fff;border-radius:24px;padding:50px 60px;box-shadow:0 30px 60px rgba(0,0,0,.3);max-width:450px;width:90%;text-align:center;}
-    .login-card h1{font-size:2.5rem;color:#0077b6;margin-bottom:15px;}
-    .login-input{width:100%;padding:18px;border:2px solid #e5e7eb;border-radius:16px;font-size:18px;margin:20px 0;box-shadow:0 4px 12px rgba(0,0,0,.1);transition:all .3s;}
-    .login-input:focus{border-color:#00b4d8;box-shadow:0 0 0 3px rgba(0,180,216,.2);}
-    .login-btn{width:100%;padding:18px;background:#00b4d8;color:white;border:none;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(0,180,216,.4);transition:all .3s;}
-    .login-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(0,180,216,.5);}
-    .dashboard{display:none;padding:30px;max-width:1400px;margin:0 auto;}
-    .header{position:relative;background:#fff;border-radius:24px 24px 0 0;padding:35px 40px;box-shadow:0 20px 40px rgba(0,0,0,.15);margin:-30px -30px 0;}
-    .header h1{font-size:2.3rem;color:#0077b6;margin-bottom:10px;}
-    .logout-btn{position:absolute;top:35px;right:40px;background:#ef4444;color:white;border:none;padding:12px 24px;border-radius:12px;cursor:pointer;font-weight:600;box-shadow:0 5px 15px rgba(239,68,68,.4);transition:all .3s;}
-    .logout-btn:hover{transform:translateY(-2px);}
-    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:25px;margin:35px 0;}
-    .kpi-card{background:#fff;border-radius:20px;padding:30px;box-shadow:0 15px 35px rgba(0,0,0,.12);text-align:center;transition:all .3s;cursor:pointer;}
-    .kpi-card:hover{transform:translateY(-8px);box-shadow:0 25px 50px rgba(0,0,0,.2);}
-    .kpi-icon{font-size:4rem;margin-bottom:15px;}
-    .kpi-value{font-size:3rem;font-weight:800;color:#0077b6;margin-bottom:8px;}
-    .kpi-label{font-size:1.1rem;color:#6b7280;font-weight:500;}
-    .add-section{background:#fff;border-radius:20px;padding:35px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
-    .add-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;}
-    .form-group label{font-weight:600;color:#374151;margin-bottom:8px;display:block;}
-    .form-input{width:100%;padding:15px;border:2px solid #e5e7eb;border-radius:12px;font-size:16px;transition:all .3s;box-shadow:0 2px 8px rgba(0,0,0,.05);}
-    .form-input:focus{border-color:#00b4d8;outline:none;box-shadow:0 0 0 3px rgba(0,180,216,.1);}
-    .add-btn{grid-column:1/-1;padding:20px;background:#10b981;color:white;border:none;border-radius:16px;font-size:18px;font-weight:700;cursor:pointer;box-shadow:0 10px 25px rgba(16,185,129,.4);transition:all .3s;}
-    .add-btn:hover{transform:translateY(-3px);box-shadow:0 15px 35px rgba(16,185,129,.5);}
-    .table-container{overflow-x:auto;background:#fff;border-radius:20px;padding:30px;box-shadow:0 15px 35px rgba(0,0,0,.12);margin:30px 0;}
-    table{width:100%;border-collapse:collapse;}
-    th{padding:20px 15px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);color:#374151;font-weight:700;font-size:1rem;border-bottom:4px solid #e5e7eb;}
-    td{padding:18px 15px;border-bottom:2px solid #f3f4f6;vertical-align:middle;}
-    tr:hover{background:#f8fafc;}
-    tr.chargee{background:#f0fdf4;}
-    .action-btn{min-width:100px;padding:10px 14px;border:none;border-radius:10px;cursor:pointer;font-weight:600;transition:all .3s;margin:1px;font-size:.85rem;}
-    .btn-confirmer{background:#10b981;color:white;box-shadow:0 4px 12px rgba(16,185,129,.4);}
-    .btn-confirmer:hover{background:#059669;transform:translateY(-1px);}
-    .btn-resent{background:#f59e0b;color:white;box-shadow:0 4px 12px rgba(245,158,11,.4);}
-    .btn-resent:hover{background:#d97706;transform:translateY(-1px);}
-    .btn-supprimer{background:#ef4444;color:white;box-shadow:0 4px 12px rgba(239,68,68,.4);}
-    .btn-supprimer:hover{background:#dc2626;transform:translateY(-1px);}
-    .graph-clients {background: #fff;border-radius: 20px;padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12);margin: 30px 0;}
-    .graph-title {color: #0077b6;font-size: 1.5rem;margin-bottom: 20px;text-align: center;}
-    .client-bar {display: flex;align-items: center;margin: 12px 0;background: #f1f5f9;border-radius: 12px;padding: 15px;transition: all .3s;}
-    .client-bar:hover {transform: translateX(10px);box-shadow: 0 10px 25px rgba(0,180,216,.2);}
-    .client-name {font-weight: 700;color: #374151;min-width: 120px;}
-    .client-tonnes {font-weight: 800;color: #0077b6;margin-left: 20px;}
-    .client-barre {flex: 1;height: 25px;background: linear-gradient(90deg, #10b981, #00b4d8);border-radius: 12px;margin: 0 20px;position: relative;overflow: hidden;}
-    .client-pourcent {position: absolute;right: 10px;color: white;font-weight: 600;}
-    .export-section {display: flex; gap: 15px; margin: 20px 0; padding: 20px;background: linear-gradient(135deg, #f0fdf4, #d1fae5);border-radius: 20px; border: 2px solid #10b981;}
-    .export-btn {flex: 1; padding: 15px 20px; border: none; border-radius: 15px;font-weight: 700; font-size: 16px; cursor: pointer; transition: all .3s;display: flex; align-items: center; gap: 10px; justify-content: center;}
-    .btn-excel { background: #059669; color: white; }
-    .btn-excel:hover { background: #047857; transform: scale(1.05); }
-    .btn-save { background: #8b5cf6; color: white; }
-    .btn-save:hover { background: #7c3aed; transform: scale(1.05); }
-    .btn-sync { background: #10b981; color: white; }
-    .btn-sync:hover { background: #059669; transform: scale(1.05); }
-    .map-section {background: #fff; border-radius: 20px; padding: 25px;box-shadow: 0 15px 35px rgba(0,0,0,.12); margin: 30px 0;}
-    .map-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px;}
-    .map-card {background: linear-gradient(135deg, #f0fdf4, #d1fae5); border: 3px solid #10b981; border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: all .3s;}
-    .map-card:hover {transform: scale(1.05); box-shadow: 0 15px 35px rgba(16,185,129,.3);}
-    .map-flag {font-size: 3rem; margin-bottom: 10px;}
-    .map-tonnes {font-size: 1.8rem; font-weight: 800; color: #10b981; margin-bottom: 5px;}
-    .map-cmds {color: #6b7280; font-weight: 600;}
-    .country-detail {background: #fff; border-radius: 16px; padding: 25px; border-left: 6px solid #10b981; display: none;}
-    .country-detail.active {display: block; animation: slideIn 0.3s ease;}
-    @keyframes slideIn {from {opacity: 0; transform: translateX(-20px);} to {opacity: 1; transform: translateX(0);}}
-    .detail-table {width: 100%; margin-top: 20px; border-collapse: collapse;}
-    .detail-table th, .detail-table td {padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;}
-    .detail-table th {background: #f0fdf4; font-weight: 700; color: #374151;}
-    .loading {color: #f59e0b; font-size: 1.2rem; padding: 40px; text-align: center;}
-    .error-message {color: #dc2626; padding: 20px; background: #fef2f2; border-radius: 12px; margin: 20px 0; border-left: 5px solid #ef4444;}
-    #saveStatus {font-size: 0.9rem; margin-left: 5px;}
-    .supabase-status {background: #10b981;color:white;padding:10px;border-radius:12px;margin:10px 0;font-weight:600;}
+    * { font-family: 'Inter', sans-serif; }
+    
+    .gradient-ocean { background: linear-gradient(135deg, #0077b6, #00b4d8, #90e0ef); }
+    .gradient-success { background: linear-gradient(135deg, #10b981, #34d399); }
+    .gradient-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+    .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+    .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171); }
+    
+    .glass { 
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    
+    .dark .glass { background: rgba(30, 41, 59, 0.9); }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.3); }
+      50% { box-shadow: 0 0 40px rgba(0, 180, 216, 0.6); }
+    }
+    
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animate-float { animation: float 3s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    .animate-slide-up { animation: slide-up 0.5s ease-out; }
+    
+    .kpi-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .kpi-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 25px 50px -12px rgba(0, 119, 182, 0.35);
+    }
+    
+    .country-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .country-card:hover {
+      transform: translateY(-5px) scale(1.03);
+      box-shadow: 0 15px 30px -8px rgba(16, 185, 129, 0.3);
+    }
+    
+    .table-row:hover { background: rgba(0, 119, 182, 0.05); }
+    .dark .table-row:hover { background: rgba(0, 180, 216, 0.1); }
+    
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
   </style>
 </head>
-<body>
+<body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-300">
 
-<!-- LOGIN -->
-<div class="login-screen" id="loginScreen">
-  <div class="login-card">
-    <h1>🚚 Solana Logistique PRO</h1>
-    <p style="color:#6b7280;margin-bottom:20px;">Mot de passe: <strong>solana123</strong></p>
-    <input type="password" id="loginPassword" class="login-input" placeholder="Entrez solana123">
-    <button class="login-btn" onclick="login()">🔓 ACCÉDER AU DASHBOARD</button>
-    <p style="font-size:0.9rem;color:#9ca3af;margin-top:15px;">☁️ SUPABASE AUTO-SYNC MULTI-TÉLÉPHONES</p>
-  </div>
-</div>
-
-<!-- DASHBOARD -->
-<div class="dashboard" id="dashboardMain">
-  <div class="header">
-    <h1>📊 Suivi Chargements </h1>
-    <p id="totalInfo">Chargement...</p>
-    <button class="logout-btn" onclick="logout()">❌ Déconnexion</button>
-  </div>
-
-  <!-- STATUS SUPABASE -->
-  <div id="supabaseStatus" class="supabase-status" style="display:none;">✅ SUPABASE CONNECTÉ ☁️</div>
-
-  <!-- FORMULAIRE AJOUT -->
-  <div class="add-section">
-    <h2 style="color:#0077b6;margin-bottom:25px;">➕ Nouvelle Commande Export</h2>
-    <form onsubmit="ajouterCmd(event)">
-      <div class="form-group">
-        <label>👤 Client</label>
-        <input id="clientIn" class="form-input" required>
-      </div>
-      <div class="form-group">
-        <label>📄 Réf Commande</label>
-        <input id="refIn" class="form-input" required>
-      </div>
-      <div class="form-group">
-        <label>📅 Date</label>
-        <input id="dateIn" type="date" class="form-input" required>
-      </div>
-      <div class="form-group">
-        <label>🚚 Point Départ (76,62...)</label>
-        <input id="pointDepart" class="form-input" placeholder="76,62,29,51..." required>
-      </div>
-      <div class="form-group">
-        <label>🌍 Pays Destination</label>
-        <select id="paysIn" class="form-input" required>
-          <option value="">Sélectionner...</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>⚖️ Tonnes</label>
-        <input id="tonnesIn" type="number" step="0.01" min="0.01" class="form-input" required>
-      </div>
-      <div class="form-group">
-        <label>🚛 Immatriculation</label>
-        <input id="immatIn" class="form-input" placeholder="AB-123-CD">
-      </div>
-      <div class="form-group">
-        <label>📧 Email Client</label>
-        <input id="emailIn" type="email" class="form-input" required>
-      </div>
-      <button type="submit" class="add-btn">➕ AJOUTER & AUTO-SYNC ☁️</button>
-    </form>
-  </div>
-
-  <!-- EXPORT & SYNC SECTION -->
-  <div class="export-section">
-    <button class="export-btn btn-excel" onclick="exportExcel()">
-      📊 Excel <span id="excelCount">0</span> lignes
-    </button>
-    <button class="export-btn btn-sync" onclick="synchroniserSheets()" id="syncBtn">
-      🔄 SYNCHRO LIVE
-    </button>
-  </div>
-
-  <!-- KPI GRID -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-icon">📦</div>
-      <div class="kpi-value" id="totT">0 T</div>
-      <div class="kpi-label">Total Tonnes</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-icon">⏳</div>
-      <div class="kpi-value" id="att">0</div>
-      <div class="kpi-label">En Attente</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-icon">✅</div>
-      <div class="kpi-value" id="cha">0</div>
-      <div class="kpi-label">Chargées</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-icon">📧</div>
-      <div class="kpi-value" id="em">0</div>
-      <div class="kpi-label">Emails Envoyés</div>
-    </div>
-  </div>
-
-  <!-- TOP CLIENTS -->
-  <div class="graph-clients" id="topClientsSection">
-    <h2 class="graph-title">👑 TOP 8 CLIENTS (Tonnes)</h2>
-    <div id="graphClients">Chargement...</div>
-  </div>
-
-  <!-- 🗺️ CARTE SIMPLIFIÉE STYLE SHOPIFY -->
-  <div class="map-section">
-    <h2 class="graph-title">🗺️ Destinations Export (Cliquez pour détails)</h2>
-    
-    <!-- GRILLE PAYS -->
-    <div class="map-grid" id="mapGrid">
-      <div class="loading">Chargement destinations...</div>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="fixed inset-0 gradient-ocean flex items-center justify-center z-50 overflow-hidden">
+    <!-- Animated Bubbles -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute w-32 h-32 bg-white/10 rounded-full top-10 left-10 animate-float" style="animation-delay: 0s;"></div>
+      <div class="absolute w-24 h-24 bg-white/10 rounded-full top-1/4 right-20 animate-float" style="animation-delay: 1s;"></div>
+      <div class="absolute w-40 h-40 bg-white/10 rounded-full bottom-20 left-1/4 animate-float" style="animation-delay: 2s;"></div>
+      <div class="absolute w-20 h-20 bg-white/10 rounded-full bottom-1/3 right-1/3 animate-float" style="animation-delay: 0.5s;"></div>
+      <div class="absolute w-16 h-16 bg-white/10 rounded-full top-1/2 left-1/3 animate-float" style="animation-delay: 1.5s;"></div>
     </div>
     
-    <!-- DÉTAIL PAYS -->
-    <div id="countryDetail" class="country-detail">
-      <h3 id="detailTitle"></h3>
-      <p id="detailStats"></p>
-      <table class="detail-table" id="detailTable"></table>
-      <button onclick="closeCountryDetail()" style="margin-top:15px;padding:10px 20px;background:#ef4444;color:white;border:none;border-radius:12px;cursor:pointer;font-weight:600;">✕ Fermer</button>
+    <!-- Login Card -->
+    <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate-slide-up">
+      <div class="text-center">
+        <!-- Logo -->
+        <div class="w-24 h-24 gradient-ocean rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl animate-pulse-glow">
+          <span class="text-5xl">🚚</span>
+        </div>
+        
+        <h1 class="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-2">
+          Solana Logistique PRO
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-8">Dashboard Export & Suivi des Chargements</p>
+        
+        <!-- Password Info -->
+        <div class="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 mb-6">
+          <p class="text-sm text-blue-700 dark:text-blue-300">
+            <span class="font-semibold">Mot de passe:</span> 
+            <code class="bg-blue-100 dark:bg-blue-800 px-3 py-1 rounded-lg ml-1">solana123</code>
+          </p>
+        </div>
+        
+        <!-- Password Input -->
+        <input 
+          type="password" 
+          id="loginPassword" 
+          placeholder="Entrez le mot de passe"
+          class="w-full px-6 py-4 text-lg text-center rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all mb-4"
+          onkeypress="if(event.key==='Enter') login()"
+        >
+        
+        <p id="loginError" class="text-red-500 text-sm mb-4 hidden">❌ Mot de passe incorrect</p>
+        
+        <!-- Login Button -->
+        <button 
+          onclick="login()"
+          class="w-full py-4 gradient-ocean text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        >
+          ✨ Accéder au Dashboard
+        </button>
+        
+        <!-- Footer -->
+        <div class="flex items-center justify-center gap-2 mt-6 text-gray-400">
+          <span>☁️</span>
+          <span class="text-sm">Supabase Multi-Device Sync</span>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- TABLEAU COMMANDES -->
-  <div class="table-container">
-    <h2 style="color:#0077b6;margin-bottom:25px;">📋 Liste des Commandes</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Client</th><th>Réf</th><th>Date</th><th>Départ</th><th>Pays</th><th>Tonnes</th><th>Immat</th><th>Statut</th><th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="tab">
-        <tr><td colspan="9" class="loading">☁️ Connexion Supabase...</td></tr>
-      </tbody>
-    </table>
+  <!-- MAIN DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 glass border-b border-gray-200 dark:border-gray-700">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-2xl">🚚</span>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                Solana Logistique PRO
+              </h1>
+              <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <span class="inline-block w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span id="headerStats">Chargement...</span>
+                <span id="supabaseBadge" class="hidden ml-2 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-full">☁️ Supabase</span>
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-3 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+              <span class="text-xl">🌙</span>
+            </button>
+            
+            <!-- Sync Button -->
+            <button onclick="synchroniser()" class="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-colors">
+              <span id="syncIcon">🔄</span> Sync
+            </button>
+            
+            <!-- Add Button -->
+            <button onclick="showAddModal()" class="flex items-center gap-2 px-5 py-3 gradient-ocean text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all">
+              ➕ Nouvelle Commande
+            </button>
+            
+            <!-- Logout -->
+            <button onclick="logout()" class="p-3 gradient-danger text-white rounded-xl shadow-lg hover:shadow-xl transition-all">
+              🚪
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 space-y-8">
+      
+      <!-- KPI CARDS -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Tonnes -->
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+          <div class="absolute inset-0 gradient-ocean opacity-5"></div>
+          <div class="relative z-10 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Tonnes</p>
+              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiTonnes">0 T</p>
+            </div>
+            <div class="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-3xl">📦</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- En Attente -->
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+          <div class="absolute inset-0 gradient-warning opacity-5"></div>
+          <div class="relative z-10 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">En Attente</p>
+              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiAttente">0</p>
+            </div>
+            <div class="w-16 h-16 gradient-warning rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-3xl">⏳</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chargées -->
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+          <div class="absolute inset-0 gradient-success opacity-5"></div>
+          <div class="relative z-10 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Chargées</p>
+              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiChargees">0</p>
+            </div>
+            <div class="w-16 h-16 gradient-success rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-3xl">✅</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Emails -->
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
+          <div class="absolute inset-0 gradient-purple opacity-5"></div>
+          <div class="relative z-10 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Emails Envoyés</p>
+              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiEmails">0</p>
+            </div>
+            <div class="w-16 h-16 gradient-purple rounded-2xl flex items-center justify-center shadow-lg">
+              <span class="text-3xl">📧</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Progression Globale</span>
+          <span class="text-lg font-bold text-gray-800 dark:text-white" id="progressPercent">0%</span>
+        </div>
+        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between mt-2 text-xs text-gray-400">
+          <span id="progressChargees">0 terminées</span>
+          <span id="progressAttente">0 en cours</span>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top Clients Chart -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+            👑 Top Clients (Tonnes)
+          </h3>
+          <div class="h-64">
+            <canvas id="clientsChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Status Pie Chart -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+            📊 Répartition des Statuts
+          </h3>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Destinations Map -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          🗺️ Destinations Export (Cliquez pour détails)
+        </h3>
+        <div id="countriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div class="col-span-full text-center py-8 text-gray-400">
+            🌍 Chargement des destinations...
+          </div>
+        </div>
+      </div>
+
+      <!-- Commands Table -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            📋 Liste des Commandes
+          </h3>
+          <div class="flex gap-3">
+            <button onclick="exportCSV()" class="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-xl font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors">
+              📥 Export CSV
+            </button>
+            <button onclick="toggleView()" id="viewToggle" class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+              📱 Vue Cartes
+            </button>
+          </div>
+        </div>
+        
+        <!-- Table View -->
+        <div id="tableView" class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 dark:bg-slate-700">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Client</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Réf</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Départ</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Pays</th>
+                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">Tonnes</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Statut</th>
+                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr><td colspan="8" class="text-center py-12 text-gray-400">☁️ Connexion Supabase...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Cards View -->
+        <div id="cardsView" class="hidden p-6">
+          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-200 dark:border-gray-700 py-6 mt-8">
+      <div class="container mx-auto px-4 text-center text-sm text-gray-500 dark:text-gray-400">
+        <p>🚚 Solana Logistique PRO - Projet de Fin d'Études</p>
+        <p class="mt-1">☁️ Synchronisation Supabase Multi-Appareils</p>
+      </div>
+    </footer>
   </div>
-</div>
+
+  <!-- ADD MODAL -->
+  <div id="addModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          ➕ Nouvelle Commande Export
+        </h3>
+        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+          ✕
+        </button>
+      </div>
+      <form onsubmit="ajouterCmd(event)" class="p-6 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">👤 Client</label>
+            <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📄 Référence</label>
+            <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📅 Date</label>
+            <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🚚 Point Départ</label>
+            <input type="text" id="pointDepart" placeholder="76, 62, 29..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🌍 Pays Destination</label>
+            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+              <option value="">Sélectionner...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">⚖️ Tonnes</label>
+            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation</label>
+            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📧 Email Client</label>
+            <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+          </div>
+        </div>
+        <div class="flex gap-4 pt-4">
+          <button type="button" onclick="closeAddModal()" class="flex-1 py-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+            Annuler
+          </button>
+          <button type="submit" class="flex-1 py-4 gradient-ocean text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+            ✨ Ajouter & Synchroniser
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- COUNTRY DETAIL MODAL -->
+  <div id="countryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h3 id="countryTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
+        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+          ✕
+        </button>
+      </div>
+      <div id="countryContent" class="p-6"></div>
+    </div>
+  </div>
 
 <script>
-  // 🔥 SUPABASE 100% AUTO-CONFIGURÉ
+  // ==================== CONFIGURATION ====================
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ'; 
-  
-  let cmds = [];
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
 
-  // ✅ EMOJIS PAYS - AJOUTÉ MANQUANT
   const paysEmojis = {
     SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
     ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
     GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷', FR: '🇫🇷'
   };
 
-  // 🌐 NOMS PAYS
   const paysNoms = {
-    SN: 'Sénégal 🇸🇳', PT: 'Portugal 🇵🇹', MA: 'Maroc 🇲🇦',
-    TN: 'Tunisie 🇹🇳', DZ: 'Algérie 🇩🇿', ES: 'Espagne 🇪🇸',
-    IT: 'Italie 🇮🇹', DE: 'Allemagne 🇩🇪', BE: 'Belgique 🇧🇪',
-    NL: 'Pays-Bas 🇳🇱', GB: 'Royaume-Uni 🇬🇧', PL: 'Pologne 🇵🇱',
-    RO: 'Roumanie 🇷🇴', GR: 'Grèce 🇬🇷', FR: 'France 🇫🇷'
+    SN: 'Sénégal', PT: 'Portugal', MA: 'Maroc',
+    TN: 'Tunisie', DZ: 'Algérie', ES: 'Espagne',
+    IT: 'Italie', DE: 'Allemagne', BE: 'Belgique',
+    NL: 'Pays-Bas', GB: 'Royaume-Uni', PL: 'Pologne',
+    RO: 'Roumanie', GR: 'Grèce', FR: 'France'
   };
 
-  // ✅ SAVE CMD - AVEC DEBUG COMPLET
+  let cmds = [];
+  let isCardView = false;
+  let clientsChart = null;
+  let statusChart = null;
+  let isDarkMode = false;
+
+  // ==================== DARK MODE ====================
+  function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.getElementById('darkModeBtn').innerHTML = isDarkMode ? '<span class="text-xl">☀️</span>' : '<span class="text-xl">🌙</span>';
+    updateCharts();
+  }
+
+  // ==================== LOGIN ====================
+  function login() {
+    const pwd = document.getElementById('loginPassword').value;
+    if (pwd === 'solana123') {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      initApp();
+    } else {
+      document.getElementById('loginError').classList.remove('hidden');
+      document.getElementById('loginPassword').value = '';
+    }
+  }
+
+  function logout() {
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('loginPassword').value = '';
+  }
+
+  // ==================== SUPABASE ====================
+  async function loadCmds() {
+    document.getElementById('syncIcon').innerHTML = '⏳';
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      if (!res.ok) throw new Error('Supabase error');
+      cmds = await res.json();
+      document.getElementById('supabaseBadge').classList.remove('hidden');
+      maj();
+    } catch (e) {
+      console.error('Load error:', e);
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-red-500">❌ Erreur connexion Supabase</td></tr>';
+    }
+    document.getElementById('syncIcon').innerHTML = '🔄';
+  }
+
   async function saveCmd(cmd) {
     try {
-      console.log('🔄 Envoi Supabase:', cmd);
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
         method: 'POST',
         headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
+          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
         },
         body: JSON.stringify([cmd])
       });
-      
-      const errorText = await res.text();
-      console.log('📡 Réponse Supabase:', res.status, errorText);
-      
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${errorText}`);
-      }
-      console.log('✅ INSERT OK');
-      return true;
-    } catch(e) {
-      console.error('❌ ERREUR SAVE:', e);
-      alert('❌ Erreur sauvegarde: ' + e.message);
-      return false;
-    }
+      return res.ok;
+    } catch { return false; }
   }
 
-  // CHARGEMENT LIVE SUPABASE
-  async function loadCmds() {
+  async function updateCmd(ref, updates) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+        method: 'PATCH',
         headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
+          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(updates)
       });
-      if (!res.ok) throw new Error('Erreur chargement Supabase');
-      cmds = await res.json();
-      console.log('📦 Commandes chargées:', cmds.length);
-    } catch(e) {
-      console.error('❌ Supabase load error:', e);
-      document.getElementById('tab').innerHTML = `
-        <tr><td colspan="9" class="error-message">
-          ❌ Supabase déconnecté<br>
-          Vérifie ta clé anon/public<br>
-          <button onclick="synchroniserSheets()" style="background:#10b981;color:white;padding:10px;border:none;border-radius:8px;cursor:pointer;">🔄 RETRY</button>
-        </td></tr>
-      `;
-    }
+      if (res.ok) { await loadCmds(); return true; }
+    } catch {}
+    return false;
   }
 
-  // AJOUT AUTO-SYNC SUPABASE
+  async function deleteCmd(ref) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      await loadCmds();
+    } catch {}
+  }
+
+  // ==================== ACTIONS ====================
   async function ajouterCmd(e) {
     e.preventDefault();
     const n = {
@@ -311,371 +540,317 @@
       tonnes: parseFloat(document.getElementById('tonnesIn').value),
       immat: document.getElementById('immatIn').value.trim(),
       email: document.getElementById('emailIn').value.trim(),
-      statut: 'EN ATTENTE',
-      nb_emails: 0,
-      derniere_date_email: null
+      statut: 'EN ATTENTE', nb_emails: 0, derniere_date_email: null
     };
     
-    // Vérif doublon
-    if (cmds.find(c => c.ref === n.ref)) {
-      alert('⚠️ Référence DUPLIQUÉE !');
-      return;
-    }
+    if (cmds.find(c => c.ref === n.ref)) { alert('⚠️ Référence déjà existante!'); return; }
     
-    const saveOk = await saveCmd(n);
-    if (saveOk) {
-      await loadCmds();
-      maj();
-      e.target.reset();
-      document.getElementById('dateIn').valueAsDate = new Date();
-      alert('✅ AJOUTÉ & SYNC MULTI-TÉLÉPHONES ! ☁️');
+    const ok = await saveCmd(n);
+    if (ok) {
+      closeAddModal();
+      alert('✅ Commande ajoutée avec succès!');
+    } else {
+      alert('❌ Erreur lors de l\'ajout');
     }
   }
 
-  // SYNCHRO LIVE
-  async function synchroniserSheets() {
-    document.getElementById('tab').innerHTML = '<tr><td colspan="9" class="loading">☁️ Synchronisation live...</td></tr>';
-    await loadCmds();
-    maj();
-  }
-
-  // ✅ UPDATE CMD CORRIGÉ
-  async function updateCmd(ref, updates) {
-    try {
-      console.log('🔄 Update:', ref, updates);
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(updates)
-      });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errorText}`);
-      }
-      
-      console.log('✅ UPDATE OK');
-      await loadCmds();
-      maj();
-    } catch(e) {
-      console.error('❌ Update error:', e);
-      alert('❌ Erreur mise à jour: ' + e.message);
-    }
-  }
-
-  // 🌐 UNIVERSEL MOBILE/PC + EMAIL AUTO
-  async function confirmerEmail(ref) {
-    const c = cmds.find(x => x.ref === ref);
-    if (!c) return alert('❌ Commande introuvable');
-
-    if (!confirm(`🚚 ${c.client}\n${c.ref} - ${c.tonnes.toFixed(2)}T\n\n📧 Ouvrir email + notif ?`)) return;
-
-    await updateCmd(ref, {
-      nb_emails: (parseInt(c.nb_emails || 0) + 1),
-      derniere_date_email: new Date().toLocaleDateString('fr-FR'),
-      statut: 'CHARGÉE'
-    });
-
-    const sujet = `✅ CHARGÉE - ${c.ref} - ${c.tonnes.toFixed(2)}T`;
-    const message = `Bonjour ${c.client},
-
-🎉 COMMANDE CHARGÉE ET PRÊTE À PARTIR ! 🎉
-📋 DÉTAILS DE VOTRE COMMANDE :
-──────────────────────────────
-REF: ${c.ref}
-
-Point départ: ${c.point_depart}
-Destination: ${c.pays}
-Tonnes: ${c.tonnes.toFixed(2)}T
-Camion: ${c.immat || 'Non spécifié'}
-Email: ${c.email}
-
-✅ Statut: LIVRAISON CONFIRMÉE
-📧 Cet email a été envoyé automatiquement`;
-
-    window.open(`mailto:${c.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-
-    setTimeout(() => notificationsUniverSel(c), 500);
-  }
-
-  // 🔥 NOTIFICATIONS UNIVERSELLES
-  function notificationsUniverSel(c) {
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-      document.title = `🚚 ${c.ref} CHARGÉE !`;
-      setTimeout(() => document.title = 'Solana Dashboard', 3000);
-    }
+  async function confirmerEmail(cmd) {
+    if (!confirm(`🚚 ${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\n📧 Confirmer et ouvrir email?`)) return;
     
-    if (typeof Notification !== 'undefined') {
-      if (Notification.permission === 'granted') {
-        new Notification('🚚 CHARGEMENT OK !', {
-          body: `${c.client} - ${c.tonnes.toFixed(1)}T → ${c.pays}`,
-          icon: '🚛'
-        });
-      } else if (Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
-    }
-    
-    try {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVKMbF1fdJivrJBhNjV');
-      audio.volume = 0.3;
-      audio.play().catch(() => {});
-    } catch(e) {}
-  }
-
-  // 🗺️ CARTE SIMPLIFIÉE STYLE SHOPIFY
-  function afficherCarteShopify() {
-    const grid = document.getElementById('mapGrid');
-    const paysTonnes = {};
-    
-    // Calcul stats par pays
-    cmds.forEach(c => {
-      paysTonnes[c.pays] = (paysTonnes[c.pays] || {tonnes: 0, cmds: 0, clients: new Set()});
-      paysTonnes[c.pays].tonnes += c.tonnes;
-      paysTonnes[c.pays].cmds++;
-      paysTonnes[c.pays].clients.add(c.client);
+    const ok = await updateCmd(cmd.ref, {
+      statut: 'CHARGÉE',
+      nb_emails: (cmd.nb_emails || 0) + 1,
+      derniere_date_email: new Date().toLocaleDateString('fr-FR')
     });
     
-    if (Object.keys(paysTonnes).length === 0) {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#9ca3af;">🌍 Ajoutez des commandes pour voir les destinations</div>';
-      return;
+    if (ok) {
+      const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
+      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE ET PRÊTE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\n\n✅ Statut: CONFIRMÉ`;
+      window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
     }
-    
-    grid.innerHTML = Object.entries(paysTonnes).map(([code, stats]) => {
-      const emoji = paysEmojis[code] || '🌍';
-      const totalTonnes = stats.tonnes.toFixed(1);
+  }
+
+  async function supprimerCmd(ref) {
+    if (!confirm('🗑️ Supprimer cette commande?')) return;
+    await deleteCmd(ref);
+  }
+
+  function synchroniser() {
+    loadCmds();
+  }
+
+  // ==================== DISPLAY ====================
+  function maj() {
+    // Stats
+    const tot = cmds.reduce((s, c) => s + c.tonnes, 0);
+    const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
+    const em = cmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
+    const pct = cmds.length ? Math.round((ch / cmds.length) * 100) : 0;
+
+    document.getElementById('kpiTonnes').textContent = tot.toFixed(1) + ' T';
+    document.getElementById('kpiAttente').textContent = att;
+    document.getElementById('kpiChargees').textContent = ch;
+    document.getElementById('kpiEmails').textContent = em;
+    document.getElementById('headerStats').textContent = `${cmds.length} commandes • ${new Date().toLocaleDateString('fr-FR')}`;
+    document.getElementById('progressPercent').textContent = pct + '%';
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressChargees').textContent = ch + ' terminées';
+    document.getElementById('progressAttente').textContent = att + ' en cours';
+
+    // Table
+    if (cmds.length === 0) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400">🎯 Ajoutez votre 1ère commande</td></tr>';
+      document.getElementById('cardsContainer').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400">🎯 Ajoutez votre 1ère commande</div>';
+    } else {
+      renderTable();
+      renderCards();
+      updateCharts();
+      renderCountries();
+    }
+  }
+
+  function renderTable() {
+    document.getElementById('tableBody').innerHTML = cmds.map(c => {
+      const statutBadge = c.statut === 'CHARGÉE' 
+        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-semibold rounded-full">✅ Chargée</span>'
+        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-semibold rounded-full">⏳ Attente</span>';
+      
+      const btnAction = c.statut === 'EN ATTENTE'
+        ? `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="px-3 py-2 gradient-success text-white text-xs font-semibold rounded-lg hover:opacity-90">✅ Charger</button>`
+        : `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="px-3 py-2 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200">📧 Renvoyer</button>`;
+
       return `
-        <div class="map-card" onclick="showCountryDetail('${code}')" data-code="${code}">
-          <div class="map-flag">${emoji} ${code}</div>
-          <div class="map-tonnes">${totalTonnes}T</div>
-          <div class="map-cmds">${stats.cmds} cmds • ${stats.clients.size} clients</div>
+        <tr class="table-row border-b border-gray-100 dark:border-gray-700 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''}">
+          <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">${c.client}</td>
+          <td class="px-6 py-4 text-sm font-mono text-gray-600 dark:text-gray-300">${c.ref}</td>
+          <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.date}</td>
+          <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.point_depart}</td>
+          <td class="px-6 py-4">${paysEmojis[c.pays] || '🌍'} ${c.pays}</td>
+          <td class="px-6 py-4 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+          <td class="px-6 py-4">${statutBadge}</td>
+          <td class="px-6 py-4 text-center">
+            <div class="flex justify-center gap-2">
+              ${btnAction}
+              <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-2 gradient-danger text-white text-xs font-semibold rounded-lg hover:opacity-90">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function renderCards() {
+    document.getElementById('cardsContainer').innerHTML = cmds.map(c => {
+      const borderColor = c.statut === 'CHARGÉE' ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700';
+      const statutBadge = c.statut === 'CHARGÉE'
+        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-semibold rounded-full">✅ Chargée</span>'
+        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-semibold rounded-full">⏳ Attente</span>';
+      
+      const btnAction = c.statut === 'EN ATTENTE'
+        ? `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="flex-1 py-2 gradient-success text-white text-sm font-semibold rounded-xl">✅ Charger</button>`
+        : `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="flex-1 py-2 bg-blue-100 text-blue-700 text-sm font-semibold rounded-xl">📧 Renvoyer</button>`;
+
+      return `
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 ${borderColor} shadow-lg overflow-hidden">
+          <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-lg font-bold text-gray-800 dark:text-white">${c.client}</h4>
+              ${statutBadge}
+            </div>
+            <p class="text-sm font-mono text-gray-500 dark:text-gray-400 mb-4">${c.ref}</p>
+            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+              <div>📅 ${c.date}</div>
+              <div>🚚 ${c.point_depart}</div>
+              <div>${paysEmojis[c.pays] || '🌍'} ${c.pays}</div>
+              <div class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</div>
+            </div>
+            <div class="flex gap-2">
+              ${btnAction}
+              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-2 gradient-danger text-white text-sm font-semibold rounded-xl">🗑️</button>
+            </div>
+          </div>
         </div>
       `;
     }).join('');
   }
 
-  // DÉTAIL PAYS
-  function showCountryDetail(code) {
-    const paysCmds = cmds.filter(c => c.pays === code);
-    const totalTonnes = paysCmds.reduce((s,c) => s + c.tonnes, 0);
-    const emoji = paysEmojis[code] || '🌍';
+  function renderCountries() {
+    const paysStats = {};
+    cmds.forEach(c => {
+      if (!paysStats[c.pays]) paysStats[c.pays] = { tonnes: 0, nb: 0 };
+      paysStats[c.pays].tonnes += c.tonnes;
+      paysStats[c.pays].nb++;
+    });
+
+    const entries = Object.entries(paysStats).sort((a, b) => b[1].tonnes - a[1].tonnes);
     
-    document.getElementById('detailTitle').innerHTML = `${emoji} ${code} • ${totalTonnes.toFixed(1)}T exportées`;
-    document.getElementById('detailStats').innerHTML = `
-      📦 ${paysCmds.length} commandes • 
-      👥 ${new Set(paysCmds.map(c => c.client)).size} clients uniques
-    `;
-    
-    const table = document.getElementById('detailTable');
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Réf</th>
-          <th>Client</th>
-          <th>Date</th>
-          <th>Départ</th>
-          <th>Tonnes</th>
-          <th>Immat</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${paysCmds.slice(0, 10).map(c => `
-          <tr>
-            <td><b>${c.ref}</b></td>
-            <td>${c.client}</td>
-            <td>${c.date}</td>
-            <td>${c.point_depart}</td>
-            <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
-            <td>${c.immat || '-'}</td>
-            <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}">
-              ${c.statut === 'CHARGÉE' ? '✅ CHARGÉE' : '⏳ EN ATTENTE'}
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    `;
-    
-    document.getElementById('countryDetail').classList.add('active');
-    document.getElementById('countryDetail').scrollIntoView({behavior: 'smooth'});
-  }
-
-  function closeCountryDetail() {
-    document.getElementById('countryDetail').classList.remove('active');
-  }
-
-  // SUPPRIMER
-  async function supprimerCmd(ref) {
-    const cmd = cmds.find(c => c.ref === ref);
-    if (!confirm(`🗑️ SUPPRIMER ${cmd?.client || ''} (${ref}) ?`)) return;
-
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
-        method: 'DELETE',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      });
-      await loadCmds();
-      maj();
-      alert('✅ Supprimé ! ☁️');
-    } catch(e) {
-      alert('❌ Erreur suppression: ' + e.message);
-    }
-  }
-
-  // LOGIN
-  function login() {
-    if (document.getElementById('loginPassword').value === 'solana123') {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboardMain').style.display = 'block';
-      testSupabase();
-    } else {
-      alert('❌ Mot de passe incorrect !\n🔑 solana123');
-      document.getElementById('loginPassword').value = '';
-    }
-  }
-
-  function logout() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('dashboardMain').style.display = 'none';
-    document.getElementById('loginPassword').value = '';
-  }
-
-  async function testSupabase() {
-    try {
-      await loadCmds();
-      document.getElementById('supabaseStatus').style.display = 'block';
-      maj();
-    } catch(e) {
-      document.getElementById('supabaseStatus').innerHTML = '❌ Supabase KO';
-      document.getElementById('supabaseStatus').style.background = '#ef4444';
-    }
-  }
-
-  // TOP CLIENTS
-  function afficherTopClients() {
-    const clients = {};
-    cmds.forEach(c => clients[c.client] = (clients[c.client] || 0) + c.tonnes);
-    const topClients = Object.entries(clients).sort((a,b) => b[1] - a[1]).slice(0, 8);
-    
-    if (topClients.length === 0) {
-      document.getElementById('graphClients').innerHTML = '<div style="padding:40px;color:#9ca3af;">📈 Ajoutez des commandes</div>';
+    if (entries.length === 0) {
+      document.getElementById('countriesGrid').innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">🌍 Ajoutez des commandes</div>';
       return;
     }
-    
-    const totalTonnes = cmds.reduce((s,c) => s + c.tonnes, 0);
-    const container = document.getElementById('graphClients');
-    container.innerHTML = '';
-    
-    topClients.forEach(([client, tonnes], i) => {
-      const pourcent = ((tonnes / totalTonnes) * 100).toFixed(1);
-      const div = document.createElement('div');
-      div.className = 'client-bar';
-      div.innerHTML = `
-        <div class="client-name">#${i+1} ${client.slice(0,15)}${client.length>15?'...':''}</div>
-        <div class="client-tonnes">${tonnes.toFixed(1)}T</div>
-        <div class="client-barre" style="width:${Math.min(pourcent*2.5,95)}%">
-          <div class="client-pourcent">${pourcent}%</div>
-        </div>
-      `;
-      container.appendChild(div);
+
+    document.getElementById('countriesGrid').innerHTML = entries.map(([code, stats]) => `
+      <div onclick="showCountryDetail('${code}')" class="country-card cursor-pointer bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/30 dark:to-cyan-900/30 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700">
+        <div class="text-4xl mb-2">${paysEmojis[code] || '🌍'}</div>
+        <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${stats.tonnes.toFixed(1)}T</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">${code} • ${stats.nb} cmd</div>
+      </div>
+    `).join('');
+  }
+
+  function showCountryDetail(code) {
+    const paysCmds = cmds.filter(c => c.pays === code);
+    const totalT = paysCmds.reduce((s, c) => s + c.tonnes, 0);
+
+    document.getElementById('countryTitle').innerHTML = `${paysEmojis[code] || '🌍'} ${code} - ${paysNoms[code] || code}`;
+    document.getElementById('countryContent').innerHTML = `
+      <div class="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/30 dark:to-cyan-900/30 rounded-xl">
+        <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalT.toFixed(1)} T</div>
+        <div class="text-gray-500 dark:text-gray-400">${paysCmds.length} commandes</div>
+      </div>
+      <table class="w-full">
+        <thead class="bg-gray-50 dark:bg-slate-700">
+          <tr>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Réf</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Client</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
+            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">Tonnes</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${paysCmds.map(c => `
+            <tr class="border-b border-gray-100 dark:border-gray-700">
+              <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
+              <td class="px-4 py-3 font-medium">${c.client}</td>
+              <td class="px-4 py-3">${c.date}</td>
+              <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+              <td class="px-4 py-3">${c.statut === 'CHARGÉE' ? '<span class="px-2 py-1 gradient-success text-white text-xs rounded-full">✅</span>' : '<span class="px-2 py-1 gradient-warning text-white text-xs rounded-full">⏳</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+    document.getElementById('countryModal').classList.remove('hidden');
+  }
+
+  // ==================== CHARTS ====================
+  function updateCharts() {
+    const textColor = isDarkMode ? '#94a3b8' : '#64748b';
+    const gridColor = isDarkMode ? '#334155' : '#e2e8f0';
+
+    // Top Clients Chart
+    const clientsData = {};
+    cmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
+    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    if (clientsChart) clientsChart.destroy();
+    clientsChart = new Chart(document.getElementById('clientsChart'), {
+      type: 'bar',
+      data: {
+        labels: topClients.map(c => c[0].slice(0, 10)),
+        datasets: [{
+          label: 'Tonnes',
+          data: topClients.map(c => c[1]),
+          backgroundColor: ['#0077b6', '#00b4d8', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+          borderRadius: 8
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: gridColor }, ticks: { color: textColor } },
+          y: { grid: { display: false }, ticks: { color: textColor } }
+        }
+      }
+    });
+
+    // Status Pie Chart
+    const attente = cmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const chargees = cmds.filter(c => c.statut === 'CHARGÉE').length;
+
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['En Attente', 'Chargées'],
+        datasets: [{
+          data: [attente, chargees],
+          backgroundColor: ['#f59e0b', '#10b981'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: textColor, padding: 20 } }
+        },
+        cutout: '60%'
+      }
     });
   }
 
-  // EXPORT EXCEL
-  function exportExcel() {
-    const wb = XLSX.utils.book_new();
-    const ws_data = cmds.map(c => ({
-      Client: c.client, 
-      'Réf': c.ref, 
-      Date: c.date, 
-      'Point départ': c.point_depart,
-      Pays: c.pays, 
-      Tonnes: c.tonnes, 
-      Immatriculation: c.immat,
-      Statut: c.statut, 
-      'Nb Emails': c.nb_emails, 
-      'Dernier email': c.derniere_date_email || ''
-    }));
-    const ws = XLSX.utils.json_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "Solana_Export");
-    XLSX.writeFile(wb, `Solana-Export-${new Date().toISOString().slice(0,10)}.xlsx`);
+  // ==================== MODALS & UTILS ====================
+  function showAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+    document.getElementById('dateIn').valueAsDate = new Date();
   }
 
-  // MAJ COMPLÈTE
-  function maj() {
-    const tot = cmds.reduce((s,c) => s + c.tonnes, 0);
-    const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
-    const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
-    const totalEmails = cmds.reduce((s,c) => s + (parseInt(c.nb_emails || 0)), 0);
-
-    document.getElementById('totT').innerHTML = tot.toFixed(1) + ' T';
-    document.getElementById('att').textContent = att;
-    document.getElementById('cha').textContent = ch;
-    document.getElementById('em').textContent = totalEmails;
-    document.getElementById('totalInfo').innerHTML = `${cmds.length} commande(s) | ${new Date().toLocaleString('fr-FR')}`;
-    document.getElementById('excelCount').textContent = cmds.length;
-
-    const tb = document.getElementById('tab');
-    if (cmds.length === 0) {
-      tb.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:#9ca3af;">🎯 Ajoutez votre 1ère commande</td></tr>';
-    } else {
-      tb.innerHTML = cmds.map(c => {
-        const statutText = c.statut === 'CHARGÉE' ? 
-          `✅ CHARGÉE (${c.nb_emails || 0}${c.derniere_date_email ? ` - ${c.derniere_date_email}` : ''})` : '⏳ EN ATTENTE';
-        const btnConfirmer = c.statut === 'EN ATTENTE' ? 
-          `<button class="action-btn btn-confirmer" onclick="confirmerEmail('${c.ref}')">✅ CHARGER</button>` :
-          `<button class="action-btn btn-resent" onclick="confirmerEmail('${c.ref}')">📧 RENV</button>`;
-        
-        return `
-          <tr class="${c.statut === 'CHARGÉE' ? 'chargee' : ''}">
-            <td><b>${c.client}</b></td>
-            <td>${c.ref}</td>
-            <td>${c.date}</td>
-            <td>${c.point_depart}</td>
-            <td>${c.pays}</td>
-            <td><b style="color:#10b981">${c.tonnes.toFixed(2)}T</b></td>
-            <td>${c.immat || '-'}</td>
-            <td style="color:${c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b'}"><b>${statutText}</b></td>
-            <td>${btnConfirmer} <button class="action-btn btn-supprimer" onclick="supprimerCmd('${c.ref}')">🗑️</button></td>
-          </tr>
-        `;
-      }).join('');
-    }
-    
-    afficherTopClients();
-    afficherCarteShopify();
+  function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+    document.getElementById('clientIn').value = '';
+    document.getElementById('refIn').value = '';
+    document.getElementById('pointDepart').value = '';
+    document.getElementById('paysIn').value = '';
+    document.getElementById('tonnesIn').value = '';
+    document.getElementById('immatIn').value = '';
+    document.getElementById('emailIn').value = '';
   }
 
-  // INIT
-  window.addEventListener('load', () => {
-    document.getElementById('loginPassword').focus();
+  function closeCountryModal() {
+    document.getElementById('countryModal').classList.add('hidden');
+  }
+
+  function toggleView() {
+    isCardView = !isCardView;
+    document.getElementById('tableView').classList.toggle('hidden', isCardView);
+    document.getElementById('cardsView').classList.toggle('hidden', !isCardView);
+    document.getElementById('viewToggle').innerHTML = isCardView ? '📋 Vue Table' : '📱 Vue Cartes';
+  }
+
+  function exportCSV() {
+    const csv = 'Client,Référence,Date,Départ,Pays,Tonnes,Immat,Statut,Emails\n' +
+      cmds.map(c => `${c.client},${c.ref},${c.date},${c.point_depart},${c.pays},${c.tonnes},${c.immat || '-'},${c.statut},${c.nb_emails}`).join('\n');
     
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Solana-Export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  }
+
+  // ==================== INIT ====================
+  function initApp() {
+    // Populate countries
     const select = document.getElementById('paysIn');
     Object.keys(paysNoms).sort().forEach(code => {
-      const option = document.createElement('option');
-      option.value = code;
-      option.textContent = paysNoms[code];
-      select.appendChild(option);
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${paysEmojis[code]} ${paysNoms[code]}`;
+      select.appendChild(opt);
     });
 
-    document.getElementById('dateIn').valueAsDate = new Date();
-  });
+    loadCmds();
+  }
 
-  document.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
-      login();
-    }
-  });
+  // Focus on password input
+  document.getElementById('loginPassword').focus();
 </script>
+
 </body>
 </html>
-
