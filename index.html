@@ -4,175 +4,399 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
+  
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  
+  <!-- Leaflet CSS & JS for Real Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  
   <style>
     * { font-family: 'Inter', sans-serif; }
     
+    /* Gradients */
     .gradient-ocean { background: linear-gradient(135deg, #0077b6, #00b4d8, #90e0ef); }
-    .gradient-success { background: linear-gradient(135deg, #10b981, #34d399); }
-    .gradient-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
-    .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-    .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171); }
+    .gradient-success { background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7); }
+    .gradient-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d); }
+    .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa, #c4b5fd); }
+    .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
+    .gradient-dark { background: linear-gradient(135deg, #1e293b, #334155, #475569); }
     
+    /* Glass Effect */
     .glass { 
       background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
-    
     .dark .glass { background: rgba(30, 41, 59, 0.9); }
     
+    /* Animations */
     @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(2deg); }
     }
     
     @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.3); }
-      50% { box-shadow: 0 0 40px rgba(0, 180, 216, 0.6); }
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.4); }
+      50% { box-shadow: 0 0 50px rgba(0, 180, 216, 0.8); }
     }
     
     @keyframes slide-up {
-      from { opacity: 0; transform: translateY(30px); }
+      from { opacity: 0; transform: translateY(40px); }
       to { opacity: 1; transform: translateY(0); }
     }
     
-    .animate-float { animation: float 3s ease-in-out infinite; }
-    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
-    .animate-slide-up { animation: slide-up 0.5s ease-out; }
+    @keyframes scale-in {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
     
+    @keyframes bounce-in {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    .animate-slide-up { animation: slide-up 0.6s ease-out; }
+    .animate-scale-in { animation: scale-in 0.5s ease-out; }
+    .animate-bounce-in { animation: bounce-in 0.6s ease-out; }
+    .animate-shimmer { 
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+    .animate-rotate { animation: rotate 1s linear infinite; }
+    
+    /* KPI Cards */
     .kpi-card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    .kpi-card:hover::before {
+      left: 100%;
     }
     .kpi-card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 25px 50px -12px rgba(0, 119, 182, 0.35);
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
     }
     
+    /* Country Cards */
     .country-card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .country-card:hover {
-      transform: translateY(-5px) scale(1.03);
-      box-shadow: 0 15px 30px -8px rgba(16, 185, 129, 0.3);
+      transform: translateY(-8px) scale(1.05);
+      box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.4);
     }
     
-    .table-row:hover { background: rgba(0, 119, 182, 0.05); }
-    .dark .table-row:hover { background: rgba(0, 180, 216, 0.1); }
+    /* Table Rows */
+    .table-row {
+      transition: all 0.3s ease;
+    }
+    .table-row:hover {
+      background: linear-gradient(90deg, rgba(0, 119, 182, 0.05), rgba(0, 180, 216, 0.1));
+      transform: scale(1.01);
+    }
+    .dark .table-row:hover {
+      background: linear-gradient(90deg, rgba(0, 180, 216, 0.1), rgba(16, 185, 129, 0.15));
+    }
     
-    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    /* Map Styles */
+    #map { 
+      height: 500px; 
+      border-radius: 20px;
+      z-index: 1;
+    }
+    
+    .leaflet-popup-content-wrapper {
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    }
+    
+    .leaflet-popup-content {
+      margin: 16px;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .map-marker-pulse {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #10b981;
+      position: relative;
+    }
+    .map-marker-pulse::before {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse-ring 1.5s infinite;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    ::-webkit-scrollbar-thumb { 
+      background: linear-gradient(180deg, #0077b6, #10b981);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #00b4d8; }
     
-    .dark ::-webkit-scrollbar-thumb { background: #475569; }
-    .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    /* Map Legend */
+    .map-legend {
+      background: rgba(255,255,255,0.95);
+      padding: 15px 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      font-family: 'Inter', sans-serif;
+    }
+    .dark .map-legend {
+      background: rgba(30, 41, 59, 0.95);
+      color: white;
+    }
+    
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      z-index: 9999;
+      animation: slide-up 0.5s ease-out;
+    }
+    
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #00b4d8;
+      border-radius: 50%;
+      animation: rotate 1s linear infinite;
+    }
+    
+    /* Export Button Animation */
+    .export-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .export-btn::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    .export-btn:active::after {
+      width: 300px;
+      height: 300px;
+    }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-300">
+<body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-500">
 
-  <!-- LOGIN SCREEN -->
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
   <div id="loginScreen" class="fixed inset-0 gradient-ocean flex items-center justify-center z-50 overflow-hidden">
-    <!-- Animated Bubbles -->
+    <!-- Animated Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <div class="absolute w-32 h-32 bg-white/10 rounded-full top-10 left-10 animate-float" style="animation-delay: 0s;"></div>
-      <div class="absolute w-24 h-24 bg-white/10 rounded-full top-1/4 right-20 animate-float" style="animation-delay: 1s;"></div>
-      <div class="absolute w-40 h-40 bg-white/10 rounded-full bottom-20 left-1/4 animate-float" style="animation-delay: 2s;"></div>
-      <div class="absolute w-20 h-20 bg-white/10 rounded-full bottom-1/3 right-1/3 animate-float" style="animation-delay: 0.5s;"></div>
-      <div class="absolute w-16 h-16 bg-white/10 rounded-full top-1/2 left-1/3 animate-float" style="animation-delay: 1.5s;"></div>
+      <!-- Floating Circles -->
+      <div class="absolute w-40 h-40 bg-white/10 rounded-full -top-20 -left-20 animate-float"></div>
+      <div class="absolute w-32 h-32 bg-white/10 rounded-full top-1/4 right-10 animate-float" style="animation-delay: 1s;"></div>
+      <div class="absolute w-56 h-56 bg-white/10 rounded-full -bottom-28 left-1/4 animate-float" style="animation-delay: 2s;"></div>
+      <div class="absolute w-24 h-24 bg-white/10 rounded-full bottom-1/3 right-1/4 animate-float" style="animation-delay: 0.5s;"></div>
+      <div class="absolute w-20 h-20 bg-white/10 rounded-full top-1/2 left-10 animate-float" style="animation-delay: 1.5s;"></div>
+      <div class="absolute w-36 h-36 bg-white/10 rounded-full top-10 right-1/3 animate-float" style="animation-delay: 2.5s;"></div>
+      
+      <!-- Animated Lines -->
+      <svg class="absolute inset-0 w-full h-full opacity-20">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:white;stop-opacity:0" />
+            <stop offset="50%" style="stop-color:white;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:white;stop-opacity:0" />
+          </linearGradient>
+        </defs>
+        <line x1="0" y1="100" x2="100%" y2="100" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse"/>
+        <line x1="0" y1="300" x2="100%" y2="300" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse" style="animation-delay: 0.5s"/>
+        <line x1="0" y1="500" x2="100%" y2="500" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse" style="animation-delay: 1s"/>
+      </svg>
     </div>
     
     <!-- Login Card -->
-    <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate-slide-up">
+    <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate__animated animate__fadeInUp">
       <div class="text-center">
-        <!-- Logo -->
-        <div class="w-24 h-24 gradient-ocean rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl animate-pulse-glow">
-          <span class="text-5xl">🚚</span>
+        <!-- Animated Logo -->
+        <div class="w-28 h-28 gradient-ocean rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow transform hover:rotate-12 transition-transform">
+          <span class="text-6xl">🚚</span>
         </div>
         
-        <h1 class="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mb-2">
-          Solana Logistique PRO
+        <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3 animate__animated animate__fadeIn animate__delay-1s">
+          Solana Logistique
         </h1>
-        <p class="text-gray-500 dark:text-gray-400 mb-8">Dashboard Export & Suivi des Chargements</p>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg">Dashboard Export & Suivi des Chargements</p>
         
-        <!-- Password Info -->
-        <div class="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 mb-6">
-          <p class="text-sm text-blue-700 dark:text-blue-300">
-            <span class="font-semibold">Mot de passe:</span> 
-            <code class="bg-blue-100 dark:bg-blue-800 px-3 py-1 rounded-lg ml-1">solana123</code>
+        <!-- Password Info Box -->
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 mb-6 border border-blue-100 dark:border-blue-800 animate__animated animate__fadeIn animate__delay-1s">
+          <p class="text-blue-700 dark:text-blue-300">
+            <span class="font-semibold">🔑 Mot de passe:</span> 
+            <code class="bg-blue-100 dark:bg-blue-800 px-4 py-2 rounded-xl ml-2 font-mono text-lg">solana123</code>
           </p>
         </div>
         
         <!-- Password Input -->
-        <input 
-          type="password" 
-          id="loginPassword" 
-          placeholder="Entrez le mot de passe"
-          class="w-full px-6 py-4 text-lg text-center rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all mb-4"
-          onkeypress="if(event.key==='Enter') login()"
-        >
+        <div class="relative mb-4 animate__animated animate__fadeIn animate__delay-1s">
+          <input 
+            type="password" 
+            id="loginPassword" 
+            placeholder="Entrez le mot de passe"
+            class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 transition-all"
+            onkeypress="if(event.key==='Enter') login()"
+          >
+          <div class="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">🔐</div>
+        </div>
         
-        <p id="loginError" class="text-red-500 text-sm mb-4 hidden">❌ Mot de passe incorrect</p>
+        <p id="loginError" class="text-red-500 text-sm mb-4 hidden animate__animated animate__shakeX">❌ Mot de passe incorrect</p>
         
         <!-- Login Button -->
         <button 
           onclick="login()"
-          class="w-full py-4 gradient-ocean text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 relative overflow-hidden group"
         >
-          ✨ Accéder au Dashboard
+          <span class="relative z-10 flex items-center justify-center gap-3">
+            <span>✨</span>
+            <span>Accéder au Dashboard</span>
+          </span>
+          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
         </button>
         
         <!-- Footer -->
-        <div class="flex items-center justify-center gap-2 mt-6 text-gray-400">
-          <span>☁️</span>
-          <span class="text-sm">Supabase Multi-Device Sync</span>
+        <div class="flex items-center justify-center gap-3 mt-8 text-gray-400 animate__animated animate__fadeIn animate__delay-2s">
+          <span class="text-2xl">☁️</span>
+          <span class="font-medium">Supabase Multi-Device Sync</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MAIN DASHBOARD -->
+  <!-- ==================== MAIN DASHBOARD ==================== -->
   <div id="dashboard" class="hidden">
+    
     <!-- Header -->
-    <header class="sticky top-0 z-40 glass border-b border-gray-200 dark:border-gray-700">
+    <header class="sticky top-0 z-40 glass border-b border-gray-200/50 dark:border-gray-700/50">
       <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <!-- Logo & Title -->
           <div class="flex items-center gap-4">
-            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-lg">
-              <span class="text-2xl">🚚</span>
+            <div class="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl animate-pulse-glow">
+              <span class="text-3xl">🚚</span>
             </div>
             <div>
-              <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+              <h1 class="text-2xl md:text-3xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent">
                 Solana Logistique PRO
               </h1>
               <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                <span class="inline-block w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
                 <span id="headerStats">Chargement...</span>
-                <span id="supabaseBadge" class="hidden ml-2 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 text-xs rounded-full">☁️ Supabase</span>
+                <span id="supabaseBadge" class="hidden ml-2 px-3 py-1 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">☁️ Supabase Connecté</span>
               </p>
             </div>
           </div>
           
-          <div class="flex items-center gap-3">
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-2 md:gap-3 flex-wrap">
             <!-- Dark Mode Toggle -->
-            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-3 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-3 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all hover:scale-110 active:scale-95">
               <span class="text-xl">🌙</span>
             </button>
             
             <!-- Sync Button -->
-            <button onclick="synchroniser()" class="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-colors">
-              <span id="syncIcon">🔄</span> Sync
+            <button onclick="synchroniser()" class="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-all hover:scale-105 active:scale-95">
+              <span id="syncIcon">🔄</span>
+              <span class="hidden sm:inline">Sync</span>
             </button>
             
             <!-- Add Button -->
-            <button onclick="showAddModal()" class="flex items-center gap-2 px-5 py-3 gradient-ocean text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all">
-              ➕ Nouvelle Commande
+            <button onclick="showAddModal()" class="flex items-center gap-2 px-5 py-3 gradient-ocean text-white rounded-xl font-semibold shadow-xl hover:shadow-cyan-500/30 hover:scale-105 active:scale-95 transition-all">
+              <span>➕</span>
+              <span class="hidden sm:inline">Nouvelle Commande</span>
             </button>
             
             <!-- Logout -->
-            <button onclick="logout()" class="p-3 gradient-danger text-white rounded-xl shadow-lg hover:shadow-xl transition-all">
+            <button onclick="logout()" class="p-3 gradient-danger text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all">
               🚪
             </button>
           </div>
@@ -183,127 +407,208 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8 space-y-8">
       
-      <!-- KPI CARDS -->
+      <!-- ==================== KPI CARDS ==================== -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         <!-- Total Tonnes -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
-          <div class="absolute inset-0 gradient-ocean opacity-5"></div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-ocean opacity-5 rounded-3xl"></div>
           <div class="relative z-10 flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Tonnes</p>
-              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiTonnes">0 T</p>
+              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Total Tonnes</p>
+              <p class="text-5xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent" id="kpiTonnes">0 T</p>
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <span>📈</span> Export total
+              </p>
             </div>
-            <div class="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center shadow-lg">
-              <span class="text-3xl">📦</span>
+            <div class="w-20 h-20 gradient-ocean rounded-3xl flex items-center justify-center shadow-xl animate-float">
+              <span class="text-4xl">📦</span>
             </div>
           </div>
         </div>
         
         <!-- En Attente -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
-          <div class="absolute inset-0 gradient-warning opacity-5"></div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-warning opacity-5 rounded-3xl"></div>
           <div class="relative z-10 flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">En Attente</p>
-              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiAttente">0</p>
+              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">En Attente</p>
+              <p class="text-5xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent" id="kpiAttente">0</p>
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <span>⏳</span> À traiter
+              </p>
             </div>
-            <div class="w-16 h-16 gradient-warning rounded-2xl flex items-center justify-center shadow-lg">
-              <span class="text-3xl">⏳</span>
+            <div class="w-20 h-20 gradient-warning rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 0.5s;">
+              <span class="text-4xl">⏳</span>
             </div>
           </div>
         </div>
         
         <!-- Chargées -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
-          <div class="absolute inset-0 gradient-success opacity-5"></div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-success opacity-5 rounded-3xl"></div>
           <div class="relative z-10 flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Chargées</p>
-              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiChargees">0</p>
+              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Chargées</p>
+              <p class="text-5xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent" id="kpiChargees">0</p>
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <span>✅</span> Terminées
+              </p>
             </div>
-            <div class="w-16 h-16 gradient-success rounded-2xl flex items-center justify-center shadow-lg">
-              <span class="text-3xl">✅</span>
+            <div class="w-20 h-20 gradient-success rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 1s;">
+              <span class="text-4xl">✅</span>
             </div>
           </div>
         </div>
         
         <!-- Emails -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg relative overflow-hidden">
-          <div class="absolute inset-0 gradient-purple opacity-5"></div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-purple opacity-5 rounded-3xl"></div>
           <div class="relative z-10 flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Emails Envoyés</p>
-              <p class="text-4xl font-extrabold text-gray-800 dark:text-white" id="kpiEmails">0</p>
+              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Emails Envoyés</p>
+              <p class="text-5xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent" id="kpiEmails">0</p>
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <span>📧</span> Notifications
+              </p>
             </div>
-            <div class="w-16 h-16 gradient-purple rounded-2xl flex items-center justify-center shadow-lg">
-              <span class="text-3xl">📧</span>
+            <div class="w-20 h-20 gradient-purple rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 1.5s;">
+              <span class="text-4xl">📧</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Progress Bar -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Progression Globale</span>
-          <span class="text-lg font-bold text-gray-800 dark:text-white" id="progressPercent">0%</span>
+      <!-- ==================== PROGRESS BAR ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeIn">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 gradient-success rounded-xl flex items-center justify-center">
+              <span class="text-xl">📊</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Progression Globale</h3>
+              <p class="text-xs text-gray-500">État des chargements</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-4xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent" id="progressPercent">0%</span>
+          </div>
         </div>
-        <div class="h-4 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+        <div class="h-5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000 ease-out relative overflow-hidden" style="width: 0%">
+            <div class="absolute inset-0 animate-shimmer"></div>
+          </div>
         </div>
-        <div class="flex justify-between mt-2 text-xs text-gray-400">
-          <span id="progressChargees">0 terminées</span>
-          <span id="progressAttente">0 en cours</span>
+        <div class="flex justify-between mt-3 text-sm">
+          <span class="text-emerald-600 font-semibold" id="progressChargees">0 terminées</span>
+          <span class="text-amber-500 font-semibold" id="progressAttente">0 en cours</span>
         </div>
       </div>
 
-      <!-- Charts Row -->
+      <!-- ==================== INTERACTIVE MAP ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate__animated animate__fadeIn">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg">
+                <span class="text-2xl">🗺️</span>
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Carte des Destinations</h3>
+                <p class="text-sm text-gray-500">Cliquez sur un marqueur pour voir les détails</p>
+              </div>
+            </div>
+            <div id="mapStats" class="flex gap-4">
+              <div class="text-center px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
+                <p class="text-2xl font-bold text-emerald-600" id="mapCountries">0</p>
+                <p class="text-xs text-gray-500">Pays</p>
+              </div>
+              <div class="text-center px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+                <p class="text-2xl font-bold text-blue-600" id="mapTotalT">0T</p>
+                <p class="text-xs text-gray-500">Exportés</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="map" class="w-full"></div>
+      </div>
+
+      <!-- ==================== CHARTS ROW ==================== -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
         <!-- Top Clients Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            👑 Top Clients (Tonnes)
-          </h3>
-          <div class="h-64">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeInLeft">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 gradient-purple rounded-xl flex items-center justify-center">
+              <span class="text-xl">👑</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Top Clients</h3>
+              <p class="text-xs text-gray-500">Par volume de tonnes</p>
+            </div>
+          </div>
+          <div class="h-72">
             <canvas id="clientsChart"></canvas>
           </div>
         </div>
         
         <!-- Status Pie Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-            📊 Répartition des Statuts
-          </h3>
-          <div class="h-64 flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeInRight">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 gradient-success rounded-xl flex items-center justify-center">
+              <span class="text-xl">📊</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Répartition des Statuts</h3>
+              <p class="text-xs text-gray-500">Commandes par état</p>
+            </div>
+          </div>
+          <div class="h-72 flex items-center justify-center">
             <canvas id="statusChart"></canvas>
           </div>
         </div>
       </div>
 
-      <!-- Destinations Map -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-        <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-          🗺️ Destinations Export (Cliquez pour détails)
-        </h3>
+      <!-- ==================== COUNTRIES GRID ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeIn">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 gradient-warning rounded-xl flex items-center justify-center">
+            <span class="text-xl">🌍</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-gray-800 dark:text-white">Destinations Export</h3>
+            <p class="text-xs text-gray-500">Cliquez pour voir les détails par pays</p>
+          </div>
+        </div>
         <div id="countriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div class="col-span-full text-center py-8 text-gray-400">
-            🌍 Chargement des destinations...
+          <div class="col-span-full text-center py-12 text-gray-400">
+            <div class="text-6xl mb-4">🌍</div>
+            <p>Chargement des destinations...</p>
           </div>
         </div>
       </div>
 
-      <!-- Commands Table -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden">
-        <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            📋 Liste des Commandes
-          </h3>
+      <!-- ==================== COMMANDS TABLE ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate__animated animate__fadeIn">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+              <span class="text-xl">📋</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Liste des Commandes</h3>
+              <p class="text-xs text-gray-500">Gestion et suivi des chargements</p>
+            </div>
+          </div>
           <div class="flex gap-3">
-            <button onclick="exportCSV()" class="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-xl font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800 transition-colors">
-              📥 Export CSV
+            <button onclick="exportExcel()" class="export-btn flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all">
+              <span>📥</span>
+              <span>Export Excel</span>
             </button>
-            <button onclick="toggleView()" id="viewToggle" class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
-              📱 Vue Cartes
+            <button onclick="toggleView()" id="viewToggle" class="flex items-center gap-2 px-5 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-all">
+              <span>📱</span>
+              <span>Vue Cartes</span>
             </button>
           </div>
         </div>
@@ -311,94 +616,105 @@
         <!-- Table View -->
         <div id="tableView" class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-gray-50 dark:bg-slate-700">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-600">
               <tr>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Client</th>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Réf</th>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Départ</th>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Pays</th>
-                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">Tonnes</th>
-                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Statut</th>
-                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Client</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Référence</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Départ</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Pays</th>
+                <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Tonnes</th>
+                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Statut</th>
+                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody id="tableBody">
-              <tr><td colspan="8" class="text-center py-12 text-gray-400">☁️ Connexion Supabase...</td></tr>
+              <tr><td colspan="8" class="text-center py-16 text-gray-400">
+                <div class="text-5xl mb-4">☁️</div>
+                Connexion Supabase en cours...
+              </td></tr>
             </tbody>
           </table>
         </div>
         
         <!-- Cards View -->
         <div id="cardsView" class="hidden p-6">
-          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          </div>
+          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
       </div>
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-gray-200 dark:border-gray-700 py-6 mt-8">
-      <div class="container mx-auto px-4 text-center text-sm text-gray-500 dark:text-gray-400">
-        <p>🚚 Solana Logistique PRO - Projet de Fin d'Études</p>
-        <p class="mt-1">☁️ Synchronisation Supabase Multi-Appareils</p>
+    <footer class="border-t border-gray-200 dark:border-gray-700 py-8 mt-8 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-900">
+      <div class="container mx-auto px-4 text-center">
+        <div class="flex items-center justify-center gap-3 mb-3">
+          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+            <span class="text-xl">🚚</span>
+          </div>
+          <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Solana Logistique PRO</span>
+        </div>
+        <p class="text-gray-500 dark:text-gray-400 text-sm">Projet de Fin d'Études • Dashboard de Suivi des Exports</p>
+        <p class="text-gray-400 dark:text-gray-500 text-xs mt-2">☁️ Synchronisation Supabase Multi-Appareils en Temps Réel</p>
       </div>
     </footer>
   </div>
 
-  <!-- ADD MODAL -->
-  <div id="addModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-          ➕ Nouvelle Commande Export
-        </h3>
-        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+  <!-- ==================== ADD MODAL ==================== -->
+  <div id="addModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+            <span class="text-xl">➕</span>
+          </div>
+          <h3 class="text-xl font-bold text-gray-800 dark:text-white">Nouvelle Commande Export</h3>
+        </div>
+        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-2xl">
           ✕
         </button>
       </div>
       <form onsubmit="ajouterCmd(event)" class="p-6 space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">👤 Client</label>
-            <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">👤 Client</label>
+            <input type="text" id="clientIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📄 Référence</label>
-            <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📄 Référence</label>
+            <input type="text" id="refIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📅 Date</label>
-            <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📅 Date</label>
+            <input type="date" id="dateIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🚚 Point Départ</label>
-            <input type="text" id="pointDepart" placeholder="76, 62, 29..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚚 Point Départ</label>
+            <input type="text" id="pointDepart" placeholder="76, 62, 29..." required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🌍 Pays Destination</label>
-            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
-              <option value="">Sélectionner...</option>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🌍 Pays Destination</label>
+            <select id="paysIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+              <option value="">Sélectionner un pays...</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">⚖️ Tonnes</label>
-            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">⚖️ Tonnes</label>
+            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation</label>
-            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation</label>
+            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📧 Email Client</label>
-            <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none transition-colors">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📧 Email Client</label>
+            <input type="email" id="emailIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
           </div>
         </div>
-        <div class="flex gap-4 pt-4">
-          <button type="button" onclick="closeAddModal()" class="flex-1 py-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
+        <div class="flex gap-4 pt-6">
+          <button type="button" onclick="closeAddModal()" class="flex-1 py-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
             Annuler
           </button>
-          <button type="submit" class="flex-1 py-4 gradient-ocean text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all">
+          <button type="submit" class="flex-1 py-4 gradient-ocean text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
             ✨ Ajouter & Synchroniser
           </button>
         </div>
@@ -406,12 +722,18 @@
     </div>
   </div>
 
-  <!-- COUNTRY DETAIL MODAL -->
-  <div id="countryModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slide-up">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h3 id="countryTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
-        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+  <!-- ==================== COUNTRY DETAIL MODAL ==================== -->
+  <div id="countryModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <div class="flex items-center gap-3">
+          <div id="countryFlag" class="w-12 h-12 rounded-xl flex items-center justify-center text-3xl"></div>
+          <div>
+            <h3 id="countryTitle" class="text-2xl font-bold text-gray-800 dark:text-white"></h3>
+            <p id="countrySubtitle" class="text-sm text-gray-500"></p>
+          </div>
+        </div>
+        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-2xl">
           ✕
         </button>
       </div>
@@ -420,10 +742,11 @@
   </div>
 
 <script>
-  // ==================== CONFIGURATION ====================
+  // ==================== CONFIGURATION SUPABASE ====================
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
 
+  // ==================== COUNTRIES DATA ====================
   const paysEmojis = {
     SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
     ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
@@ -438,21 +761,68 @@
     RO: 'Roumanie', GR: 'Grèce', FR: 'France'
   };
 
+  // Coordinates for each country (capital or center)
+  const paysCoords = {
+    SN: [14.6937, -17.4441], // Dakar
+    PT: [38.7223, -9.1393],  // Lisbon
+    MA: [33.5731, -7.5898],  // Casablanca
+    TN: [36.8065, 10.1815],  // Tunis
+    DZ: [36.7538, 3.0588],   // Algiers
+    ES: [40.4168, -3.7038],  // Madrid
+    IT: [41.9028, 12.4964],  // Rome
+    DE: [52.5200, 13.4050],  // Berlin
+    BE: [50.8503, 4.3517],   // Brussels
+    NL: [52.3676, 4.9041],   // Amsterdam
+    GB: [51.5074, -0.1278],  // London
+    PL: [52.2297, 21.0122],  // Warsaw
+    RO: [44.4268, 26.1025],  // Bucharest
+    GR: [37.9838, 23.7275],  // Athens
+    FR: [46.2276, 2.2137]    // France center
+  };
+
+  // ==================== GLOBAL VARIABLES ====================
   let cmds = [];
   let isCardView = false;
   let clientsChart = null;
   let statusChart = null;
   let isDarkMode = false;
+  let map = null;
+  let markersLayer = null;
+
+  // ==================== UTILITY FUNCTIONS ====================
+  function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.className = `toast flex items-center gap-3 ${type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-red-500 to-pink-500'} text-white`;
+    toast.innerHTML = `
+      <span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span>
+      <span class="font-semibold">${message}</span>
+    `;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 4000);
+  }
+
+  function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+  }
+
+  function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
 
   // ==================== DARK MODE ====================
   function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.documentElement.classList.toggle('dark', isDarkMode);
     document.getElementById('darkModeBtn').innerHTML = isDarkMode ? '<span class="text-xl">☀️</span>' : '<span class="text-xl">🌙</span>';
-    updateCharts();
+    
+    // Update charts
+    setTimeout(() => {
+      updateCharts();
+      updateMapTiles();
+    }, 100);
   }
 
-  // ==================== LOGIN ====================
+  // ==================== LOGIN/LOGOUT ====================
   function login() {
     const pwd = document.getElementById('loginPassword').value;
     if (pwd === 'solana123') {
@@ -462,6 +832,7 @@
     } else {
       document.getElementById('loginError').classList.remove('hidden');
       document.getElementById('loginPassword').value = '';
+      setTimeout(() => document.getElementById('loginError').classList.add('hidden'), 3000);
     }
   }
 
@@ -471,9 +842,9 @@
     document.getElementById('loginPassword').value = '';
   }
 
-  // ==================== SUPABASE ====================
+  // ==================== SUPABASE FUNCTIONS ====================
   async function loadCmds() {
-    document.getElementById('syncIcon').innerHTML = '⏳';
+    document.getElementById('syncIcon').innerHTML = '<span class="inline-block animate-rotate">⏳</span>';
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
@@ -481,10 +852,10 @@
       if (!res.ok) throw new Error('Supabase error');
       cmds = await res.json();
       document.getElementById('supabaseBadge').classList.remove('hidden');
-      maj();
+      maj(); // Update everything
     } catch (e) {
       console.error('Load error:', e);
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-red-500">❌ Erreur connexion Supabase</td></tr>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-16 text-red-500"><div class="text-5xl mb-4">❌</div>Erreur connexion Supabase</td></tr>';
     }
     document.getElementById('syncIcon').innerHTML = '🔄';
   }
@@ -494,8 +865,10 @@
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
         method: 'POST',
         headers: {
-          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify([cmd])
       });
@@ -508,29 +881,36 @@
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
         method: 'PATCH',
         headers: {
-          'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
         },
         body: JSON.stringify(updates)
       });
-      if (res.ok) { await loadCmds(); return true; }
+      if (res.ok) {
+        await loadCmds(); // Auto-refresh after update
+        return true;
+      }
     } catch {}
     return false;
   }
 
-  async function deleteCmd(ref) {
+  async function deleteCmdFromDB(ref) {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
-      await loadCmds();
+      await loadCmds(); // Auto-refresh after delete
     } catch {}
   }
 
   // ==================== ACTIONS ====================
   async function ajouterCmd(e) {
     e.preventDefault();
+    showLoading();
+    
     const n = {
       client: document.getElementById('clientIn').value.trim(),
       ref: document.getElementById('refIn').value.trim(),
@@ -540,99 +920,234 @@
       tonnes: parseFloat(document.getElementById('tonnesIn').value),
       immat: document.getElementById('immatIn').value.trim(),
       email: document.getElementById('emailIn').value.trim(),
-      statut: 'EN ATTENTE', nb_emails: 0, derniere_date_email: null
+      statut: 'EN ATTENTE',
+      nb_emails: 0,
+      derniere_date_email: null
     };
     
-    if (cmds.find(c => c.ref === n.ref)) { alert('⚠️ Référence déjà existante!'); return; }
+    if (cmds.find(c => c.ref === n.ref)) {
+      hideLoading();
+      showToast('⚠️ Référence déjà existante!', 'error');
+      return;
+    }
     
     const ok = await saveCmd(n);
+    hideLoading();
+    
     if (ok) {
       closeAddModal();
-      alert('✅ Commande ajoutée avec succès!');
+      await loadCmds(); // AUTO-REFRESH after adding
+      showToast('✅ Commande ajoutée avec succès!');
     } else {
-      alert('❌ Erreur lors de l\'ajout');
+      showToast('❌ Erreur lors de l\'ajout', 'error');
     }
   }
 
   async function confirmerEmail(cmd) {
     if (!confirm(`🚚 ${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\n📧 Confirmer et ouvrir email?`)) return;
     
+    showLoading();
     const ok = await updateCmd(cmd.ref, {
       statut: 'CHARGÉE',
       nb_emails: (cmd.nb_emails || 0) + 1,
       derniere_date_email: new Date().toLocaleDateString('fr-FR')
     });
+    hideLoading();
     
     if (ok) {
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE ET PRÊTE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\n\n✅ Statut: CONFIRMÉ`;
+      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE ET PRÊTE!\n\n━━━━━━━━━━━━━━━━━━━━\n📋 DÉTAILS DE LA COMMANDE\n━━━━━━━━━━━━━━━━━━━━\n\nRéférence: ${cmd.ref}\nPoint de départ: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\nCamion: ${cmd.immat || 'Non spécifié'}\n\n✅ Statut: LIVRAISON CONFIRMÉE\n\n━━━━━━━━━━━━━━━━━━━━\n📧 Email envoyé via Solana Dashboard`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
+      showToast('✅ Commande confirmée!');
     }
   }
 
   async function supprimerCmd(ref) {
     if (!confirm('🗑️ Supprimer cette commande?')) return;
-    await deleteCmd(ref);
+    showLoading();
+    await deleteCmdFromDB(ref);
+    hideLoading();
+    showToast('🗑️ Commande supprimée');
   }
 
   function synchroniser() {
     loadCmds();
   }
 
-  // ==================== DISPLAY ====================
+  // ==================== EXCEL EXPORT (FIXED) ====================
+  function exportExcel() {
+    if (cmds.length === 0) {
+      showToast('⚠️ Aucune commande à exporter', 'error');
+      return;
+    }
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Main data with proper headers
+    const mainData = cmds.map((c, index) => ({
+      'N°': index + 1,
+      'Client': c.client,
+      'Référence': c.ref,
+      'Date': c.date,
+      'Point de Départ': c.point_depart,
+      'Pays': c.pays,
+      'Nom du Pays': paysNoms[c.pays] || c.pays,
+      'Tonnes': c.tonnes,
+      'Immatriculation': c.immat || '-',
+      'Email Client': c.email,
+      'Statut': c.statut,
+      'Nombre d\'Emails': c.nb_emails || 0,
+      'Dernier Email': c.derniere_date_email || '-'
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(mainData);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 5 },   // N°
+      { wch: 20 },  // Client
+      { wch: 15 },  // Référence
+      { wch: 12 },  // Date
+      { wch: 15 },  // Départ
+      { wch: 8 },   // Pays
+      { wch: 15 },  // Nom Pays
+      { wch: 10 },  // Tonnes
+      { wch: 15 },  // Immat
+      { wch: 25 },  // Email
+      { wch: 12 },  // Statut
+      { wch: 12 },  // Nb Emails
+      { wch: 15 }   // Dernier Email
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Commandes");
+
+    // Summary sheet
+    const summaryData = [
+      { 'Statistique': 'Total Commandes', 'Valeur': cmds.length },
+      { 'Statistique': 'Total Tonnes', 'Valeur': cmds.reduce((s, c) => s + c.tonnes, 0).toFixed(2) + ' T' },
+      { 'Statistique': 'Commandes En Attente', 'Valeur': cmds.filter(c => c.statut === 'EN ATTENTE').length },
+      { 'Statistique': 'Commandes Chargées', 'Valeur': cmds.filter(c => c.statut === 'CHARGÉE').length },
+      { 'Statistique': 'Total Emails Envoyés', 'Valeur': cmds.reduce((s, c) => s + (c.nb_emails || 0), 0) },
+      { 'Statistique': 'Date d\'Export', 'Valeur': new Date().toLocaleDateString('fr-FR') }
+    ];
+    
+    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+    wsSummary['!cols'] = [{ wch: 25 }, { wch: 20 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Résumé");
+
+    // By Country sheet
+    const countryStats = {};
+    cmds.forEach(c => {
+      if (!countryStats[c.pays]) countryStats[c.pays] = { tonnes: 0, nb: 0, clients: new Set() };
+      countryStats[c.pays].tonnes += c.tonnes;
+      countryStats[c.pays].nb++;
+      countryStats[c.pays].clients.add(c.client);
+    });
+
+    const countryData = Object.entries(countryStats).map(([code, stats]) => ({
+      'Code Pays': code,
+      'Pays': paysNoms[code] || code,
+      'Total Tonnes': stats.tonnes.toFixed(2),
+      'Nombre de Commandes': stats.nb,
+      'Clients Uniques': stats.clients.size
+    })).sort((a, b) => b['Total Tonnes'] - a['Total Tonnes']);
+
+    const wsCountry = XLSX.utils.json_to_sheet(countryData);
+    wsCountry['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, wsCountry, "Par Pays");
+
+    // Download
+    const fileName = `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('📥 Export Excel téléchargé!');
+  }
+
+  // ==================== DISPLAY FUNCTIONS ====================
   function maj() {
-    // Stats
+    // Calculate stats
     const tot = cmds.reduce((s, c) => s + c.tonnes, 0);
     const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
     const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
     const em = cmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
     const pct = cmds.length ? Math.round((ch / cmds.length) * 100) : 0;
 
-    document.getElementById('kpiTonnes').textContent = tot.toFixed(1) + ' T';
-    document.getElementById('kpiAttente').textContent = att;
-    document.getElementById('kpiChargees').textContent = ch;
-    document.getElementById('kpiEmails').textContent = em;
+    // Update KPIs with animation
+    animateValue('kpiTonnes', tot.toFixed(1) + ' T');
+    animateValue('kpiAttente', att);
+    animateValue('kpiChargees', ch);
+    animateValue('kpiEmails', em);
+
+    // Header
     document.getElementById('headerStats').textContent = `${cmds.length} commandes • ${new Date().toLocaleDateString('fr-FR')}`;
+
+    // Progress bar
     document.getElementById('progressPercent').textContent = pct + '%';
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('progressChargees').textContent = ch + ' terminées';
     document.getElementById('progressAttente').textContent = att + ' en cours';
 
-    // Table
+    // Map stats
+    const uniqueCountries = [...new Set(cmds.map(c => c.pays))].length;
+    document.getElementById('mapCountries').textContent = uniqueCountries;
+    document.getElementById('mapTotalT').textContent = tot.toFixed(0) + 'T';
+
+    // Render components
     if (cmds.length === 0) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400">🎯 Ajoutez votre 1ère commande</td></tr>';
-      document.getElementById('cardsContainer').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400">🎯 Ajoutez votre 1ère commande</div>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-16 text-gray-400"><div class="text-5xl mb-4">🎯</div>Ajoutez votre 1ère commande</td></tr>';
+      document.getElementById('cardsContainer').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><div class="text-5xl mb-4">🎯</div>Ajoutez votre 1ère commande</div>';
+      document.getElementById('countriesGrid').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><div class="text-5xl mb-4">🌍</div>Ajoutez des commandes pour voir les destinations</div>';
     } else {
       renderTable();
       renderCards();
       updateCharts();
       renderCountries();
+      updateMapMarkers();
     }
   }
 
+  function animateValue(id, value) {
+    const el = document.getElementById(id);
+    el.style.transform = 'scale(1.1)';
+    el.textContent = value;
+    setTimeout(() => el.style.transform = 'scale(1)', 200);
+  }
+
   function renderTable() {
-    document.getElementById('tableBody').innerHTML = cmds.map(c => {
+    document.getElementById('tableBody').innerHTML = cmds.map((c, i) => {
       const statutBadge = c.statut === 'CHARGÉE' 
-        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-semibold rounded-full">✅ Chargée</span>'
-        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-semibold rounded-full">⏳ Attente</span>';
+        ? '<span class="inline-flex items-center gap-1 px-4 py-2 gradient-success text-white text-xs font-bold rounded-full shadow-lg">✅ CHARGÉE</span>'
+        : '<span class="inline-flex items-center gap-1 px-4 py-2 gradient-warning text-white text-xs font-bold rounded-full shadow-lg animate-pulse">⏳ EN ATTENTE</span>';
       
       const btnAction = c.statut === 'EN ATTENTE'
-        ? `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="px-3 py-2 gradient-success text-white text-xs font-semibold rounded-lg hover:opacity-90">✅ Charger</button>`
-        : `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="px-3 py-2 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg hover:bg-blue-200">📧 Renvoyer</button>`;
+        ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-success text-white text-xs font-bold rounded-xl hover:scale-105 transition-transform shadow-lg">✅ Charger</button>`
+        : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-4 py-2 bg-blue-100 text-blue-700 text-xs font-bold rounded-xl hover:bg-blue-200 transition-colors">📧 Renvoyer</button>`;
 
       return `
-        <tr class="table-row border-b border-gray-100 dark:border-gray-700 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : ''}">
-          <td class="px-6 py-4 font-medium text-gray-800 dark:text-white">${c.client}</td>
-          <td class="px-6 py-4 text-sm font-mono text-gray-600 dark:text-gray-300">${c.ref}</td>
+        <tr class="table-row border-b border-gray-50 dark:border-gray-700/50 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}" style="animation: fadeIn 0.3s ease ${i * 0.05}s both;">
+          <td class="px-6 py-4">
+            <div class="font-bold text-gray-800 dark:text-white">${c.client}</div>
+          </td>
+          <td class="px-6 py-4">
+            <span class="font-mono text-sm bg-gray-100 dark:bg-slate-700 px-3 py-1 rounded-lg">${c.ref}</span>
+          </td>
           <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.date}</td>
           <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.point_depart}</td>
-          <td class="px-6 py-4">${paysEmojis[c.pays] || '🌍'} ${c.pays}</td>
-          <td class="px-6 py-4 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">${paysEmojis[c.pays] || '🌍'}</span>
+              <span class="font-medium">${c.pays}</span>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-right">
+            <span class="text-xl font-black text-emerald-600">${c.tonnes.toFixed(2)}</span>
+            <span class="text-emerald-400">T</span>
+          </td>
           <td class="px-6 py-4">${statutBadge}</td>
-          <td class="px-6 py-4 text-center">
+          <td class="px-6 py-4">
             <div class="flex justify-center gap-2">
               ${btnAction}
-              <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-2 gradient-danger text-white text-xs font-semibold rounded-lg hover:opacity-90">🗑️</button>
+              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-2 gradient-danger text-white text-xs font-bold rounded-xl hover:scale-105 transition-transform shadow-lg">🗑️</button>
             </div>
           </td>
         </tr>
@@ -641,33 +1156,45 @@
   }
 
   function renderCards() {
-    document.getElementById('cardsContainer').innerHTML = cmds.map(c => {
-      const borderColor = c.statut === 'CHARGÉE' ? 'border-emerald-300 dark:border-emerald-700' : 'border-amber-300 dark:border-amber-700';
+    document.getElementById('cardsContainer').innerHTML = cmds.map((c, i) => {
+      const borderColor = c.statut === 'CHARGÉE' ? 'border-emerald-400 dark:border-emerald-600' : 'border-amber-400 dark:border-amber-600';
       const statutBadge = c.statut === 'CHARGÉE'
-        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-semibold rounded-full">✅ Chargée</span>'
-        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-semibold rounded-full">⏳ Attente</span>';
+        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ Chargée</span>'
+        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full animate-pulse">⏳ Attente</span>';
       
       const btnAction = c.statut === 'EN ATTENTE'
-        ? `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="flex-1 py-2 gradient-success text-white text-sm font-semibold rounded-xl">✅ Charger</button>`
-        : `<button onclick='confirmerEmail(${JSON.stringify(c)})' class="flex-1 py-2 bg-blue-100 text-blue-700 text-sm font-semibold rounded-xl">📧 Renvoyer</button>`;
+        ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-3 gradient-success text-white text-sm font-bold rounded-xl hover:scale-[1.02] transition-transform">✅ Charger</button>`
+        : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-3 bg-blue-100 text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-200 transition-colors">📧 Renvoyer</button>`;
 
       return `
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 ${borderColor} shadow-lg overflow-hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 ${borderColor} shadow-xl overflow-hidden hover:shadow-2xl transition-all" style="animation: fadeIn 0.4s ease ${i * 0.05}s both;">
           <div class="p-5">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center justify-between mb-4">
               <h4 class="text-lg font-bold text-gray-800 dark:text-white">${c.client}</h4>
               ${statutBadge}
-            </div>
-            <p class="text-sm font-mono text-gray-500 dark:text-gray-400 mb-4">${c.ref}</p>
-            <div class="grid grid-cols-2 gap-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
-              <div>📅 ${c.date}</div>
-              <div>🚚 ${c.point_depart}</div>
-              <div>${paysEmojis[c.pays] || '🌍'} ${c.pays}</div>
-              <div class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</div>
+            </h4>
+            <p class="text-sm font-mono text-gray-400 mb-4">${c.ref}</p>
+            <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300 mb-4">
+              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
+                <span>📅</span>
+                <span>${c.date}</span>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
+                <span>🚚</span>
+                <span>${c.point_depart}</span>
+              </div>
+              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
+                <span class="text-lg">${paysEmojis[c.pays] || '🌍'}</span>
+                <span>${c.pays}</span>
+              </div>
+              <div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg">
+                <span class="text-lg">⚖️</span>
+                <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
+              </div>
             </div>
             <div class="flex gap-2">
               ${btnAction}
-              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-2 gradient-danger text-white text-sm font-semibold rounded-xl">🗑️</button>
+              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-3 gradient-danger text-white text-sm font-bold rounded-xl hover:scale-105 transition-transform">🗑️</button>
             </div>
           </div>
         </div>
@@ -685,54 +1212,193 @@
 
     const entries = Object.entries(paysStats).sort((a, b) => b[1].tonnes - a[1].tonnes);
     
-    if (entries.length === 0) {
-      document.getElementById('countriesGrid').innerHTML = '<div class="col-span-full text-center py-8 text-gray-400">🌍 Ajoutez des commandes</div>';
-      return;
-    }
-
-    document.getElementById('countriesGrid').innerHTML = entries.map(([code, stats]) => `
-      <div onclick="showCountryDetail('${code}')" class="country-card cursor-pointer bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/30 dark:to-cyan-900/30 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700">
-        <div class="text-4xl mb-2">${paysEmojis[code] || '🌍'}</div>
-        <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">${stats.tonnes.toFixed(1)}T</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">${code} • ${stats.nb} cmd</div>
+    document.getElementById('countriesGrid').innerHTML = entries.map(([code, stats], i) => `
+      <div onclick="showCountryDetail('${code}')" class="country-card cursor-pointer bg-gradient-to-br from-emerald-50 via-cyan-50 to-teal-50 dark:from-emerald-900/30 dark:via-cyan-900/30 dark:to-teal-900/30 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700 text-center" style="animation: fadeIn 0.4s ease ${i * 0.05}s both;">
+        <div class="text-5xl mb-3 transform hover:scale-125 transition-transform">${paysEmojis[code] || '🌍'}</div>
+        <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">${stats.tonnes.toFixed(1)}T</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">${paysNoms[code] || code}</div>
+        <div class="text-xs text-cyan-500 mt-1 font-semibold">${stats.nb} commande${stats.nb > 1 ? 's' : ''}</div>
       </div>
     `).join('');
   }
 
-  function showCountryDetail(code) {
-    const paysCmds = cmds.filter(c => c.pays === code);
-    const totalT = paysCmds.reduce((s, c) => s + c.tonnes, 0);
+  // ==================== MAP FUNCTIONS ====================
+  function initMap() {
+    // Initialize map centered on Europe
+    map = L.map('map', {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([45.0, 5.0], 4);
 
-    document.getElementById('countryTitle').innerHTML = `${paysEmojis[code] || '🌍'} ${code} - ${paysNoms[code] || code}`;
-    document.getElementById('countryContent').innerHTML = `
-      <div class="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/30 dark:to-cyan-900/30 rounded-xl">
-        <div class="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalT.toFixed(1)} T</div>
-        <div class="text-gray-500 dark:text-gray-400">${paysCmds.length} commandes</div>
-      </div>
-      <table class="w-full">
-        <thead class="bg-gray-50 dark:bg-slate-700">
-          <tr>
-            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Réf</th>
-            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Client</th>
-            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Date</th>
-            <th class="px-4 py-3 text-right text-sm font-semibold text-gray-600 dark:text-gray-300">Tonnes</th>
-            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600 dark:text-gray-300">Statut</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${paysCmds.map(c => `
-            <tr class="border-b border-gray-100 dark:border-gray-700">
-              <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
-              <td class="px-4 py-3 font-medium">${c.client}</td>
-              <td class="px-4 py-3">${c.date}</td>
-              <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
-              <td class="px-4 py-3">${c.statut === 'CHARGÉE' ? '<span class="px-2 py-1 gradient-success text-white text-xs rounded-full">✅</span>' : '<span class="px-2 py-1 gradient-warning text-white text-xs rounded-full">⏳</span>'}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-    document.getElementById('countryModal').classList.remove('hidden');
+    // Update tiles based on dark mode
+    updateMapTiles();
+
+    // Initialize markers layer
+    markersLayer = L.markerClusterGroup({
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+      maxClusterRadius: 50,
+      iconCreateFunction: function(cluster) {
+        const count = cluster.getChildCount();
+        let size = 'small';
+        if (count > 10) size = 'medium';
+        if (count > 30) size = 'large';
+        
+        return L.divIcon({
+          html: `<div class="cluster-icon ${size}" style="
+            background: linear-gradient(135deg, #0077b6, #10b981);
+            width: ${size === 'large' ? 50 : size === 'medium' ? 40 : 30}px;
+            height: ${size === 'large' ? 50 : size === 'medium' ? 40 : 30}px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: ${size === 'large' ? 18 : size === 'medium' ? 14 : 12}px;
+            box-shadow: 0 4px 15px rgba(0,119,182,0.4);
+            border: 3px solid white;
+          ">${count}</div>`,
+          className: 'custom-cluster',
+          iconSize: L.point(40, 40)
+        });
+      }
+    });
+    map.addLayer(markersLayer);
+  }
+
+  function updateMapTiles() {
+    if (!map) return;
+    
+    // Remove existing tile layers
+    map.eachLayer(layer => {
+      if (layer instanceof L.TileLayer) {
+        map.removeLayer(layer);
+      }
+    });
+
+    // Add appropriate tiles
+    if (isDarkMode) {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+    } else {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+    }
+  }
+
+  function updateMapMarkers() {
+    if (!map || !markersLayer) return;
+    markersLayer.clearLayers();
+
+    // Group commands by country
+    const countryCmds = {};
+    cmds.forEach(c => {
+      if (!countryCmds[c.pays]) countryCmds[c.pays] = [];
+      countryCmds[c.pays].push(c);
+    });
+
+    // Create markers for each country
+    Object.entries(countryCmds).forEach(([code, commands]) => {
+      const coords = paysCoords[code];
+      if (!coords) return;
+
+      const totalT = commands.reduce((s, c) => s + c.tonnes, 0);
+      const attente = commands.filter(c => c.statut === 'EN ATTENTE').length;
+      const chargees = commands.filter(c => c.statut === 'CHARGÉE').length;
+
+      // Custom icon
+      const icon = L.divIcon({
+        html: `
+          <div style="
+            background: linear-gradient(135deg, ${attente > 0 ? '#f59e0b' : '#10b981'}, ${attente > 0 ? '#fbbf24' : '#34d399'});
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            border: 3px solid white;
+            cursor: pointer;
+            transition: all 0.3s;
+          ">${paysEmojis[code] || '🌍'}</div>
+        `,
+        className: 'custom-marker',
+        iconSize: [45, 45],
+        iconAnchor: [22, 22]
+      });
+
+      const marker = L.marker(coords, { icon });
+      
+      // Popup content
+      const popupContent = `
+        <div style="min-width: 250px; font-family: 'Inter', sans-serif;">
+          <div style="
+            background: linear-gradient(135deg, #0077b6, #10b981);
+            color: white;
+            padding: 15px;
+            margin: -15px -15px 15px -15px;
+            border-radius: 12px 12px 0 0;
+          ">
+            <div style="font-size: 30px; margin-bottom: 5px;">${paysEmojis[code] || '🌍'}</div>
+            <div style="font-size: 18px; font-weight: bold;">${paysNoms[code] || code}</div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <div style="background: #f0fdf4; padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
+              <div style="font-size: 11px; color: #6b7280;">Total Tonnes</div>
+            </div>
+            <div style="background: #eff6ff; padding: 10px; border-radius: 10px; text-align: center;">
+              <div style="font-size: 24px; font-weight: bold; color: #0077b6;">${commands.length}</div>
+              <div style="font-size: 11px; color: #6b7280;">Commandes</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <span style="flex: 1; background: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 8px; font-size: 12px; text-align: center;">
+              ⏳ ${attente} attente
+            </span>
+            <span style="flex: 1; background: #d1fae5; color: #065f46; padding: 6px 10px; border-radius: 8px; font-size: 12px; text-align: center;">
+              ✅ ${chargees} chargée${chargees > 1 ? 's' : ''}
+            </span>
+          </div>
+          <button onclick="showCountryDetail('${code}')" style="
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #0077b6, #00b4d8);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+          ">📋 Voir les détails</button>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent, {
+        maxWidth: 300,
+        className: 'custom-popup'
+      });
+      
+      markersLayer.addLayer(marker);
+    });
+
+    // Fit bounds to show all markers
+    if (Object.keys(countryCmds).length > 0) {
+      const bounds = markersLayer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
   }
 
   // ==================== CHARTS ====================
@@ -743,28 +1409,55 @@
     // Top Clients Chart
     const clientsData = {};
     cmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
-    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 8);
 
     if (clientsChart) clientsChart.destroy();
     clientsChart = new Chart(document.getElementById('clientsChart'), {
       type: 'bar',
       data: {
-        labels: topClients.map(c => c[0].slice(0, 10)),
+        labels: topClients.map(c => c[0].slice(0, 12)),
         datasets: [{
           label: 'Tonnes',
           data: topClients.map(c => c[1]),
-          backgroundColor: ['#0077b6', '#00b4d8', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
-          borderRadius: 8
+          backgroundColor: [
+            'rgba(0, 119, 182, 0.8)',
+            'rgba(0, 180, 216, 0.8)',
+            'rgba(16, 185, 129, 0.8)',
+            'rgba(245, 158, 11, 0.8)',
+            'rgba(139, 92, 246, 0.8)',
+            'rgba(239, 68, 68, 0.8)',
+            'rgba(6, 182, 212, 0.8)',
+            'rgba(236, 72, 153, 0.8)'
+          ],
+          borderRadius: 10,
+          borderSkipped: false
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: isDarkMode ? '#1e293b' : 'white',
+            titleColor: isDarkMode ? 'white' : '#1e293b',
+            bodyColor: isDarkMode ? '#94a3b8' : '#64748b',
+            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+            borderWidth: 1,
+            cornerRadius: 12,
+            padding: 12
+          }
+        },
         scales: {
-          x: { grid: { color: gridColor }, ticks: { color: textColor } },
-          y: { grid: { display: false }, ticks: { color: textColor } }
+          x: { 
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { weight: '500' } }
+          },
+          y: { 
+            grid: { display: false },
+            ticks: { color: textColor, font: { weight: '600' } }
+          }
         }
       }
     });
@@ -780,25 +1473,48 @@
         labels: ['En Attente', 'Chargées'],
         datasets: [{
           data: [attente, chargees],
-          backgroundColor: ['#f59e0b', '#10b981'],
-          borderWidth: 0
+          backgroundColor: [
+            'rgba(245, 158, 11, 0.9)',
+            'rgba(16, 185, 129, 0.9)'
+          ],
+          borderWidth: 0,
+          hoverOffset: 10
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'bottom', labels: { color: textColor, padding: 20 } }
+          legend: { 
+            position: 'bottom',
+            labels: { 
+              color: textColor, 
+              padding: 20,
+              font: { size: 14, weight: '600' },
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: isDarkMode ? '#1e293b' : 'white',
+            titleColor: isDarkMode ? 'white' : '#1e293b',
+            bodyColor: isDarkMode ? '#94a3b8' : '#64748b',
+            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+            borderWidth: 1,
+            cornerRadius: 12,
+            padding: 12
+          }
         },
-        cutout: '60%'
+        cutout: '65%'
       }
     });
   }
 
-  // ==================== MODALS & UTILS ====================
+  // ==================== MODALS ====================
   function showAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('dateIn').valueAsDate = new Date();
+    document.getElementById('clientIn').focus();
   }
 
   function closeAddModal() {
@@ -812,6 +1528,68 @@
     document.getElementById('emailIn').value = '';
   }
 
+  function showCountryDetail(code) {
+    const paysCmds = cmds.filter(c => c.pays === code);
+    const totalT = paysCmds.reduce((s, c) => s + c.tonnes, 0);
+    const attente = paysCmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const chargees = paysCmds.filter(c => c.statut === 'CHARGÉE').length;
+
+    document.getElementById('countryFlag').innerHTML = paysEmojis[code] || '🌍';
+    document.getElementById('countryFlag').className = 'w-12 h-12 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900 dark:to-cyan-900';
+    document.getElementById('countryTitle').textContent = paysNoms[code] || code;
+    document.getElementById('countrySubtitle').textContent = `${paysCmds.length} commande${paysCmds.length > 1 ? 's' : ''} • ${totalT.toFixed(1)} tonnes`;
+
+    document.getElementById('countryContent').innerHTML = `
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 text-center">
+          <div class="text-3xl font-black text-blue-600">${totalT.toFixed(1)}T</div>
+          <div class="text-sm text-gray-500 mt-1">Total Exporté</div>
+        </div>
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 text-center">
+          <div class="text-3xl font-black text-emerald-600">${chargees}</div>
+          <div class="text-sm text-gray-500 mt-1">Chargées</div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-5 text-center">
+          <div class="text-3xl font-black text-amber-600">${attente}</div>
+          <div class="text-sm text-gray-500 mt-1">En Attente</div>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700">
+        <table class="w-full">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-600">
+            <tr>
+              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Réf</th>
+              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Client</th>
+              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Départ</th>
+              <th class="px-5 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paysCmds.map(c => `
+              <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+                <td class="px-5 py-4 font-mono text-sm">${c.ref}</td>
+                <td class="px-5 py-4 font-semibold">${c.client}</td>
+                <td class="px-5 py-4 text-gray-500">${c.date}</td>
+                <td class="px-5 py-4 text-gray-500">${c.point_depart}</td>
+                <td class="px-5 py-4 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+                <td class="px-5 py-4">
+                  ${c.statut === 'CHARGÉE' 
+                    ? '<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅</span>' 
+                    : '<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳</span>'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+    document.getElementById('countryModal').classList.remove('hidden');
+  }
+
   function closeCountryModal() {
     document.getElementById('countryModal').classList.add('hidden');
   }
@@ -820,23 +1598,14 @@
     isCardView = !isCardView;
     document.getElementById('tableView').classList.toggle('hidden', isCardView);
     document.getElementById('cardsView').classList.toggle('hidden', !isCardView);
-    document.getElementById('viewToggle').innerHTML = isCardView ? '📋 Vue Table' : '📱 Vue Cartes';
+    document.getElementById('viewToggle').innerHTML = isCardView 
+      ? '<span>📋</span><span>Vue Table</span>' 
+      : '<span>📱</span><span>Vue Cartes</span>';
   }
 
-  function exportCSV() {
-    const csv = 'Client,Référence,Date,Départ,Pays,Tonnes,Immat,Statut,Emails\n' +
-      cmds.map(c => `${c.client},${c.ref},${c.date},${c.point_depart},${c.pays},${c.tonnes},${c.immat || '-'},${c.statut},${c.nb_emails}`).join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `Solana-Export-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  }
-
-  // ==================== INIT ====================
+  // ==================== INITIALIZATION ====================
   function initApp() {
-    // Populate countries
+    // Populate countries dropdown
     const select = document.getElementById('paysIn');
     Object.keys(paysNoms).sort().forEach(code => {
       const opt = document.createElement('option');
@@ -845,11 +1614,25 @@
       select.appendChild(opt);
     });
 
+    // Initialize map
+    initMap();
+
+    // Load data
     loadCmds();
   }
 
   // Focus on password input
   document.getElementById('loginPassword').focus();
+
+  // Add CSS animation
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(style);
 </script>
 
 </body>
