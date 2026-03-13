@@ -126,15 +126,6 @@
       box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
     }
     
-    /* Country Cards */
-    .country-card {
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .country-card:hover {
-      transform: translateY(-8px) scale(1.05);
-      box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.4);
-    }
-    
     /* Table Rows */
     .table-row {
       transition: all 0.3s ease;
@@ -287,25 +278,29 @@
       border-color: #0077b6;
     }
     
-    /* QR Code Styles */
-    .qr-container {
-      background: white;
-      padding: 20px;
-      border-radius: 20px;
-      display: inline-block;
+    /* Photo Upload */
+    .photo-preview {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 2px solid #e5e7eb;
     }
     
-    .qr-code-canvas {
-      border-radius: 10px;
+    .photo-upload-btn {
+      width: 80px;
+      height: 80px;
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    
-    .delivery-route {
-      stroke-dasharray: 10, 5;
-      animation: dash 1s linear infinite;
-    }
-    
-    @keyframes dash {
-      to { stroke-dashoffset: -15; }
+    .photo-upload-btn:hover {
+      border-color: #0077b6;
+      background: #f0f9ff;
     }
   </style>
 </head>
@@ -325,7 +320,6 @@
       <div class="absolute w-40 h-40 bg-white/10 rounded-full -top-20 -left-20 animate-float"></div>
       <div class="absolute w-32 h-32 bg-white/10 rounded-full top-1/4 right-10 animate-float" style="animation-delay: 1s;"></div>
       <div class="absolute w-56 h-56 bg-white/10 rounded-full -bottom-28 left-1/4 animate-float" style="animation-delay: 2s;"></div>
-      <div class="absolute w-24 h-24 bg-white/10 rounded-full bottom-1/3 right-1/4 animate-float" style="animation-delay: 0.5s;"></div>
     </div>
     
     <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate__animated animate__fadeInUp">
@@ -337,7 +331,6 @@
         <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3" data-lang="title">Solana Logistique</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg" data-lang="subtitle">Dashboard Export & Suivi</p>
         
-        <!-- Language Selector -->
         <div class="flex justify-center gap-2 mb-6">
           <button onclick="setLanguage('fr')" class="lang-btn active" id="lang-fr">🇫🇷 FR</button>
           <button onclick="setLanguage('en')" class="lang-btn" id="lang-en">🇬🇧 EN</button>
@@ -365,11 +358,6 @@
         <button onclick="login()" class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
           <span data-lang="loginBtn">✨ Accéder au Dashboard</span>
         </button>
-        
-        <div class="flex items-center justify-center gap-3 mt-8 text-gray-400">
-          <span class="text-2xl">☁️</span>
-          <span class="font-medium">Supabase Multi-Device Sync</span>
-        </div>
       </div>
     </div>
   </div>
@@ -401,7 +389,6 @@
           </div>
           
           <div class="flex items-center gap-2 flex-wrap">
-            <!-- Language Selector -->
             <div class="flex gap-1 bg-gray-100 dark:bg-slate-700 rounded-xl p-1">
               <button onclick="setLanguage('fr')" class="lang-btn text-xs active" id="lang-fr-2">🇫🇷</button>
               <button onclick="setLanguage('en')" class="lang-btn text-xs" id="lang-en-2">🇬🇧</button>
@@ -431,7 +418,7 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 space-y-6">
       
-      <!-- KPI Cards with Comparison -->
+      <!-- KPI Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         
         <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
@@ -439,7 +426,6 @@
           <div class="relative z-10">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="totalTonnage">Total Tonnes</p>
             <p class="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mt-1" id="kpiTonnes">0 T</p>
-            <div id="tonnesComparison" class="mt-2"></div>
           </div>
           <div class="absolute bottom-3 right-3 w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg animate-float">📦</div>
         </div>
@@ -464,7 +450,6 @@
           <div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.6s;">✅</div>
         </div>
         
-        <!-- NEW: Delivered KPI -->
         <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
           <div class="absolute inset-0 gradient-delivered opacity-5 rounded-2xl"></div>
           <div class="relative z-10">
@@ -488,7 +473,6 @@
 
       <!-- Progress & Comparison Row -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Progress Bar -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between mb-3">
             <span class="text-sm font-semibold text-gray-600" data-lang="progress">Progression</span>
@@ -497,13 +481,8 @@
           <div class="h-4 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
             <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
           </div>
-          <div class="flex justify-between mt-2 text-xs text-gray-400">
-            <span id="progressChargees">0 terminées</span>
-            <span id="progressAttente">0 en cours</span>
-          </div>
         </div>
         
-        <!-- Monthly Comparison -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
           <div class="flex items-center justify-between mb-3">
             <span class="text-sm font-semibold text-gray-600" data-lang="monthlyComparison">Comparaison Mensuelle</span>
@@ -512,70 +491,62 @@
             <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
               <p class="text-xs text-gray-500" data-lang="thisMonth">Ce mois</p>
               <p class="text-2xl font-black text-blue-600" id="thisMonthTonnage">0 T</p>
-              <p class="text-xs text-gray-400" id="thisMonthOrders">0 commandes</p>
             </div>
             <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <p class="text-xs text-gray-500" data-lang="lastMonth">Mois dernier</p>
               <p class="text-2xl font-black text-gray-600" id="lastMonthTonnage">0 T</p>
-              <p class="text-xs text-gray-400" id="lastMonthOrders">0 commandes</p>
             </div>
           </div>
-          <div id="comparisonResult" class="mt-3 text-center"></div>
         </div>
       </div>
 
-      <!-- ==================== SEARCH & FILTERS ==================== -->
+      <!-- SEARCH & FILTERS -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
         <div class="flex flex-wrap items-center gap-4">
-          <!-- Search Input -->
           <div class="relative flex-1 min-w-[200px]">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-            <input type="text" id="searchInput" data-placeholder="searchPlaceholder" placeholder="Rechercher client, réf, pays..." 
+            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays..." 
               class="search-input w-full dark:bg-slate-700 dark:border-gray-600 dark:text-white"
               oninput="filterCommands()">
           </div>
           
-          <!-- Date Filter -->
           <div class="flex items-center gap-2">
             <input type="date" id="dateFrom" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
             <span class="text-gray-400">→</span>
             <input type="date" id="dateTo" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
           </div>
           
-          <!-- Status Filter - UPDATED with LIVRÉE -->
           <div class="flex gap-2 flex-wrap">
-            <button onclick="setStatusFilter('all')" class="filter-chip active" id="filter-all" data-lang="all">Tous</button>
-            <button onclick="setStatusFilter('EN ATTENTE')" class="filter-chip" id="filter-attente" data-lang="pending">⏳ Attente</button>
-            <button onclick="setStatusFilter('CHARGÉE')" class="filter-chip" id="filter-chargee" data-lang="loaded">✅ Chargées</button>
-            <button onclick="setStatusFilter('LIVRÉE')" class="filter-chip" id="filter-livree" data-lang="delivered">🎉 Livrées</button>
+            <button onclick="setStatusFilter('all')" class="filter-chip active" id="filter-all">Tous</button>
+            <button onclick="setStatusFilter('EN ATTENTE')" class="filter-chip" id="filter-attente">⏳ Attente</button>
+            <button onclick="setStatusFilter('CHARGÉE')" class="filter-chip" id="filter-chargee">✅ Chargées</button>
+            <button onclick="setStatusFilter('LIVRÉE')" class="filter-chip" id="filter-livree">🎉 Livrées</button>
           </div>
           
-          <!-- Country Filter -->
           <select id="countryFilter" class="px-4 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
-            <option value="" data-lang="allCountries">Tous les pays</option>
+            <option value="">Tous les pays</option>
           </select>
           
-          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" data-lang="reset">
+          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
             🔄 Reset
           </button>
         </div>
-        <div id="filterCount" class="mt-3 text-sm text-gray-500"></div>
       </div>
 
-      <!-- ==================== VIEW TABS ==================== -->
+      <!-- VIEW TABS -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="flex border-b border-gray-200 dark:border-gray-700">
           <button onclick="showView('table')" id="tab-table" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
-            📋 <span data-lang="tableView">Tableau</span>
+            📋 <span>Tableau</span>
           </button>
           <button onclick="showView('cards')" id="tab-cards" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-            📱 <span data-lang="cardView">Cartes</span>
+            📱 <span>Cartes</span>
           </button>
           <button onclick="showView('calendar')" id="tab-calendar" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-            📅 <span data-lang="calendarView">Calendrier</span>
+            📅 <span>Calendrier</span>
           </button>
           <button onclick="showView('map')" id="tab-map" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-            🗺️ <span data-lang="mapView">Carte</span>
+            🗺️ <span>Carte</span>
           </button>
         </div>
         
@@ -584,19 +555,15 @@
           <div class="flex items-center gap-3">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded">
-              <span class="text-sm font-medium" data-lang="selectAll">Tout sélectionner</span>
+              <span class="text-sm font-medium">Tout sélectionner</span>
             </label>
-            <span id="selectedCount" class="text-sm text-gray-500"></span>
           </div>
-          <div class="flex gap-2 flex-wrap">
-            <button onclick="bulkConfirm()" id="bulkConfirmBtn" class="hidden px-4 py-2 gradient-success text-white rounded-xl font-semibold text-sm">
-              ✅ <span data-lang="confirmSelected">Confirmer sélection</span>
-            </button>
+          <div class="flex gap-2">
             <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">
-              📥 <span data-lang="exportExcel">Export Excel</span>
+              📥 Export Excel
             </button>
             <button onclick="exportPDF()" class="px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">
-              📄 <span data-lang="exportPDF">Export PDF</span>
+              📄 Export PDF
             </button>
           </div>
         </div>
@@ -631,18 +598,18 @@
         <!-- Calendar View -->
         <div id="view-calendar" class="hidden p-4">
           <div class="flex items-center justify-between mb-4">
-            <button onclick="changeMonth(-1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">◀</button>
+            <button onclick="changeMonth(-1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold">◀</button>
             <h3 id="calendarTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
-            <button onclick="changeMonth(1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">▶</button>
+            <button onclick="changeMonth(1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold">▶</button>
           </div>
           <div class="grid grid-cols-7 gap-1 mb-2">
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="sun">Dim</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="mon">Lun</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="tue">Mar</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="wed">Mer</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="thu">Jeu</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="fri">Ven</div>
-            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="sat">Sam</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Dim</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Lun</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Mar</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Mer</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Jeu</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Ven</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Sam</div>
           </div>
           <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
         </div>
@@ -656,12 +623,12 @@
       <!-- Charts Row -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">👑 <span data-lang="topClients">Top Clients</span></h3>
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top Clients</h3>
           <div class="h-64"><canvas id="clientsChart"></canvas></div>
         </div>
         
         <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">📊 <span data-lang="statusDist">Répartition Statuts</span></h3>
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📊 Répartition Statuts</h3>
           <div class="h-64 flex items-center justify-center"><canvas id="statusChart"></canvas></div>
         </div>
       </div>
@@ -669,7 +636,7 @@
     </main>
 
     <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
-      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase Multi-Device | 📱 QR Code Delivery
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase | 📱 QR Code
     </footer>
   </div>
 
@@ -677,39 +644,39 @@
   <div id="addModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
       <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">➕ <span data-lang="newOrder">Nouvelle Commande</span></h3>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">➕ Nouvelle Commande</h3>
         <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <form onsubmit="ajouterCmd(event)" class="p-5 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 <span data-lang="client">Client</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 Client</label>
             <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📄 <span data-lang="reference">Référence</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📄 Référence</label>
             <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📅 <span data-lang="date">Date</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📅 Date</label>
             <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚚 <span data-lang="departure">Départ</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚚 Départ</label>
             <input type="text" id="pointDepart" placeholder="76, 62..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 <span data-lang="country">Pays</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 Pays</label>
             <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
               <option value="">Sélectionner...</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ <span data-lang="tonnes">Tonnes</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ Tonnes</label>
             <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚛 <span data-lang="plate">Immat</span></label>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚛 Immat</label>
             <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
@@ -718,10 +685,23 @@
           </div>
         </div>
         <div class="flex gap-3 pt-4">
-          <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold" data-lang="cancel">Annuler</button>
-          <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold" data-lang="addSync">✨ Ajouter & Sync</button>
+          <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
+          <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold">✨ Ajouter & Sync</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ==================== DELIVERY CONFIRMATION MODAL WITH PHOTOS ==================== -->
+  <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">🎉 Confirmer Livraison</h3>
+        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="deliveryModalContent" class="p-6">
+        <!-- Content dynamically generated -->
+      </div>
     </div>
   </div>
 
@@ -729,64 +709,12 @@
   <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
       <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">📱 QR Code de Livraison</h3>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">📱 QR Code de Livraison</h3>
         <button onclick="closeQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <div id="qrModalContent" class="p-6">
-        <!-- Content will be dynamically generated -->
+        <!-- Content dynamically generated -->
       </div>
-    </div>
-  </div>
-
-  <!-- ==================== SCAN QR MODAL ==================== -->
-  <div id="scanQRModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">📷 Scanner QR Code</h3>
-        <button onclick="closeScanQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
-      </div>
-      <div id="scanQRModalContent" class="p-6">
-        <div class="text-center">
-          <div class="mb-4">
-            <input type="text" id="qrSearchRef" placeholder="Entrez la référence de commande..." 
-              class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
-          </div>
-          <button onclick="searchDeliveryByRef()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">
-            🔍 Rechercher
-          </button>
-          <div id="scanResult" class="mt-6"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== DELIVERY CONFIRMATION MODAL ==================== -->
-  <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">🎉 Confirmer Livraison</h3>
-        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
-      </div>
-      <div id="deliveryModalContent" class="p-6">
-        <!-- Content will be dynamically generated -->
-      </div>
-    </div>
-  </div>
-
-  <!-- COUNTRY DETAIL MODAL -->
-  <div id="countryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <div class="flex items-center gap-3">
-          <div id="countryFlag" class="text-4xl"></div>
-          <div>
-            <h3 id="countryTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
-            <p id="countrySubtitle" class="text-sm text-gray-500"></p>
-          </div>
-        </div>
-        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
-      </div>
-      <div id="countryContent" class="p-5"></div>
     </div>
   </div>
 
@@ -828,217 +756,10 @@
     RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137]
   };
 
-  // Distance estimation from France (km) - average distances
-  const distanceFromFrance = {
-    SN: 4200, PT: 1150, MA: 1850, TN: 1450, DZ: 1350,
-    ES: 650, IT: 850, DE: 650, BE: 250, NL: 400,
-    GB: 350, PL: 1050, RO: 1650, GR: 1750, FR: 0
-  };
-
-  // Average delivery time estimation (in days) - based on distance
   const deliveryTimeEstimation = {
     SN: 8, PT: 2, MA: 4, TN: 3, DZ: 3,
     ES: 1, IT: 2, DE: 1, BE: 1, NL: 1,
     GB: 1, PL: 2, RO: 3, GR: 3, FR: 0
-  };
-
-  // ==================== TRANSLATIONS ====================
-  const translations = {
-    fr: {
-      title: 'Solana Logistique',
-      subtitle: 'Dashboard Export & Suivi',
-      password: 'Mot de passe:',
-      passwordInput: 'Entrez le mot de passe',
-      errorPassword: '❌ Mot de passe incorrect',
-      loginBtn: '✨ Accéder au Dashboard',
-      newOrder: 'Nouvelle Commande',
-      totalTonnage: 'Total Tonnes',
-      pending: 'En Attente',
-      loaded: 'Chargées',
-      delivered: 'Livrées',
-      confirmed: 'Confirmées',
-      emailsSent: 'Emails',
-      toProcess: 'À traiter',
-      completed: 'Terminées',
-      notifications: 'Notifications',
-      progress: 'Progression',
-      monthlyComparison: 'Comparaison Mensuelle',
-      thisMonth: 'Ce mois',
-      lastMonth: 'Mois dernier',
-      searchPlaceholder: 'Rechercher client, réf, pays...',
-      all: 'Tous',
-      allCountries: 'Tous les pays',
-      reset: '🔄 Reset',
-      tableView: 'Tableau',
-      cardView: 'Cartes',
-      calendarView: 'Calendrier',
-      mapView: 'Carte',
-      selectAll: 'Tout sélectionner',
-      confirmSelected: 'Confirmer sélection',
-      exportExcel: 'Export Excel',
-      exportPDF: 'Export PDF',
-      sun: 'Dim', mon: 'Lun', tue: 'Mar', wed: 'Mer', thu: 'Jeu', fri: 'Ven', sat: 'Sam',
-      topClients: 'Top Clients',
-      statusDist: 'Répartition Statuts',
-      client: 'Client',
-      reference: 'Référence',
-      date: 'Date',
-      departure: 'Départ',
-      country: 'Pays',
-      tonnes: 'Tonnes',
-      plate: 'Immat',
-      cancel: 'Annuler',
-      addSync: '✨ Ajouter & Sync',
-      noResults: 'Aucun résultat trouvé',
-      vsLastMonth: 'vs mois dernier',
-      increase: 'hausse',
-      decrease: 'baisse',
-      orders: 'commandes',
-      generateQR: 'Générer QR',
-      scanQR: 'Scanner QR',
-      deliveryTime: 'Délai estimé',
-      days: 'jours',
-      distance: 'Distance',
-      km: 'km',
-      deliveryDate: 'Date de livraison',
-      cmrDocument: 'Document CMR',
-      deliveryNote: 'Bon de livraison',
-      confirmDelivery: 'Confirmer la livraison',
-      deliveryConfirmed: 'Livraison confirmée',
-      viewQR: 'Voir QR',
-      printQR: 'Imprimer QR',
-      downloadQR: 'Télécharger QR'
-    },
-    en: {
-      title: 'Solana Logistics',
-      subtitle: 'Export & Tracking Dashboard',
-      password: 'Password:',
-      passwordInput: 'Enter password',
-      errorPassword: '❌ Incorrect password',
-      loginBtn: '✨ Access Dashboard',
-      newOrder: 'New Order',
-      totalTonnage: 'Total Tonnage',
-      pending: 'Pending',
-      loaded: 'Loaded',
-      delivered: 'Delivered',
-      confirmed: 'Confirmed',
-      emailsSent: 'Emails',
-      toProcess: 'To process',
-      completed: 'Completed',
-      notifications: 'Notifications',
-      progress: 'Progress',
-      monthlyComparison: 'Monthly Comparison',
-      thisMonth: 'This month',
-      lastMonth: 'Last month',
-      searchPlaceholder: 'Search client, ref, country...',
-      all: 'All',
-      allCountries: 'All countries',
-      reset: '🔄 Reset',
-      tableView: 'Table',
-      cardView: 'Cards',
-      calendarView: 'Calendar',
-      mapView: 'Map',
-      selectAll: 'Select all',
-      confirmSelected: 'Confirm selection',
-      exportExcel: 'Export Excel',
-      exportPDF: 'Export PDF',
-      sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat',
-      topClients: 'Top Clients',
-      statusDist: 'Status Distribution',
-      client: 'Client',
-      reference: 'Reference',
-      date: 'Date',
-      departure: 'Departure',
-      country: 'Country',
-      tonnes: 'Tonnes',
-      plate: 'Plate',
-      cancel: 'Cancel',
-      addSync: '✨ Add & Sync',
-      noResults: 'No results found',
-      vsLastMonth: 'vs last month',
-      increase: 'increase',
-      decrease: 'decrease',
-      orders: 'orders',
-      generateQR: 'Generate QR',
-      scanQR: 'Scan QR',
-      deliveryTime: 'Estimated time',
-      days: 'days',
-      distance: 'Distance',
-      km: 'km',
-      deliveryDate: 'Delivery date',
-      cmrDocument: 'CMR Document',
-      deliveryNote: 'Delivery note',
-      confirmDelivery: 'Confirm delivery',
-      deliveryConfirmed: 'Delivery confirmed',
-      viewQR: 'View QR',
-      printQR: 'Print QR',
-      downloadQR: 'Download QR'
-    },
-    ar: {
-      title: 'سولانا للخدمات اللوجستية',
-      subtitle: 'لوحة تصدير وتتبع',
-      password: 'كلمة المرور:',
-      passwordInput: 'أدخل كلمة المرور',
-      errorPassword: '❌ كلمة مرور غير صحيحة',
-      loginBtn: '✨ الدخول للوحة',
-      newOrder: 'طلب جديد',
-      totalTonnage: 'إجمالي الأطنان',
-      pending: 'في الانتظار',
-      loaded: 'تم التحميل',
-      delivered: 'تم التسليم',
-      confirmed: 'مؤكد',
-      emailsSent: 'الرسائل',
-      toProcess: 'للمعالجة',
-      completed: 'مكتمل',
-      notifications: 'الإشعارات',
-      progress: 'التقدم',
-      monthlyComparison: 'مقارنة شهرية',
-      thisMonth: 'هذا الشهر',
-      lastMonth: 'الشهر الماضي',
-      searchPlaceholder: 'بحث العميل، المرجع، البلد...',
-      all: 'الكل',
-      allCountries: 'جميع البلدان',
-      reset: '🔄 إعادة تعيين',
-      tableView: 'جدول',
-      cardView: 'بطاقات',
-      calendarView: 'تقويم',
-      mapView: 'خريطة',
-      selectAll: 'تحديد الكل',
-      confirmSelected: 'تأكيد التحديد',
-      exportExcel: 'تصدير Excel',
-      exportPDF: 'تصدير PDF',
-      sun: 'أحد', mon: 'إثنين', tue: 'ثلاثاء', wed: 'أربعاء', thu: 'خميس', fri: 'جمعة', sat: 'سبت',
-      topClients: 'أفضل العملاء',
-      statusDist: 'توزيع الحالات',
-      client: 'العميل',
-      reference: 'المرجع',
-      date: 'التاريخ',
-      departure: 'المغادرة',
-      country: 'البلد',
-      tonnes: 'الأطنان',
-      plate: 'لوحة',
-      cancel: 'إلغاء',
-      addSync: '✨ إضافة ومزامنة',
-      noResults: 'لا توجد نتائج',
-      vsLastMonth: 'مقارنة بالشهر الماضي',
-      increase: 'ارتفاع',
-      decrease: 'انخفاض',
-      orders: 'طلبات',
-      generateQR: 'إنشاء QR',
-      scanQR: 'مسح QR',
-      deliveryTime: 'الوقت المقدر',
-      days: 'أيام',
-      distance: 'المسافة',
-      km: 'كم',
-      deliveryDate: 'تاريخ التسليم',
-      cmrDocument: 'وثيقة CMR',
-      deliveryNote: 'إشعار التسليم',
-      confirmDelivery: 'تأكيد التسليم',
-      deliveryConfirmed: 'تم تأكيد التسليم',
-      viewQR: 'عرض QR',
-      printQR: 'طباعة QR',
-      downloadQR: 'تحميل QR'
-    }
   };
 
   // ==================== GLOBAL VARIABLES ====================
@@ -1051,43 +772,9 @@
   let isDarkMode = false;
   let map = null;
   let markersLayer = null;
-  let currentLang = 'fr';
   let currentCalendarDate = new Date();
-
-  // ==================== LANGUAGE FUNCTIONS ====================
-  function setLanguage(lang) {
-    currentLang = lang;
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    
-    // Update all language buttons
-    ['fr', 'en', 'ar'].forEach(l => {
-      const btn1 = document.getElementById(`lang-${l}`);
-      const btn2 = document.getElementById(`lang-${l}-2`);
-      if (btn1) btn1.classList.toggle('active', l === lang);
-      if (btn2) btn2.classList.toggle('active', l === lang);
-    });
-    
-    // Update all elements with data-lang attribute
-    document.querySelectorAll('[data-lang]').forEach(el => {
-      const key = el.getAttribute('data-lang');
-      if (translations[lang][key]) {
-        el.textContent = translations[lang][key];
-      }
-    });
-    
-    // Update placeholders
-    document.querySelectorAll('[data-placeholder]').forEach(el => {
-      const key = el.getAttribute('data-placeholder');
-      if (translations[lang][key]) {
-        el.placeholder = translations[lang][key];
-      }
-    });
-  }
-
-  function t(key) {
-    return translations[currentLang][key] || key;
-  }
+  let currentDeliveryPhotos = []; // Store photos for current delivery
+  let currentDeliveryCmd = null; // Store current command being delivered
 
   // ==================== UTILITY FUNCTIONS ====================
   function showToast(message, type = 'success') {
@@ -1115,15 +802,8 @@
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
           showToast('✅ Notifications activées!');
-          document.getElementById('notifBtn').classList.add('bg-emerald-100');
         }
       });
-    }
-  }
-
-  function sendNotification(title, body) {
-    if (Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '🚚' });
     }
   }
 
@@ -1145,6 +825,18 @@
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('dashboard').classList.add('hidden');
     document.getElementById('loginPassword').value = '';
+  }
+
+  // ==================== LANGUAGE ====================
+  function setLanguage(lang) {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    ['fr', 'en', 'ar'].forEach(l => {
+      const btn1 = document.getElementById(`lang-${l}`);
+      const btn2 = document.getElementById(`lang-${l}-2`);
+      if (btn1) btn1.classList.toggle('active', l === lang);
+      if (btn2) btn2.classList.toggle('active', l === lang);
+    });
   }
 
   // ==================== SUPABASE ====================
@@ -1176,16 +868,15 @@
     } catch { return false; }
   }
 
-  async function updateCmd(ref, updates) {
+  async function updateCmdSimple(ref, updates) {
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify(updates)
       });
-      if (res.ok) { await loadCmds(); return true; }
-    } catch {}
-    return false;
+      return res.ok;
+    } catch { return false; }
   }
 
   async function deleteCmd(ref) {
@@ -1213,12 +904,7 @@
       immat: document.getElementById('immatIn').value.trim(),
       email: document.getElementById('emailIn').value.trim(),
       statut: 'EN ATTENTE',
-      nb_emails: 0,
-      derniere_date_email: null,
-      date_chargement: null,
-      date_livraison: null,
-      qr_code: null,
-      documents_cmr: null
+      nb_emails: 0
     };
     
     if (cmds.find(c => c.ref === n.ref)) {
@@ -1234,7 +920,6 @@
       closeAddModal();
       await loadCmds();
       showToast('✅ Commande ajoutée!');
-      sendNotification('🚚 Nouvelle commande', `${n.client} - ${n.tonnes}T → ${n.pays}`);
     } else {
       showToast('❌ Erreur', 'error');
     }
@@ -1244,19 +929,32 @@
     if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer le chargement?`)) return;
     
     showLoading();
-    const ok = await updateCmd(cmd.ref, {
+    const updates = {
       statut: 'CHARGÉE',
       nb_emails: (cmd.nb_emails || 0) + 1,
-      derniere_date_email: new Date().toLocaleDateString('fr-FR'),
       date_chargement: new Date().toISOString().split('T')[0]
-    });
-    hideLoading();
+    };
+    
+    const ok = await updateCmdSimple(cmd.ref, updates);
     
     if (ok) {
+      // Update local data immediately
+      const idx = cmds.findIndex(c => c.ref === cmd.ref);
+      if (idx !== -1) {
+        cmds[idx] = { ...cmds[idx], ...updates };
+        filteredCmds = [...cmds];
+        maj();
+      }
+      
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
       const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\n\nDélai estimé: ${deliveryTimeEstimation[cmd.pays] || '?'} jours`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-      showToast('✅ Confirmée!');
+      
+      hideLoading();
+      showToast('✅ Commande chargée!');
+    } else {
+      hideLoading();
+      showToast('❌ Erreur', 'error');
     }
   }
 
@@ -1270,197 +968,62 @@
 
   function synchroniser() { loadCmds(); }
 
-  // ==================== QR CODE FUNCTIONS ====================
-  function generateQRCodeData(cmd) {
-    const deliveryData = {
-      ref: cmd.ref,
-      client: cmd.client,
-      tonnes: cmd.tonnes,
-      pays: cmd.pays,
-      depart: cmd.point_depart,
-      date: cmd.date,
-      date_chargement: cmd.date_chargement,
-      immat: cmd.immat,
-      statut: cmd.statut,
-      generated: new Date().toISOString()
-    };
-    return JSON.stringify(deliveryData);
-  }
-
-  async function showQRModal(cmd) {
-    const qrData = generateQRCodeData(cmd);
-    const distance = distanceFromFrance[cmd.pays] || 0;
-    const deliveryDays = deliveryTimeEstimation[cmd.pays] || 0;
-    const estimatedDeliveryDate = cmd.date_chargement ? 
-      new Date(new Date(cmd.date_chargement).getTime() + deliveryDays * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR') : '-';
+  // ==================== PHOTO UPLOAD ====================
+  function handlePhotoUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
     
-    document.getElementById('qrModalContent').innerHTML = `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- QR Code Section -->
-        <div class="text-center">
-          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6 animate-qr-pulse">
-            <canvas id="qrCanvas" class="mx-auto qr-code-canvas"></canvas>
-            <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails de livraison</p>
-          </div>
-          <div class="mt-4 flex gap-2 justify-center">
-            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">
-              📥 ${t('downloadQR')}
-            </button>
-            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm">
-              🖨️ ${t('printQR')}
-            </button>
-          </div>
-        </div>
-        
-        <!-- Delivery Details Section -->
-        <div class="space-y-4">
-          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
-            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-              📦 Commande ${cmd.ref}
-            </h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-500">Client:</span>
-                <span class="font-semibold">${cmd.client}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">Tonnes:</span>
-                <span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">Destination:</span>
-                <span class="font-semibold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-gray-500">Départ:</span>
-                <span class="font-semibold">${cmd.point_depart}</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Delivery Estimation -->
-          <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-4">
-            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-              🚚 ${t('deliveryTime')}
-            </h4>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="bg-white dark:bg-slate-700 rounded-xl p-3 text-center">
-                <p class="text-2xl font-black text-blue-600">${distance} km</p>
-                <p class="text-xs text-gray-500">${t('distance')}</p>
-              </div>
-              <div class="bg-white dark:bg-slate-700 rounded-xl p-3 text-center">
-                <p class="text-2xl font-black text-emerald-600">${deliveryDays} ${t('days')}</p>
-                <p class="text-xs text-gray-500">${t('deliveryTime')}</p>
-              </div>
-            </div>
-            <div class="mt-3 text-center">
-              <p class="text-sm text-gray-500">${t('deliveryDate')}:</p>
-              <p class="text-lg font-bold text-emerald-600">${estimatedDeliveryDate}</p>
-            </div>
-          </div>
-          
-          <!-- Documents Section -->
-          <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl p-4">
-            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-              📄 Documents de Transport
-            </h4>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
-                <span class="flex items-center gap-2">
-                  <span class="text-xl">📋</span>
-                  <span>CMR / Lettre de voiture</span>
-                </span>
-                <span class="text-emerald-500">✓</span>
-              </div>
-              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
-                <span class="flex items-center gap-2">
-                  <span class="text-xl">📦</span>
-                  <span>Bon de livraison</span>
-                </span>
-                <span class="text-emerald-500">✓</span>
-              </div>
-              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
-                <span class="flex items-center gap-2">
-                  <span class="text-xl">🧾</span>
-                  <span>Facture transport</span>
-                </span>
-                <span class="text-emerald-500">✓</span>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Status Badge -->
-          <div class="text-center">
-            <span class="inline-flex items-center gap-2 px-6 py-3 ${cmd.statut === 'LIVRÉE' ? 'gradient-delivered' : cmd.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white rounded-full font-bold text-lg">
-              ${cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳'} ${cmd.statut}
-            </span>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.getElementById('qrModal').classList.remove('hidden');
-    
-    // Generate QR Code
-    setTimeout(() => {
-      const canvas = document.getElementById('qrCanvas');
-      if (canvas) {
-        QRCode.toCanvas(canvas, qrData, {
-          width: 200,
-          margin: 2,
-          color: {
-            dark: '#0077b6',
-            light: '#ffffff'
-          }
-        }, function(error) {
-          if (error) console.error(error);
-        });
+    for (let file of files) {
+      if (currentDeliveryPhotos.length >= 5) {
+        showToast('Maximum 5 photos', 'error');
+        return;
       }
-    }, 100);
-  }
-
-  function closeQRModal() {
-    document.getElementById('qrModal').classList.add('hidden');
-  }
-
-  function downloadQRCode(ref) {
-    const canvas = document.getElementById('qrCanvas');
-    if (canvas) {
-      const link = document.createElement('a');
-      link.download = `QR_${ref}_${new Date().toISOString().split('T')[0]}.png`;
-      link.href = canvas.toDataURL();
-      link.click();
-      showToast('📥 QR Code téléchargé!');
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        currentDeliveryPhotos.push(e.target.result);
+        updatePhotoPreview();
+      };
+      reader.readAsDataURL(file);
     }
   }
 
-  function printQRCode(ref) {
-    const canvas = document.getElementById('qrCanvas');
-    if (canvas) {
-      const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <html>
-          <head><title>QR Code - ${ref}</title></head>
-          <body style="text-align: center; padding: 50px;">
-            <h2>Solana Logistique - ${ref}</h2>
-            <img src="${canvas.toDataURL()}" style="width: 300px; height: 300px;">
-            <p>Scannez ce QR code pour voir les détails de livraison</p>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.print();
+  function updatePhotoPreview() {
+    const container = document.getElementById('photoPreviewContainer');
+    if (!container) return;
+    
+    let html = currentDeliveryPhotos.map((photo, idx) => `
+      <div class="relative">
+        <img src="${photo}" class="photo-preview">
+        <button onclick="removePhoto(${idx})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">×</button>
+      </div>
+    `).join('');
+    
+    if (currentDeliveryPhotos.length < 5) {
+      html += `
+        <label class="photo-upload-btn cursor-pointer">
+          <input type="file" accept="image/*" multiple onchange="handlePhotoUpload(event)" class="hidden">
+          <span class="text-2xl text-gray-400">+</span>
+        </label>
+      `;
     }
+    
+    container.innerHTML = html;
+  }
+
+  function removePhoto(idx) {
+    currentDeliveryPhotos.splice(idx, 1);
+    updatePhotoPreview();
   }
 
   // ==================== DELIVERY CONFIRMATION ====================
-  async function showDeliveryConfirmation(cmd) {
-    const distance = distanceFromFrance[cmd.pays] || 0;
-    const deliveryDays = deliveryTimeEstimation[cmd.pays] || 0;
+  function showDeliveryConfirmation(cmd) {
+    currentDeliveryCmd = cmd;
+    currentDeliveryPhotos = [];
     
     document.getElementById('deliveryModalContent').innerHTML = `
       <div class="text-center mb-6">
-        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="text-4xl">🎉</span>
         </div>
         <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
@@ -1488,6 +1051,19 @@
         </div>
       </div>
       
+      <!-- Photo Upload Section -->
+      <div class="bg-gray-50 dark:bg-slate-700 rounded-2xl p-5 mb-6">
+        <h4 class="font-bold mb-3">📸 Photos de livraison (optionnel)</h4>
+        <p class="text-xs text-gray-500 mb-3">Ajoutez jusqu'à 5 photos de la livraison</p>
+        <div id="photoPreviewContainer" class="flex gap-3 flex-wrap">
+          <label class="photo-upload-btn cursor-pointer">
+            <input type="file" accept="image/*" multiple onchange="handlePhotoUpload(event)" class="hidden">
+            <span class="text-2xl text-gray-400">+</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Documents Checklist -->
       <div class="bg-gray-50 dark:bg-slate-700 rounded-2xl p-5 mb-6">
         <h4 class="font-bold mb-3">📋 Documents à valider</h4>
         <div class="space-y-2">
@@ -1499,10 +1075,6 @@
             <input type="checkbox" id="docBon" checked class="w-5 h-5 rounded">
             <span>Bon de livraison signé</span>
           </label>
-          <label class="flex items-center gap-3 bg-white dark:bg-slate-600 rounded-xl p-3 cursor-pointer">
-            <input type="checkbox" id="docPhoto" class="w-5 h-5 rounded">
-            <span>Photo de livraison</span>
-          </label>
         </div>
       </div>
       
@@ -1510,7 +1082,7 @@
         <button onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">
           Annuler
         </button>
-        <button onclick="confirmDelivery('${cmd.ref}')" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
+        <button onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
           ✅ Confirmer Livraison
         </button>
       </div>
@@ -1519,167 +1091,258 @@
     document.getElementById('deliveryModal').classList.remove('hidden');
   }
 
-  async function confirmDelivery(ref) {
-    showLoading();
-    
-    const cmd = cmds.find(c => c.ref === ref);
-    if (!cmd) {
-      hideLoading();
-      showToast('❌ Commande introuvable', 'error');
+  async function confirmDeliveryFinal() {
+    if (!currentDeliveryCmd) {
+      showToast('❌ Erreur: Aucune commande sélectionnée', 'error');
       return;
     }
     
-    const ok = await updateCmd(ref, {
+    showLoading();
+    
+    const updates = {
       statut: 'LIVRÉE',
       date_livraison: new Date().toISOString().split('T')[0],
+      photos: currentDeliveryPhotos.length > 0 ? JSON.stringify(currentDeliveryPhotos) : null,
       documents_cmr: JSON.stringify({
         cmr: document.getElementById('docCMR')?.checked || false,
         bon: document.getElementById('docBon')?.checked || false,
-        photo: document.getElementById('docPhoto')?.checked || false,
         validatedAt: new Date().toISOString()
       })
-    });
+    };
     
-    hideLoading();
+    const ok = await updateCmdSimple(currentDeliveryCmd.ref, updates);
     
     if (ok) {
+      // Update local data
+      const idx = cmds.findIndex(c => c.ref === currentDeliveryCmd.ref);
+      if (idx !== -1) {
+        cmds[idx] = { ...cmds[idx], ...updates };
+        filteredCmds = [...cmds];
+      }
+      
+      hideLoading();
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
-      sendNotification('🎉 Livraison confirmée', `${cmd.client} - ${cmd.ref}`);
       
-      // Generate QR Code for delivered command
-      setTimeout(() => showQRModal({...cmd, statut: 'LIVRÉE'}), 500);
+      // Generate and show QR code
+      const updatedCmd = { ...currentDeliveryCmd, ...updates };
+      setTimeout(() => {
+        showQRModalWithSendEmail(updatedCmd);
+      }, 500);
+      
     } else {
+      hideLoading();
       showToast('❌ Erreur lors de la confirmation', 'error');
     }
   }
 
   function closeDeliveryModal() {
     document.getElementById('deliveryModal').classList.add('hidden');
+    currentDeliveryCmd = null;
+    currentDeliveryPhotos = [];
   }
 
-  // ==================== SCAN QR / SEARCH DELIVERY ====================
-  function showScanQRModal() {
-    document.getElementById('scanQRModal').classList.remove('hidden');
-    document.getElementById('scanResult').innerHTML = '';
-    document.getElementById('qrSearchRef').value = '';
+  // ==================== QR CODE ====================
+  function generateQRCodeData(cmd) {
+    return JSON.stringify({
+      ref: cmd.ref,
+      client: cmd.client,
+      tonnes: cmd.tonnes,
+      pays: cmd.pays,
+      depart: cmd.point_depart,
+      date: cmd.date,
+      statut: cmd.statut,
+      date_livraison: cmd.date_livraison || new Date().toISOString().split('T')[0],
+      validated: new Date().toISOString()
+    });
   }
 
-  function closeScanQRModal() {
-    document.getElementById('scanQRModal').classList.add('hidden');
-  }
-
-  function searchDeliveryByRef() {
-    const ref = document.getElementById('qrSearchRef').value.trim().toUpperCase();
-    if (!ref) {
-      showToast('❌ Entrez une référence', 'error');
-      return;
-    }
+  function showQRModalWithSendEmail(cmd) {
+    const qrData = generateQRCodeData(cmd);
+    const deliveryDays = deliveryTimeEstimation[cmd.pays] || 0;
     
-    const cmd = cmds.find(c => c.ref.toUpperCase() === ref);
-    if (!cmd) {
-      document.getElementById('scanResult').innerHTML = `
-        <div class="text-center text-red-500">
-          <span class="text-4xl">❌</span>
-          <p class="mt-2">Commande introuvable</p>
-        </div>
-      `;
-      return;
-    }
-    
-    const statusColor = cmd.statut === 'LIVRÉE' ? 'emerald' : cmd.statut === 'CHARGÉE' ? 'blue' : 'amber';
-    const statusIcon = cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳';
-    
-    document.getElementById('scanResult').innerHTML = `
-      <div class="bg-gradient-to-r from-${statusColor}-50 to-teal-50 dark:from-${statusColor}-900/30 dark:to-teal-900/30 rounded-2xl p-5 text-left">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h4 class="font-bold text-lg">${cmd.client}</h4>
-            <p class="text-sm text-gray-500">${cmd.ref}</p>
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- QR Code Section -->
+        <div class="text-center">
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6">
+            <canvas id="qrCanvas" class="mx-auto qr-code-canvas"></canvas>
+            <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails de livraison</p>
           </div>
-          <span class="px-4 py-2 bg-${statusColor}-100 text-${statusColor}-700 rounded-full font-bold">
-            ${statusIcon} ${cmd.statut}
-          </span>
+          <div class="mt-4 flex gap-2 justify-center flex-wrap">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">
+              📥 Télécharger QR
+            </button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm">
+              🖨️ Imprimer
+            </button>
+          </div>
         </div>
         
-        <div class="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <p class="text-gray-500">Tonnes</p>
-            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
+        <!-- Details Section -->
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Commande ${cmd.ref}</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Client:</span>
+                <span class="font-semibold">${cmd.client}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Tonnes:</span>
+                <span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Destination:</span>
+                <span class="font-semibold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <p class="text-gray-500">Destination</p>
-            <p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Départ</p>
-            <p class="font-bold">${cmd.point_depart}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Date</p>
-            <p class="font-bold">${cmd.date}</p>
-          </div>
-          ${cmd.date_livraison ? `
-          <div class="col-span-2">
-            <p class="text-gray-500">Date de livraison</p>
-            <p class="font-bold text-emerald-600">${cmd.date_livraison}</p>
-          </div>
-          ` : ''}
-        </div>
-        
-        <div class="mt-4 flex gap-2">
-          <button onclick="closeScanQRModal(); showQRModal(${JSON.stringify(cmd).replace(/"/g, '&quot;')})" class="flex-1 py-2 gradient-ocean text-white rounded-xl font-bold text-sm">
-            📱 Voir QR
+          
+          <!-- Send Email Button -->
+          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2">
+            📧 Envoyer au client par email
           </button>
-          ${cmd.statut === 'CHARGÉE' ? `
-          <button onclick="closeScanQRModal(); showDeliveryConfirmation(${JSON.stringify(cmd).replace(/"/g, '&quot;')})" class="flex-1 py-2 gradient-delivered text-white rounded-xl font-bold text-sm">
-            ✅ Livrer
-          </button>
-          ` : ''}
+          
+          <!-- Status -->
+          <div class="text-center">
+            <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">
+              🎉 LIVRÉE
+            </span>
+            <p class="mt-2 text-sm text-gray-500">Date: ${cmd.date_livraison || new Date().toLocaleDateString('fr-FR')}</p>
+          </div>
         </div>
       </div>
     `;
-  }
-
-  // ==================== BULK ACTIONS ====================
-  function toggleSelectAll() {
-    const checked = document.getElementById('selectAll').checked;
-    selectedCmds.clear();
-    if (checked) {
-      filteredCmds.forEach(c => selectedCmds.add(c.ref));
-    }
-    updateSelectedCount();
-    renderTable();
-  }
-
-  function toggleSelect(ref) {
-    if (selectedCmds.has(ref)) {
-      selectedCmds.delete(ref);
-    } else {
-      selectedCmds.add(ref);
-    }
-    updateSelectedCount();
-  }
-
-  function updateSelectedCount() {
-    const count = selectedCmds.size;
-    document.getElementById('selectedCount').textContent = count > 0 ? `${count} sélectionné(s)` : '';
-    document.getElementById('bulkConfirmBtn').classList.toggle('hidden', count === 0);
-    document.getElementById('selectAll').checked = count === filteredCmds.length && count > 0;
-  }
-
-  async function bulkConfirm() {
-    if (!confirm(`Confirmer ${selectedCmds.size} commandes?`)) return;
-    showLoading();
-    for (const ref of selectedCmds) {
-      const cmd = cmds.find(c => c.ref === ref);
-      if (cmd && cmd.statut === 'EN ATTENTE') {
-        await updateCmd(ref, { statut: 'CHARGÉE', nb_emails: (cmd.nb_emails || 0) + 1, derniere_date_email: new Date().toLocaleDateString('fr-FR') });
+    
+    document.getElementById('qrModal').classList.remove('hidden');
+    
+    // Generate QR Code
+    setTimeout(() => {
+      const canvas = document.getElementById('qrCanvas');
+      if (canvas) {
+        QRCode.toCanvas(canvas, qrData, {
+          width: 200,
+          margin: 2,
+          color: { dark: '#0077b6', light: '#ffffff' }
+        });
       }
+    }, 100);
+  }
+
+  function showQRModal(cmd) {
+    const qrData = generateQRCodeData(cmd);
+    
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="text-center">
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6">
+            <canvas id="qrCanvas" class="mx-auto qr-code-canvas"></canvas>
+            <p class="mt-4 text-sm text-gray-500">QR Code de la commande</p>
+          </div>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger</button>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="bg-gray-50 dark:bg-slate-700 rounded-2xl p-4">
+            <h4 class="font-bold mb-3">📦 ${cmd.ref}</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span>${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span></div>
+            </div>
+          </div>
+          <div class="text-center">
+            <span class="px-6 py-3 ${cmd.statut === 'LIVRÉE' ? 'gradient-delivered' : 'gradient-success'} text-white rounded-full font-bold">
+              ${cmd.statut === 'LIVRÉE' ? '🎉 LIVRÉE' : '✅ CHARGÉE'}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('qrModal').classList.remove('hidden');
+    
+    setTimeout(() => {
+      const canvas = document.getElementById('qrCanvas');
+      if (canvas) {
+        QRCode.toCanvas(canvas, qrData, { width: 200, margin: 2, color: { dark: '#0077b6', light: '#ffffff' } });
+      }
+    }, 100);
+  }
+
+  function closeQRModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+  }
+
+  function downloadQRCode(ref) {
+    const canvas = document.getElementById('qrCanvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QR_Livraison_${ref}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      showToast('📥 QR Code téléchargé!');
     }
-    selectedCmds.clear();
-    hideLoading();
-    showToast(`✅ ${selectedCmds.size || 'Toutes'} confirmées!`);
+  }
+
+  function printQRCode(ref) {
+    const canvas = document.getElementById('qrCanvas');
+    if (canvas) {
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html><head><title>QR - ${ref}</title></head>
+        <body style="text-align:center;padding:50px;">
+          <h2>Solana Logistique - Livraison ${ref}</h2>
+          <img src="${canvas.toDataURL()}" style="width:300px;height:300px;">
+          <p>Scannez ce QR code pour confirmer la livraison</p>
+        </body></html>
+      `);
+      win.document.close();
+      win.print();
+    }
+  }
+
+  function sendDeliveryEmail(ref) {
+    const cmd = cmds.find(c => c.ref === ref);
+    if (!cmd) return;
+    
+    const canvas = document.getElementById('qrCanvas');
+    const qrDataUrl = canvas ? canvas.toDataURL() : '';
+    
+    const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
+    const message = `Bonjour ${cmd.client},
+
+🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!
+
+═══════════════════════════════
+📋 DÉTAILS DE LA LIVRAISON
+═══════════════════════════════
+
+Référence: ${cmd.ref}
+Date de livraison: ${cmd.date_livraison || new Date().toLocaleDateString('fr-FR')}
+Tonnes livrées: ${cmd.tonnes.toFixed(2)} T
+Destination: ${paysNoms[cmd.pays]}
+
+═══════════════════════════════
+📱 QR CODE DE CONFIRMATION
+═══════════════════════════════
+
+Un QR code est joint à cet email.
+Scannez-le pour visualiser les détails de votre livraison.
+
+═══════════════════════════════
+
+Merci de votre confiance!
+
+🚚 Solana Logistique`;
+    
+    // Open email client
+    const mailtoLink = `mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`;
+    window.open(mailtoLink, '_blank');
+    
+    showToast('📧 Email préparé! Joignez le QR code téléchargé.');
   }
 
   // ==================== FILTERS ====================
@@ -1698,7 +1361,6 @@
       return matchSearch && matchDateFrom && matchDateTo && matchCountry && matchStatus;
     });
     
-    document.getElementById('filterCount').textContent = filteredCmds.length !== cmds.length ? `${filteredCmds.length} / ${cmds.length} commandes` : '';
     maj();
   }
 
@@ -1722,7 +1384,6 @@
       if (btn) btn.classList.toggle('active', s === 'all');
     });
     filteredCmds = [...cmds];
-    document.getElementById('filterCount').textContent = '';
     maj();
   }
 
@@ -1758,10 +1419,7 @@
     document.getElementById('headerStats').textContent = `${filteredCmds.length} commandes`;
     document.getElementById('progressPercent').textContent = pct + '%';
     document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progressChargees').textContent = `${ch + liv} terminées`;
-    document.getElementById('progressAttente').textContent = `${att} en cours`;
 
-    updateMonthlyComparison();
     renderTable();
     renderCards();
     updateCharts();
@@ -1774,72 +1432,33 @@
     }
   }
 
-  function updateMonthlyComparison() {
-    const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
-    
-    const thisMonthCmds = cmds.filter(c => {
-      const d = new Date(c.date);
-      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
-    });
-    
-    const lastMonthCmds = cmds.filter(c => {
-      const d = new Date(c.date);
-      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
-    });
-    
-    const thisT = thisMonthCmds.reduce((s, c) => s + c.tonnes, 0);
-    const lastT = lastMonthCmds.reduce((s, c) => s + c.tonnes, 0);
-    
-    document.getElementById('thisMonthTonnage').textContent = thisT.toFixed(1) + ' T';
-    document.getElementById('thisMonthOrders').textContent = `${thisMonthCmds.length} ${t('orders')}`;
-    document.getElementById('lastMonthTonnage').textContent = lastT.toFixed(1) + ' T';
-    document.getElementById('lastMonthOrders').textContent = `${lastMonthCmds.length} ${t('orders')}`;
-    
-    const diff = lastT > 0 ? ((thisT - lastT) / lastT * 100).toFixed(1) : 0;
-    const isPositive = thisT >= lastT;
-    document.getElementById('comparisonResult').innerHTML = lastT > 0 ? `
-      <span class="comparison-badge ${isPositive ? 'positive' : 'negative'}">
-        ${isPositive ? '📈' : '📉'} ${Math.abs(diff)}% ${isPositive ? t('increase') : t('decrease')} ${t('vsLastMonth')}
-      </span>
-    ` : '';
-  }
-
   function getStatusBadge(statut) {
-    if (statut === 'LIVRÉE') {
-      return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
-    } else if (statut === 'CHARGÉE') {
-      return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
-    } else {
-      return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
-    }
+    if (statut === 'LIVRÉE') return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
+    if (statut === 'CHARGÉE') return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
+    return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
   }
 
   function getActionButtons(cmd) {
     let buttons = '';
     
     if (cmd.statut === 'EN ATTENTE') {
-      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg" title="Charger">✅</button>`;
+      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
     } else if (cmd.statut === 'CHARGÉE') {
-      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg" title="Livrer">🎉</button>`;
-      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg" title="Renvoyer email">📧</button>`;
+      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
     }
     
     if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') {
-      buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg" title="QR Code">📱</button>`;
+      buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
     }
     
-    buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg" title="Supprimer">🗑️</button>`;
+    buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>`;
     
     return buttons;
   }
 
   function renderTable() {
     if (filteredCmds.length === 0) {
-      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">${t('noResults')}</td></tr>`;
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
       return;
     }
     
@@ -1853,18 +1472,14 @@
         <td class="px-4 py-3">${paysEmojis[c.pays]} ${c.pays}</td>
         <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
         <td class="px-4 py-3">${getStatusBadge(c.statut)}</td>
-        <td class="px-4 py-3">
-          <div class="flex justify-center gap-1 flex-wrap">
-            ${getActionButtons(c)}
-          </div>
-        </td>
+        <td class="px-4 py-3"><div class="flex justify-center gap-1">${getActionButtons(c)}</div></td>
       </tr>
     `).join('');
   }
 
   function renderCards() {
     if (filteredCmds.length === 0) {
-      document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">${t('noResults')}</div>`;
+      document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">Aucun résultat</div>`;
       return;
     }
     
@@ -1881,12 +1496,11 @@
           <div>${paysEmojis[c.pays]} ${c.pays}</div>
           <div class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</div>
         </div>
-        <div class="flex gap-2 flex-wrap">
+        <div class="flex gap-2">
           ${c.statut === 'EN ATTENTE' 
             ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-success text-white text-xs rounded-lg font-bold">✅ Charger</button>` 
             : c.statut === 'CHARGÉE'
-              ? `<button onclick='showDeliveryConfirmation(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-delivered text-white text-xs rounded-lg font-bold">🎉 Livrer</button>
-                 <button onclick='showQRModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-2 bg-purple-100 text-purple-700 text-xs rounded-lg font-bold">📱</button>`
+              ? `<button onclick='showDeliveryConfirmation(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-delivered text-white text-xs rounded-lg font-bold">🎉 Livrer</button>`
               : `<button onclick='showQRModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 bg-purple-100 text-purple-700 text-xs rounded-lg font-bold">📱 QR</button>`
           }
           <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-2 gradient-danger text-white text-xs rounded-lg">🗑️</button>
@@ -1900,28 +1514,23 @@
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
     
-    document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : currentLang === 'en' ? 'en-US' : 'fr-FR', { month: 'long', year: 'numeric' });
+    document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
     
-    // Get orders by date
     const ordersByDate = {};
     cmds.forEach(c => {
-      const d = c.date;
-      if (!ordersByDate[d]) ordersByDate[d] = [];
-      ordersByDate[d].push(c);
+      if (!ordersByDate[c.date]) ordersByDate[c.date] = [];
+      ordersByDate[c.date].push(c);
     });
     
     let html = '';
-    
-    // Empty cells before first day
     for (let i = 0; i < firstDay; i++) {
       html += '<div class="calendar-day bg-gray-50 dark:bg-slate-700/50 rounded-lg"></div>';
     }
     
-    // Days
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const orders = ordersByDate[dateStr] || [];
@@ -1932,12 +1541,7 @@
         <div onclick="${hasOrders ? `showCalendarDayDetail('${dateStr}')` : ''}" 
              class="calendar-day ${hasOrders ? 'has-orders' : ''} ${isToday ? 'today' : ''} rounded-lg p-2 cursor-pointer">
           <div class="font-bold text-sm ${isToday ? 'text-blue-600' : ''}">${day}</div>
-          ${hasOrders ? `
-            <div class="mt-1">
-              <div class="text-xs font-bold text-emerald-600">${orders.reduce((s, c) => s + c.tonnes, 0).toFixed(1)}T</div>
-              <div class="text-xs text-gray-400">${orders.length} cmd</div>
-            </div>
-          ` : ''}
+          ${hasOrders ? `<div class="text-xs font-bold text-emerald-600 mt-1">${orders.reduce((s, c) => s + c.tonnes, 0).toFixed(1)}T</div>` : ''}
         </div>
       `;
     }
@@ -1952,26 +1556,13 @@
 
   function showCalendarDayDetail(dateStr) {
     const orders = cmds.filter(c => c.date === dateStr);
-    const totalT = orders.reduce((s, c) => s + c.tonnes, 0);
-    
-    document.getElementById('calendarModalTitle').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('calendarModalTitle').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     document.getElementById('calendarModalContent').innerHTML = `
-      <div class="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
-        <div class="text-2xl font-bold text-emerald-600">${totalT.toFixed(1)} T</div>
-        <div class="text-sm text-gray-500">${orders.length} commandes</div>
-      </div>
       <div class="space-y-2">
         ${orders.map(c => `
           <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between items-center">
-            <div>
-              <span class="font-bold">${c.client}</span>
-              <span class="text-sm text-gray-500 ml-2">${c.ref}</span>
-              ${getStatusBadge(c.statut)}
-            </div>
-            <div class="text-right">
-              <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
-              <span class="ml-2">${paysEmojis[c.pays]}</span>
-            </div>
+            <div><span class="font-bold">${c.client}</span> <span class="text-sm text-gray-500">${c.ref}</span> ${getStatusBadge(c.statut)}</div>
+            <div><span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span> <span class="ml-2">${paysEmojis[c.pays]}</span></div>
           </div>
         `).join('')}
       </div>
@@ -1979,9 +1570,7 @@
     document.getElementById('calendarModal').classList.remove('hidden');
   }
 
-  function closeCalendarModal() {
-    document.getElementById('calendarModal').classList.add('hidden');
-  }
+  function closeCalendarModal() { document.getElementById('calendarModal').classList.add('hidden'); }
 
   // ==================== MAP ====================
   function initMap() {
@@ -2016,36 +1605,15 @@
       if (!coords) return;
       
       const totalT = commands.reduce((s, c) => s + c.tonnes, 0);
-      const livrees = commands.filter(c => c.statut === 'LIVRÉE').length;
-      const chargees = commands.filter(c => c.statut === 'CHARGÉE').length;
-      const attente = commands.filter(c => c.statut === 'EN ATTENTE').length;
-      
-      // Color based on status
-      const statusColor = livrees > 0 ? '#10b981' : chargees > 0 ? '#0077b6' : '#f59e0b';
+      const statusColor = commands.some(c => c.statut === 'LIVRÉE') ? '#10b981' : commands.some(c => c.statut === 'CHARGÉE') ? '#0077b6' : '#f59e0b';
       
       const icon = L.divIcon({
-        html: `<div style="background: ${statusColor}; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid white;">${paysEmojis[code] || '🌍'}</div>`,
+        html: `<div style="background: ${statusColor}; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid white;">${paysEmojis[code]}</div>`,
         className: '', iconSize: [44, 44], iconAnchor: [22, 22]
       });
       
       const marker = L.marker(coords, { icon });
-      marker.bindPopup(`
-        <div style="min-width: 220px;">
-          <div style="background: linear-gradient(135deg, #0077b6, #10b981); color: white; padding: 12px; margin: -10px -10px 10px; border-radius: 8px 8px 0 0;">
-            <span style="font-size: 28px;">${paysEmojis[code]}</span>
-            <div style="font-weight: bold; font-size: 16px;">${paysNoms[code]}</div>
-          </div>
-          <div style="text-align: center;">
-            <div style="font-size: 26px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
-            <div style="color: #6b7280; margin-bottom: 8px;">${commands.length} commandes</div>
-            <div style="display: flex; justify-content: center; gap: 8px; font-size: 11px;">
-              ${attente > 0 ? `<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px;">⏳ ${attente}</span>` : ''}
-              ${chargees > 0 ? `<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px;">✅ ${chargees}</span>` : ''}
-              ${livrees > 0 ? `<span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 10px;">🎉 ${livrees}</span>` : ''}
-            </div>
-          </div>
-        </div>
-      `);
+      marker.bindPopup(`<div style="min-width: 180px; text-align: center; padding: 10px;"><span style="font-size: 28px;">${paysEmojis[code]}</span><div style="font-weight: bold; font-size: 18px; color: #10b981;">${totalT.toFixed(1)}T</div><div style="color: #6b7280;">${commands.length} commandes</div></div>`);
       markersLayer.addLayer(marker);
     });
     
@@ -2059,7 +1627,6 @@
   function updateCharts() {
     const textColor = isDarkMode ? '#94a3b8' : '#64748b';
     
-    // Clients Chart
     const clientsData = {};
     filteredCmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
     const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 6);
@@ -2078,7 +1645,6 @@
       }
     });
     
-    // Status Chart - Updated with LIVRÉE
     const attente = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
     const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
     const livrees = filteredCmds.filter(c => c.statut === 'LIVRÉE').length;
@@ -2101,18 +1667,14 @@
   // ==================== EXPORTS ====================
   function exportExcel() {
     const wb = XLSX.utils.book_new();
-    
     const mainData = filteredCmds.map((c, i) => ({
       'N°': i + 1, 'Client': c.client, 'Référence': c.ref, 'Date': c.date,
       'Départ': c.point_depart, 'Pays': c.pays, 'Tonnes': c.tonnes,
       'Immat': c.immat || '-', 'Statut': c.statut, 'Emails': c.nb_emails || 0,
       'Date Chargement': c.date_chargement || '-', 'Date Livraison': c.date_livraison || '-'
     }));
-    
     const ws = XLSX.utils.json_to_sheet(mainData);
-    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, ws, "Commandes");
-    
     XLSX.writeFile(wb, `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
     showToast('📥 Excel téléchargé!');
   }
@@ -2120,16 +1682,10 @@
   function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
     doc.setFontSize(20);
     doc.setTextColor(0, 119, 182);
     doc.text('Solana Logistique PRO', 14, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Export du ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
-    
     const tableData = filteredCmds.map(c => [c.client, c.ref, c.date, c.pays, c.tonnes.toFixed(2) + 'T', c.statut]);
-    
     doc.autoTable({
       head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']],
       body: tableData,
@@ -2137,7 +1693,6 @@
       styles: { fontSize: 8 },
       headStyles: { fillColor: [0, 119, 182] }
     });
-    
     doc.save(`Solana_Export_${new Date().toISOString().split('T')[0]}.pdf`);
     showToast('📄 PDF téléchargé!');
   }
@@ -2146,7 +1701,6 @@
   function showAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('dateIn').valueAsDate = new Date();
-    document.getElementById('clientIn').focus();
   }
 
   function closeAddModal() {
@@ -2154,44 +1708,26 @@
     ['clientIn', 'refIn', 'pointDepart', 'paysIn', 'tonnesIn', 'immatIn', 'emailIn'].forEach(id => document.getElementById(id).value = '');
   }
 
-  function showCountryDetail(code) {
-    const paysCmds = cmds.filter(c => c.pays === code);
-    const totalT = paysCmds.reduce((s, c) => s + c.tonnes, 0);
-    
-    document.getElementById('countryFlag').textContent = paysEmojis[code] || '🌍';
-    document.getElementById('countryTitle').textContent = paysNoms[code] || code;
-    document.getElementById('countrySubtitle').textContent = `${paysCmds.length} commandes • ${totalT.toFixed(1)}T`;
-    document.getElementById('countryContent').innerHTML = `
-      <div class="space-y-2">
-        ${paysCmds.map(c => `
-          <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <span class="font-bold">${c.client}</span>
-              <span class="text-sm text-gray-400">${c.ref}</span>
-              ${getStatusBadge(c.statut)}
-            </div>
-            <div class="text-right">
-              <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
-    document.getElementById('countryModal').classList.remove('hidden');
+  function toggleSelectAll() {
+    const checked = document.getElementById('selectAll').checked;
+    selectedCmds.clear();
+    if (checked) filteredCmds.forEach(c => selectedCmds.add(c.ref));
+    renderTable();
   }
 
-  function closeCountryModal() { document.getElementById('countryModal').classList.add('hidden'); }
+  function toggleSelect(ref) {
+    if (selectedCmds.has(ref)) selectedCmds.delete(ref);
+    else selectedCmds.add(ref);
+  }
 
   // ==================== INIT ====================
   function initApp() {
-    // Populate country dropdowns
     const select = document.getElementById('paysIn');
     const filter = document.getElementById('countryFilter');
     Object.keys(paysNoms).sort().forEach(code => {
       select.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
       filter.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
     });
-    
     loadCmds();
     setLanguage('fr');
   }
@@ -2201,4 +1737,5 @@
 
 </body>
 </html>
+
 
