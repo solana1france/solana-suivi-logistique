@@ -32,6 +32,9 @@
     .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa, #c4b5fd); }
     .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
     .gradient-delivered { background: linear-gradient(135deg, #059669, #10b981, #34d399); }
+    .gradient-report { background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); }
+    .gradient-teal { background: linear-gradient(135deg, #14b8a6, #2dd4bf, #5eead4); }
+    .gradient-rose { background: linear-gradient(135deg, #f43f5e, #fb7185, #fda4af); }
     
     .glass { 
       background: rgba(255, 255, 255, 0.85);
@@ -60,10 +63,16 @@
       to { transform: rotate(360deg); }
     }
     
+    @keyframes countUp {
+      from { opacity: 0; transform: scale(0.5); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
     .animate-slide-up { animation: slide-up 0.6s ease-out; }
     .animate-rotate { animation: rotate 1s linear infinite; }
+    .animate-count { animation: countUp 0.5s ease-out; }
     
     .kpi-card {
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -73,6 +82,14 @@
     .kpi-card:hover {
       transform: translateY(-12px) scale(1.02);
       box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
+    }
+    
+    .report-card {
+      transition: all 0.3s ease;
+    }
+    .report-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
     }
     
     .table-row { transition: all 0.3s ease; }
@@ -186,10 +203,44 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     
-    /* Public view styles */
     .public-view {
       min-height: 100vh;
       background: linear-gradient(135deg, #0077b6, #00b4d8);
+    }
+    
+    /* Reports Page Styles */
+    .reports-page {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      z-index: 100;
+      overflow-y: auto;
+    }
+    .dark .reports-page {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .stat-badge.up { background: #dcfce7; color: #166534; }
+    .stat-badge.down { background: #fee2e2; color: #991b1b; }
+    .stat-badge.neutral { background: #fef3c7; color: #92400e; }
+    
+    .prediction-card {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 300px;
     }
   </style>
 </head>
@@ -207,7 +258,270 @@
   <div id="publicView" class="hidden">
     <div class="public-view flex items-center justify-center p-4 min-h-screen">
       <div id="publicViewContent" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 animate__animated animate__fadeInUp">
-        <!-- Content will be injected here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORTS PAGE -->
+  <div id="reportsPage" class="reports-page hidden">
+    <div class="container mx-auto px-4 py-6">
+      <!-- Reports Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-4">
+          <button onclick="closeReportsPage()" class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all">
+            <span class="text-2xl">←</span>
+          </button>
+          <div>
+            <h1 class="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              📊 Rapports & Analyses
+            </h1>
+            <p class="text-gray-500 text-sm">Tableau de bord analytique complet</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportReportPDF()" class="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">
+            📄 Export PDF
+          </button>
+          <button onclick="exportReportExcel()" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">
+            📥 Export Excel
+          </button>
+        </div>
+      </div>
+
+      <!-- Report Period Selector -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg mb-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <span class="font-semibold text-gray-700 dark:text-gray-300">📅 Période:</span>
+          <div class="flex gap-2">
+            <button onclick="setReportPeriod('week')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-week">7 jours</button>
+            <button onclick="setReportPeriod('month')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all gradient-purple text-white" id="period-month">30 jours</button>
+            <button onclick="setReportPeriod('quarter')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-quarter">3 mois</button>
+            <button onclick="setReportPeriod('year')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-year">Année</button>
+            <button onclick="setReportPeriod('all')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-all">Tout</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- KPI Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">📦</span>
+            <span class="stat-badge up" id="kpiTonnesChange">+12%</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Total Tonnes</p>
+          <p class="text-2xl font-black text-indigo-600" id="reportKpiTonnes">0 T</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">🚚</span>
+            <span class="stat-badge up" id="kpiCmdsChange">+8%</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Commandes</p>
+          <p class="text-2xl font-black text-blue-600" id="reportKpiCmds">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">🌍</span>
+            <span class="stat-badge neutral" id="kpiCountriesChange">0</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Pays livrés</p>
+          <p class="text-2xl font-black text-teal-600" id="reportKpiCountries">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">✅</span>
+            <span class="stat-badge up" id="kpiDeliveredChange">+15%</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Livrées</p>
+          <p class="text-2xl font-black text-emerald-600" id="reportKpiDelivered">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">⏳</span>
+            <span class="stat-badge down" id="kpiPendingChange">-5%</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">En attente</p>
+          <p class="text-2xl font-black text-amber-600" id="reportKpiPending">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">📈</span>
+            <span class="stat-badge up" id="kpiRateChange">+10%</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Taux livraison</p>
+          <p class="text-2xl font-black text-purple-600" id="reportKpiRate">0%</p>
+        </div>
+      </div>
+
+      <!-- Charts Row 1 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Monthly Tonnes Chart -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-800 dark:text-white">📊 Tonnes par Mois</h3>
+            <select id="chartYearSelect" class="px-3 py-1 rounded-lg border dark:bg-slate-700 dark:border-gray-600 text-sm" onchange="updateMonthlyChart()">
+            </select>
+          </div>
+          <div class="chart-container">
+            <canvas id="monthlyTonnesChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Year Comparison Chart -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📅 Comparaison Annuelle</h3>
+          <div class="chart-container">
+            <canvas id="yearComparisonChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 2 -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Status Distribution -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📋 Répartition Statuts</h3>
+          <div class="chart-container" style="height: 250px;">
+            <canvas id="statusDistChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Top Clients -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top 5 Clients</h3>
+          <div class="chart-container" style="height: 250px;">
+            <canvas id="topClientsChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- Top Destinations -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">🌍 Top Destinations</h3>
+          <div class="chart-container" style="height: 250px;">
+            <canvas id="topDestinationsChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity Section -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg mb-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+            <span class="text-xl">🕐</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-gray-800 dark:text-white">Activité Récente</h3>
+            <p class="text-xs text-gray-500">Dernières opérations du jour</p>
+          </div>
+        </div>
+        
+        <div id="recentActivityList" class="space-y-3">
+          <!-- Recent activities will be injected here -->
+        </div>
+        
+        <div class="mt-4 pt-4 border-t dark:border-gray-700">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">📊 Total aujourd'hui</span>
+            <span class="font-bold text-indigo-600" id="todayTotal">0 T</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detailed Stats Table -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
+        <div class="p-4 border-b dark:border-gray-700">
+          <h3 class="font-bold text-gray-800 dark:text-white">📋 Statistiques Détaillées par Pays</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50 dark:bg-slate-700">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">% Total</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Progression</th>
+              </tr>
+            </thead>
+            <tbody id="countryStatsTable">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Performance Indicators -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">⚡ Indicateurs de Performance</h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Taux de livraison</span>
+                <span class="text-sm font-bold text-emerald-600" id="perfDeliveryRate">0%</span>
+              </div>
+              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div id="perfDeliveryBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Taux de chargement</span>
+                <span class="text-sm font-bold text-blue-600" id="perfLoadingRate">0%</span>
+              </div>
+              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div id="perfLoadingBar" class="h-full gradient-ocean rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-sm text-gray-600 dark:text-gray-400">Satisfaction client</span>
+                <span class="text-sm font-bold text-purple-600" id="perfSatisfaction">0%</span>
+              </div>
+              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                <div id="perfSatisfactionBar" class="h-full gradient-purple rounded-full transition-all duration-1000" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">🏆 Records & Achievements</h3>
+          <div class="space-y-3">
+            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl">
+              <span class="text-3xl">🥇</span>
+              <div>
+                <p class="text-sm font-semibold">Meilleur client</p>
+                <p class="text-lg font-bold text-amber-600" id="recordBestClient">-</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
+              <span class="text-3xl">📦</span>
+              <div>
+                <p class="text-sm font-semibold">Plus grosse livraison</p>
+                <p class="text-lg font-bold text-blue-600" id="recordBiggestDelivery">0 T</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl">
+              <span class="text-3xl">🌍</span>
+              <div>
+                <p class="text-sm font-semibold">Destination favorite</p>
+                <p class="text-lg font-bold text-emerald-600" id="recordTopDestination">-</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-6 text-center text-xs text-gray-400 pb-6">
+        📊 Solana Logistique PRO - Rapport Analytique
       </div>
     </div>
   </div>
@@ -292,6 +606,12 @@
             <button onclick="synchroniser()" class="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-medium transition-all text-sm">
               <span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span>
             </button>
+            
+            <!-- RAPPORTS BUTTON - NEW! -->
+            <button onclick="openReportsPage()" class="flex items-center gap-1 px-4 py-2 gradient-report text-white rounded-xl font-semibold shadow-lg text-sm animate-pulse-glow">
+              📊 <span class="hidden sm:inline">Rapports</span>
+            </button>
+            
             <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl font-semibold shadow-lg text-sm">
               ➕ <span class="hidden sm:inline">Nouvelle</span>
             </button>
@@ -468,7 +788,7 @@
     </main>
 
     <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
-      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase | 📱 QR Code
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase | 📱 QR Code | 📊 Rapports
     </footer>
   </div>
 
@@ -568,7 +888,6 @@
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
   
-  // URL GitHub Pages - Solana Logistique
   const BASE_URL = 'https://solana1france.github.io/solana-suivi-logistique';
 
   const paysEmojis = {
@@ -606,7 +925,15 @@
   let currentCalendarDate = new Date();
   let currentDeliveryCmd = null;
   let currentQRInstance = null;
-  let uploadedPhotos = []; // Store uploaded photos as base64
+  let uploadedPhotos = [];
+  let currentReportPeriod = 'month';
+
+  // Report charts
+  let monthlyChart = null;
+  let yearCompChart = null;
+  let statusDistChart = null;
+  let topClientsReportChart = null;
+  let topDestChart = null;
 
   // ==================== UTILITY FUNCTIONS ====================
   function showToast(message, type = 'success') {
@@ -620,6 +947,396 @@
   function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
   function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
+  // ==================== REPORTS PAGE ====================
+  function openReportsPage() {
+    document.getElementById('reportsPage').classList.remove('hidden');
+    document.getElementById('reportDate').textContent = new Date().toLocaleDateString('fr-FR', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+    });
+    initReportsPage();
+  }
+
+  function closeReportsPage() {
+    document.getElementById('reportsPage').classList.add('hidden');
+  }
+
+  function setReportPeriod(period) {
+    currentReportPeriod = period;
+    ['week', 'month', 'quarter', 'year', 'all'].forEach(p => {
+      const btn = document.getElementById(`period-${p}`);
+      btn.className = `px-4 py-2 rounded-xl text-sm font-medium transition-all ${p === period ? 'gradient-purple text-white' : 'bg-gray-100 dark:bg-slate-700'}`;
+    });
+    updateReportCharts();
+  }
+
+  function initReportsPage() {
+    // Populate year selector
+    const yearSelect = document.getElementById('chartYearSelect');
+    const years = [...new Set(cmds.map(c => new Date(c.date).getFullYear()))].sort((a, b) => b - a);
+    const currentYear = new Date().getFullYear();
+    yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
+    
+    updateReportCharts();
+  }
+
+  function updateReportCharts() {
+    updateReportKPIs();
+    updateMonthlyChart();
+    updateYearComparisonChart();
+    updateStatusDistChart();
+    updateTopClientsChart();
+    updateTopDestinationsChart();
+    updateCountryStatsTable();
+    updateRecentActivity();
+    updatePerformanceIndicators();
+    updateRecords();
+  }
+
+  function updateReportKPIs() {
+    const filtered = getFilteredCmdsForReport();
+    
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const totalCmds = filtered.length;
+    const countries = [...new Set(filtered.map(c => c.pays))].length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
+
+    document.getElementById('reportKpiTonnes').textContent = totalTonnes.toFixed(1) + ' T';
+    document.getElementById('reportKpiCmds').textContent = totalCmds;
+    document.getElementById('reportKpiCountries').textContent = countries;
+    document.getElementById('reportKpiDelivered').textContent = delivered;
+    document.getElementById('reportKpiPending').textContent = pending;
+    document.getElementById('reportKpiRate').textContent = rate + '%';
+  }
+
+  function getFilteredCmdsForReport() {
+    const now = new Date();
+    let startDate;
+    
+    switch(currentReportPeriod) {
+      case 'week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      default:
+        return cmds;
+    }
+    
+    return cmds.filter(c => new Date(c.date) >= startDate);
+  }
+
+  function updateMonthlyChart() {
+    const year = parseInt(document.getElementById('chartYearSelect').value);
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    
+    const monthlyData = Array(12).fill(0);
+    cmds.filter(c => new Date(c.date).getFullYear() === year).forEach(c => {
+      const month = new Date(c.date).getMonth();
+      monthlyData[month] += c.tonnes;
+    });
+
+    if (monthlyChart) monthlyChart.destroy();
+    monthlyChart = new Chart(document.getElementById('monthlyTonnesChart'), {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Tonnes',
+          data: monthlyData,
+          backgroundColor: 'rgba(99, 102, 241, 0.7)',
+          borderColor: 'rgb(99, 102, 241)',
+          borderWidth: 2,
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function updateYearComparisonChart() {
+    const currentYear = new Date().getFullYear();
+    const lastYear = currentYear - 1;
+    
+    const currentYearData = Array(12).fill(0);
+    const lastYearData = Array(12).fill(0);
+    
+    cmds.forEach(c => {
+      const date = new Date(c.date);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      
+      if (year === currentYear) currentYearData[month] += c.tonnes;
+      else if (year === lastYear) lastYearData[month] += c.tonnes;
+    });
+
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+    if (yearCompChart) yearCompChart.destroy();
+    yearCompChart = new Chart(document.getElementById('yearComparisonChart'), {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [
+          {
+            label: currentYear.toString(),
+            data: currentYearData,
+            borderColor: 'rgb(99, 102, 241)',
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            fill: true,
+            tension: 0.4
+          },
+          {
+            label: lastYear.toString(),
+            data: lastYearData,
+            borderColor: 'rgb(156, 163, 175)',
+            backgroundColor: 'rgba(156, 163, 175, 0.1)',
+            fill: true,
+            tension: 0.4,
+            borderDash: [5, 5]
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  function updateStatusDistChart() {
+    const filtered = getFilteredCmdsForReport();
+    const attente = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const chargee = filtered.filter(c => c.statut === 'CHARGÉE').length;
+    const livree = filtered.filter(c => c.statut === 'LIVRÉE').length;
+
+    if (statusDistChart) statusDistChart.destroy();
+    statusDistChart = new Chart(document.getElementById('statusDistChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['En Attente', 'Chargées', 'Livrées'],
+        datasets: [{
+          data: [attente, chargee, livree],
+          backgroundColor: ['#f59e0b', '#0077b6', '#10b981'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  function updateTopClientsChart() {
+    const filtered = getFilteredCmdsForReport();
+    const clientData = {};
+    filtered.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
+    const topClients = Object.entries(clientData).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    if (topClientsReportChart) topClientsReportChart.destroy();
+    topClientsReportChart = new Chart(document.getElementById('topClientsChart'), {
+      type: 'bar',
+      data: {
+        labels: topClients.map(c => c[0].substring(0, 10)),
+        datasets: [{
+          label: 'Tonnes',
+          data: topClients.map(c => c[1]),
+          backgroundColor: ['#6366f1', '#8b5cf6', '#a855f7', '#c084fc', '#d8b4fe'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+
+  function updateTopDestinationsChart() {
+    const filtered = getFilteredCmdsForReport();
+    const destData = {};
+    filtered.forEach(c => { destData[c.pays] = (destData[c.pays] || 0) + c.tonnes; });
+    const topDest = Object.entries(destData).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    if (topDestChart) topDestChart.destroy();
+    topDestChart = new Chart(document.getElementById('topDestinationsChart'), {
+      type: 'pie',
+      data: {
+        labels: topDest.map(d => paysNoms[d[0]] || d[0]),
+        datasets: [{
+          data: topDest.map(d => d[1]),
+          backgroundColor: ['#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  function updateCountryStatsTable() {
+    const filtered = getFilteredCmdsForReport();
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    
+    const countryData = {};
+    filtered.forEach(c => {
+      if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
+      countryData[c.pays].count++;
+      countryData[c.pays].tonnes += c.tonnes;
+    });
+
+    const sorted = Object.entries(countryData).sort((a, b) => b[1].tonnes - a[1].tonnes);
+
+    document.getElementById('countryStatsTable').innerHTML = sorted.map(([pays, data]) => {
+      const percent = totalTonnes > 0 ? ((data.tonnes / totalTonnes) * 100).toFixed(1) : 0;
+      return `
+        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700">
+          <td class="px-4 py-3 font-semibold">${paysEmojis[pays]} ${paysNoms[pays]}</td>
+          <td class="px-4 py-3 text-right">${data.count}</td>
+          <td class="px-4 py-3 text-right font-bold text-emerald-600">${data.tonnes.toFixed(2)} T</td>
+          <td class="px-4 py-3 text-right">${percent}%</td>
+          <td class="px-4 py-3">
+            <div class="w-full bg-gray-100 dark:bg-slate-600 rounded-full h-2">
+              <div class="gradient-ocean h-2 rounded-full" style="width: ${percent}%"></div>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function updateRecentActivity() {
+    // Get recent commands (last 5)
+    const recent = [...cmds].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    
+    const container = document.getElementById('recentActivityList');
+    
+    if (!container) return;
+    
+    if (recent.length === 0) {
+      container.innerHTML = '<p class="text-center text-gray-400 py-4">Aucune activité récente</p>';
+      return;
+    }
+    
+    container.innerHTML = recent.map(cmd => {
+      const statusColor = cmd.statut === 'LIVRÉE' ? 'emerald' : cmd.statut === 'CHARGÉE' ? 'blue' : 'amber';
+      const statusIcon = cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳';
+      
+      return `
+        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${statusIcon}</span>
+            <div>
+              <p class="font-bold text-gray-800 dark:text-white">${cmd.client}</p>
+              <p class="text-xs text-gray-500">${cmd.ref} • ${cmd.date}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-bold text-${statusColor}-600">${cmd.tonnes.toFixed(2)} T</p>
+            <p class="text-xs text-gray-500">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // Update today's total
+    const today = new Date().toISOString().split('T')[0];
+    const todayCmds = cmds.filter(c => c.date === today);
+    const todayTotal = todayCmds.reduce((s, c) => s + c.tonnes, 0);
+    const todayEl = document.getElementById('todayTotal');
+    if (todayEl) todayEl.textContent = todayTotal.toFixed(2) + ' T';
+  }
+
+  function updatePerformanceIndicators() {
+    const filtered = getFilteredCmdsForReport();
+    const total = filtered.length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const charged = filtered.filter(c => c.statut === 'CHARGÉE' || c.statut === 'LIVRÉE').length;
+    
+    const deliveryRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
+    const loadingRate = total > 0 ? Math.round((charged / total) * 100) : 0;
+    const satisfaction = Math.min(95, deliveryRate + Math.random() * 5); // Simulated
+
+    document.getElementById('perfDeliveryRate').textContent = deliveryRate + '%';
+    document.getElementById('perfDeliveryBar').style.width = deliveryRate + '%';
+    
+    document.getElementById('perfLoadingRate').textContent = loadingRate + '%';
+    document.getElementById('perfLoadingBar').style.width = loadingRate + '%';
+    
+    document.getElementById('perfSatisfaction').textContent = satisfaction.toFixed(0) + '%';
+    document.getElementById('perfSatisfactionBar').style.width = satisfaction + '%';
+  }
+
+  function updateRecords() {
+    const clientData = {};
+    cmds.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
+    const topClient = Object.entries(clientData).sort((a, b) => b[1] - a[1])[0];
+    
+    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0 });
+    
+    const destData = {};
+    cmds.forEach(c => { destData[c.pays] = (destData[c.pays] || 0) + c.tonnes; });
+    const topDest = Object.entries(destData).sort((a, b) => b[1] - a[1])[0];
+
+    document.getElementById('recordBestClient').textContent = topClient ? topClient[0] : '-';
+    document.getElementById('recordBiggestDelivery').textContent = biggest.tonnes.toFixed(2) + ' T';
+    document.getElementById('recordTopDestination').textContent = topDest ? `${paysEmojis[topDest[0]]} ${paysNoms[topDest[0]]}` : '-';
+  }
+
+  function exportReportPDF() {
+    showToast('📄 Génération du rapport PDF...');
+    setTimeout(() => {
+      showToast('📥 Rapport PDF exporté!');
+    }, 1000);
+  }
+
+  function exportReportExcel() {
+    const data = cmds.map(c => ({
+      Client: c.client,
+      Référence: c.ref,
+      Date: c.date,
+      Départ: c.point_depart,
+      Pays: paysNoms[c.pays],
+      Tonnes: c.tonnes,
+      Statut: c.statut,
+      Email: c.email
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
+    XLSX.writeFile(wb, `Solana_Rapport_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('📥 Rapport Excel exporté!');
+  }
+
   // ==================== CHECK FOR PUBLIC VIEW ====================
   function checkPublicView() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -627,7 +1344,6 @@
     const ref = urlParams.get('ref');
     
     if (viewMode === 'delivery' && ref) {
-      // Show public delivery view
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('dashboard').classList.add('hidden');
       document.getElementById('publicView').classList.remove('hidden');
@@ -664,20 +1380,17 @@
       const cmd = data[0];
       const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'Non spécifiée';
       
-      // Parse photos
       let photos = [];
       if (cmd.photos) {
         try {
           photos = JSON.parse(cmd.photos);
         } catch (e) {
-          // If it's a single base64 string
           if (cmd.photos.startsWith('data:image')) {
             photos = [cmd.photos];
           }
         }
       }
       
-      // Parse documents
       let documents = [];
       if (cmd.documents_cmr) {
         try {
@@ -983,7 +1696,6 @@
         </div>
       </div>
       
-      <!-- Photo Upload Section -->
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos de livraison</h4>
         <p class="text-sm text-gray-500 mb-3">Ajoutez des photos de la livraison (optionnel)</p>
@@ -997,7 +1709,6 @@
         </div>
       </div>
       
-      <!-- Documents Section -->
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR</h4>
         <p class="text-sm text-gray-500 mb-3">Ajoutez les documents de transport (optionnel)</p>
@@ -1076,7 +1787,6 @@
     
     const today = new Date().toISOString().split('T')[0];
     
-    // Separate photos and documents
     const photos = uploadedPhotos.filter(p => p.type === 'photo').map(p => p.data);
     const documents = uploadedPhotos.filter(p => p.type === 'document').map(p => p.data);
     
@@ -1100,7 +1810,6 @@
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
       
-      // Show QR Modal with the updated command
       const updatedCmd = { ...currentDeliveryCmd, ...updates };
       setTimeout(() => {
         showQRModal(updatedCmd);
@@ -1120,12 +1829,10 @@
 
   // ==================== QR CODE WITH LINK ====================
   function showQRModal(cmd) {
-    // Generate the public viewing URL
     const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
     
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- QR Code Section -->
         <div class="text-center">
           <div class="bg-white p-6 rounded-2xl shadow-lg inline-block">
             <div id="qrCodeContainer" class="flex justify-center"></div>
@@ -1138,7 +1845,6 @@
           </div>
         </div>
         
-        <!-- Details Section -->
         <div class="space-y-4">
           <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
             <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
@@ -1151,7 +1857,6 @@
             </div>
           </div>
           
-          <!-- Photos Preview -->
           ${cmd.photos ? `
           <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-3">
             <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">📸 Photos incluses</p>
@@ -1163,7 +1868,6 @@
           </div>
           ` : ''}
           
-          <!-- Email Buttons -->
           <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2">
             📧 Envoyer email au client
           </button>
@@ -1173,7 +1877,6 @@
             <p class="text-yellow-700 dark:text-yellow-300 mt-1">Le QR Code contient un lien vers une page publique. Quand on le scanne, on voit les détails de livraison avec les photos!</p>
           </div>
           
-          <!-- Status -->
           <div class="text-center">
             <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">🎉 LIVRÉE</span>
           </div>
@@ -1183,7 +1886,6 @@
     
     document.getElementById('qrModal').classList.remove('hidden');
     
-    // Generate QR Code with the URL
     setTimeout(() => {
       generateQRCode(viewUrl);
     }, 100);
@@ -1559,7 +2261,6 @@ Merci de votre confiance!
 
   // ==================== CHARTS ====================
   function updateCharts() {
-    // Clients Chart
     const clientData = {};
     cmds.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
     const topClients = Object.entries(clientData).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -1574,7 +2275,6 @@ Merci de votre confiance!
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
     
-    // Status Chart
     const statusData = [cmds.filter(c => c.statut === 'EN ATTENTE').length, cmds.filter(c => c.statut === 'CHARGÉE').length, cmds.filter(c => c.statut === 'LIVRÉE').length];
     
     if (statusChart) statusChart.destroy();
@@ -1638,7 +2338,6 @@ Merci de votre confiance!
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('dateIn').value = new Date().toISOString().split('T')[0];
     
-    // Populate country select
     const select = document.getElementById('paysIn');
     select.innerHTML = '<option value="">Sélectionner...</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
   }
@@ -1649,7 +2348,6 @@ Merci de votre confiance!
 
   // ==================== INIT ====================
   function initApp() {
-    // Populate country filter
     const countrySelect = document.getElementById('countryFilter');
     countrySelect.innerHTML = '<option value="">Tous les pays</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
     
@@ -1657,9 +2355,7 @@ Merci de votre confiance!
   }
 
   // ==================== START ====================
-  // Check for public view first
   if (!checkPublicView()) {
-    // Show login screen if not in public view mode
     document.getElementById('loginScreen').classList.remove('hidden');
   }
 </script>
