@@ -14,6 +14,10 @@
   <!-- SheetJS for Excel Export -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   
+  <!-- jsPDF for PDF Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+  
   <!-- Leaflet CSS & JS for Real Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -39,6 +43,7 @@
     .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa, #c4b5fd); }
     .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
     .gradient-dark { background: linear-gradient(135deg, #1e293b, #334155, #475569); }
+    .gradient-blue { background: linear-gradient(135deg, #3b82f6, #60a5fa, #93c5fd); }
     
     /* Glass Effect */
     .glass { 
@@ -64,17 +69,6 @@
       to { opacity: 1; transform: translateY(0); }
     }
     
-    @keyframes scale-in {
-      from { opacity: 0; transform: scale(0.8); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    
-    @keyframes bounce-in {
-      0% { transform: scale(0); }
-      50% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-    
     @keyframes shimmer {
       0% { background-position: -200% 0; }
       100% { background-position: 200% 0; }
@@ -93,8 +87,6 @@
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
     .animate-slide-up { animation: slide-up 0.6s ease-out; }
-    .animate-scale-in { animation: scale-in 0.5s ease-out; }
-    .animate-bounce-in { animation: bounce-in 0.6s ease-out; }
     .animate-shimmer { 
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
       background-size: 200% 100%;
@@ -118,9 +110,7 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
       transition: left 0.5s;
     }
-    .kpi-card:hover::before {
-      left: 100%;
-    }
+    .kpi-card:hover::before { left: 100%; }
     .kpi-card:hover {
       transform: translateY(-12px) scale(1.02);
       box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
@@ -141,15 +131,11 @@
     }
     .table-row:hover {
       background: linear-gradient(90deg, rgba(0, 119, 182, 0.05), rgba(0, 180, 216, 0.1));
-      transform: scale(1.01);
-    }
-    .dark .table-row:hover {
-      background: linear-gradient(90deg, rgba(0, 180, 216, 0.1), rgba(16, 185, 129, 0.15));
     }
     
     /* Map Styles */
     #map { 
-      height: 500px; 
+      height: 450px; 
       border-radius: 20px;
       z-index: 1;
     }
@@ -164,22 +150,6 @@
       font-family: 'Inter', sans-serif;
     }
     
-    .map-marker-pulse {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #10b981;
-      position: relative;
-    }
-    .map-marker-pulse::before {
-      content: '';
-      position: absolute;
-      inset: -5px;
-      border-radius: 50%;
-      background: #10b981;
-      animation: pulse-ring 1.5s infinite;
-    }
-    
     /* Custom Scrollbar */
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -189,20 +159,7 @@
     }
     ::-webkit-scrollbar-thumb:hover { background: #00b4d8; }
     
-    /* Map Legend */
-    .map-legend {
-      background: rgba(255,255,255,0.95);
-      padding: 15px 20px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-      font-family: 'Inter', sans-serif;
-    }
-    .dark .map-legend {
-      background: rgba(30, 41, 59, 0.95);
-      color: white;
-    }
-    
-    /* Notification Toast */
+    /* Toast */
     .toast {
       position: fixed;
       bottom: 30px;
@@ -233,26 +190,91 @@
       animation: rotate 1s linear infinite;
     }
     
-    /* Export Button Animation */
-    .export-btn {
-      position: relative;
-      overflow: hidden;
+    /* Calendar Styles */
+    .calendar-day {
+      min-height: 100px;
+      border: 1px solid #e5e7eb;
+      transition: all 0.2s;
     }
-    .export-btn::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 0;
-      height: 0;
-      background: rgba(255,255,255,0.3);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      transition: width 0.6s, height 0.6s;
+    .calendar-day:hover {
+      background: #f0f9ff;
     }
-    .export-btn:active::after {
-      width: 300px;
-      height: 300px;
+    .calendar-day.has-orders {
+      background: linear-gradient(135deg, #ecfdf5, #f0f9ff);
+    }
+    .calendar-day.today {
+      border: 2px solid #0077b6;
+      background: #f0f9ff;
+    }
+    
+    /* Comparison Chart Badge */
+    .comparison-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .comparison-badge.positive {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .comparison-badge.negative {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* Language Selector */
+    .lang-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .lang-btn.active {
+      background: linear-gradient(135deg, #0077b6, #00b4d8);
+      color: white;
+    }
+    .lang-btn:not(.active):hover {
+      background: #f3f4f6;
+    }
+    
+    /* Search Input */
+    .search-input {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 16px 12px 44px;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      border-color: #0077b6;
+      box-shadow: 0 0 0 3px rgba(0,119,182,0.1);
+      outline: none;
+    }
+    
+    /* Filter Chips */
+    .filter-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .filter-chip.active {
+      background: linear-gradient(135deg, #0077b6, #00b4d8);
+      color: white;
+    }
+    .filter-chip:not(.active) {
+      background: #f3f4f6;
+      border-color: #e5e7eb;
+    }
+    .filter-chip:not(.active):hover {
+      border-color: #0077b6;
     }
   </style>
 </head>
@@ -268,80 +290,52 @@
 
   <!-- ==================== LOGIN SCREEN ==================== -->
   <div id="loginScreen" class="fixed inset-0 gradient-ocean flex items-center justify-center z-50 overflow-hidden">
-    <!-- Animated Background Elements -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
-      <!-- Floating Circles -->
       <div class="absolute w-40 h-40 bg-white/10 rounded-full -top-20 -left-20 animate-float"></div>
       <div class="absolute w-32 h-32 bg-white/10 rounded-full top-1/4 right-10 animate-float" style="animation-delay: 1s;"></div>
       <div class="absolute w-56 h-56 bg-white/10 rounded-full -bottom-28 left-1/4 animate-float" style="animation-delay: 2s;"></div>
       <div class="absolute w-24 h-24 bg-white/10 rounded-full bottom-1/3 right-1/4 animate-float" style="animation-delay: 0.5s;"></div>
-      <div class="absolute w-20 h-20 bg-white/10 rounded-full top-1/2 left-10 animate-float" style="animation-delay: 1.5s;"></div>
-      <div class="absolute w-36 h-36 bg-white/10 rounded-full top-10 right-1/3 animate-float" style="animation-delay: 2.5s;"></div>
-      
-      <!-- Animated Lines -->
-      <svg class="absolute inset-0 w-full h-full opacity-20">
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:white;stop-opacity:0" />
-            <stop offset="50%" style="stop-color:white;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:white;stop-opacity:0" />
-          </linearGradient>
-        </defs>
-        <line x1="0" y1="100" x2="100%" y2="100" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse"/>
-        <line x1="0" y1="300" x2="100%" y2="300" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse" style="animation-delay: 0.5s"/>
-        <line x1="0" y1="500" x2="100%" y2="500" stroke="url(#lineGradient)" stroke-width="1" class="animate-pulse" style="animation-delay: 1s"/>
-      </svg>
     </div>
     
-    <!-- Login Card -->
     <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate__animated animate__fadeInUp">
       <div class="text-center">
-        <!-- Animated Logo -->
-        <div class="w-28 h-28 gradient-ocean rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow transform hover:rotate-12 transition-transform">
+        <div class="w-28 h-28 gradient-ocean rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow">
           <span class="text-6xl">🚚</span>
         </div>
         
-        <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3 animate__animated animate__fadeIn animate__delay-1s">
-          Solana Logistique
-        </h1>
-        <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg">Dashboard Export & Suivi des Chargements</p>
+        <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3" data-lang="title">Solana Logistique</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg" data-lang="subtitle">Dashboard Export & Suivi</p>
         
-        <!-- Password Info Box -->
-        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 mb-6 border border-blue-100 dark:border-blue-800 animate__animated animate__fadeIn animate__delay-1s">
+        <!-- Language Selector -->
+        <div class="flex justify-center gap-2 mb-6">
+          <button onclick="setLanguage('fr')" class="lang-btn active" id="lang-fr">🇫🇷 FR</button>
+          <button onclick="setLanguage('en')" class="lang-btn" id="lang-en">🇬🇧 EN</button>
+          <button onclick="setLanguage('ar')" class="lang-btn" id="lang-ar">🇸🇦 AR</button>
+        </div>
+        
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 mb-6 border border-blue-100">
           <p class="text-blue-700 dark:text-blue-300">
-            <span class="font-semibold">🔑 Mot de passe:</span> 
+            <span class="font-semibold" data-lang="password">Mot de passe:</span> 
             <code class="bg-blue-100 dark:bg-blue-800 px-4 py-2 rounded-xl ml-2 font-mono text-lg">solana123</code>
           </p>
         </div>
         
-        <!-- Password Input -->
-        <div class="relative mb-4 animate__animated animate__fadeIn animate__delay-1s">
-          <input 
-            type="password" 
-            id="loginPassword" 
-            placeholder="Entrez le mot de passe"
-            class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 transition-all"
-            onkeypress="if(event.key==='Enter') login()"
-          >
-          <div class="absolute right-4 top-1/2 -translate-y-1/2 text-2xl">🔐</div>
-        </div>
-        
-        <p id="loginError" class="text-red-500 text-sm mb-4 hidden animate__animated animate__shakeX">❌ Mot de passe incorrect</p>
-        
-        <!-- Login Button -->
-        <button 
-          onclick="login()"
-          class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 relative overflow-hidden group"
+        <input 
+          type="password" 
+          id="loginPassword" 
+          data-placeholder="passwordInput"
+          placeholder="Entrez le mot de passe"
+          class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 transition-all mb-4"
+          onkeypress="if(event.key==='Enter') login()"
         >
-          <span class="relative z-10 flex items-center justify-center gap-3">
-            <span>✨</span>
-            <span>Accéder au Dashboard</span>
-          </span>
-          <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+        
+        <p id="loginError" class="text-red-500 text-sm mb-4 hidden" data-lang="errorPassword">❌ Mot de passe incorrect</p>
+        
+        <button onclick="login()" class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          <span data-lang="loginBtn">✨ Accéder au Dashboard</span>
         </button>
         
-        <!-- Footer -->
-        <div class="flex items-center justify-center gap-3 mt-8 text-gray-400 animate__animated animate__fadeIn animate__delay-2s">
+        <div class="flex items-center justify-center gap-3 mt-8 text-gray-400">
           <span class="text-2xl">☁️</span>
           <span class="font-medium">Supabase Multi-Device Sync</span>
         </div>
@@ -354,399 +348,373 @@
     
     <!-- Header -->
     <header class="sticky top-0 z-40 glass border-b border-gray-200/50 dark:border-gray-700/50">
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between flex-wrap gap-4">
-          <!-- Logo & Title -->
-          <div class="flex items-center gap-4">
-            <div class="w-16 h-16 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl animate-pulse-glow">
-              <span class="text-3xl">🚚</span>
+      <div class="container mx-auto px-4 py-3">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl">
+              <span class="text-2xl">🚚</span>
             </div>
             <div>
-              <h1 class="text-2xl md:text-3xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent">
+              <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent">
                 Solana Logistique PRO
               </h1>
-              <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                <span class="relative flex h-3 w-3">
+              <p class="text-xs text-gray-500 flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 <span id="headerStats">Chargement...</span>
-                <span id="supabaseBadge" class="hidden ml-2 px-3 py-1 bg-gradient-to-r from-emerald-100 to-teal-100 dark:from-emerald-900 dark:to-teal-900 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-full">☁️ Supabase Connecté</span>
+                <span id="supabaseBadge" class="hidden ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">☁️ Supabase</span>
               </p>
             </div>
           </div>
           
-          <!-- Action Buttons -->
-          <div class="flex items-center gap-2 md:gap-3 flex-wrap">
-            <!-- Dark Mode Toggle -->
-            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-3 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all hover:scale-110 active:scale-95">
-              <span class="text-xl">🌙</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Language Selector -->
+            <div class="flex gap-1 bg-gray-100 dark:bg-slate-700 rounded-xl p-1">
+              <button onclick="setLanguage('fr')" class="lang-btn text-xs active" id="lang-fr-2">🇫🇷</button>
+              <button onclick="setLanguage('en')" class="lang-btn text-xs" id="lang-en-2">🇬🇧</button>
+              <button onclick="setLanguage('ar')" class="lang-btn text-xs" id="lang-ar-2">🇸🇦</button>
+            </div>
+            
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 transition-all">🌙</button>
+            
+            <button onclick="synchroniser()" class="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-medium transition-all text-sm">
+              <span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span>
             </button>
             
-            <!-- Sync Button -->
-            <button onclick="synchroniser()" class="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-xl font-medium transition-all hover:scale-105 active:scale-95">
-              <span id="syncIcon">🔄</span>
-              <span class="hidden sm:inline">Sync</span>
+            <button onclick="requestNotificationPermission()" class="flex items-center gap-1 px-3 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-xl font-medium transition-all text-sm" id="notifBtn">
+              🔔
             </button>
             
-            <!-- Add Button -->
-            <button onclick="showAddModal()" class="flex items-center gap-2 px-5 py-3 gradient-ocean text-white rounded-xl font-semibold shadow-xl hover:shadow-cyan-500/30 hover:scale-105 active:scale-95 transition-all">
-              <span>➕</span>
-              <span class="hidden sm:inline">Nouvelle Commande</span>
+            <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl font-semibold shadow-lg text-sm">
+              ➕ <span class="hidden sm:inline" data-lang="newOrder">Nouvelle</span>
             </button>
             
-            <!-- Logout -->
-            <button onclick="logout()" class="p-3 gradient-danger text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all">
-              🚪
-            </button>
+            <button onclick="logout()" class="p-2 gradient-danger text-white rounded-xl shadow-lg">🚪</button>
           </div>
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8 space-y-8">
+    <main class="container mx-auto px-4 py-6 space-y-6">
       
-      <!-- ==================== KPI CARDS ==================== -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- KPI Cards with Comparison -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <!-- Total Tonnes -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-          <div class="absolute inset-0 gradient-ocean opacity-5 rounded-3xl"></div>
-          <div class="relative z-10 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Total Tonnes</p>
-              <p class="text-5xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent" id="kpiTonnes">0 T</p>
-              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <span>📈</span> Export total
-              </p>
-            </div>
-            <div class="w-20 h-20 gradient-ocean rounded-3xl flex items-center justify-center shadow-xl animate-float">
-              <span class="text-4xl">📦</span>
-            </div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-ocean opacity-5 rounded-2xl"></div>
+          <div class="relative z-10">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="totalTonnage">Total Tonnes</p>
+            <p class="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mt-1" id="kpiTonnes">0 T</p>
+            <div id="tonnesComparison" class="mt-2"></div>
           </div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg animate-float">📦</div>
         </div>
         
-        <!-- En Attente -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-          <div class="absolute inset-0 gradient-warning opacity-5 rounded-3xl"></div>
-          <div class="relative z-10 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">En Attente</p>
-              <p class="text-5xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent" id="kpiAttente">0</p>
-              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <span>⏳</span> À traiter
-              </p>
-            </div>
-            <div class="w-20 h-20 gradient-warning rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 0.5s;">
-              <span class="text-4xl">⏳</span>
-            </div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-warning opacity-5 rounded-2xl"></div>
+          <div class="relative z-10">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="pending">En Attente</p>
+            <p class="text-3xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mt-1" id="kpiAttente">0</p>
+            <p class="text-xs text-gray-400 mt-2" data-lang="toProcess">À traiter</p>
           </div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-warning rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.3s;">⏳</div>
         </div>
         
-        <!-- Chargées -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-          <div class="absolute inset-0 gradient-success opacity-5 rounded-3xl"></div>
-          <div class="relative z-10 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Chargées</p>
-              <p class="text-5xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent" id="kpiChargees">0</p>
-              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <span>✅</span> Terminées
-              </p>
-            </div>
-            <div class="w-20 h-20 gradient-success rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 1s;">
-              <span class="text-4xl">✅</span>
-            </div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-success opacity-5 rounded-2xl"></div>
+          <div class="relative z-10">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="loaded">Chargées</p>
+            <p class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent mt-1" id="kpiChargees">0</p>
+            <p class="text-xs text-gray-400 mt-2" data-lang="completed">Terminées</p>
           </div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.6s;">✅</div>
         </div>
         
-        <!-- Emails -->
-        <div class="kpi-card bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700">
-          <div class="absolute inset-0 gradient-purple opacity-5 rounded-3xl"></div>
-          <div class="relative z-10 flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Emails Envoyés</p>
-              <p class="text-5xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent" id="kpiEmails">0</p>
-              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <span>📧</span> Notifications
-              </p>
-            </div>
-            <div class="w-20 h-20 gradient-purple rounded-3xl flex items-center justify-center shadow-xl animate-float" style="animation-delay: 1.5s;">
-              <span class="text-4xl">📧</span>
-            </div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-purple opacity-5 rounded-2xl"></div>
+          <div class="relative z-10">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="emailsSent">Emails</p>
+            <p class="text-3xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mt-1" id="kpiEmails">0</p>
+            <p class="text-xs text-gray-400 mt-2" data-lang="notifications">Notifications</p>
           </div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.9s;">📧</div>
         </div>
       </div>
 
-      <!-- ==================== PROGRESS BAR ==================== -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeIn">
-        <div class="flex items-center justify-between mb-4">
+      <!-- Progress & Comparison Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <!-- Progress Bar -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-gray-600" data-lang="progress">Progression</span>
+            <span class="text-2xl font-black text-emerald-600" id="progressPercent">0%</span>
+          </div>
+          <div class="h-4 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+          </div>
+          <div class="flex justify-between mt-2 text-xs text-gray-400">
+            <span id="progressChargees">0 terminées</span>
+            <span id="progressAttente">0 en cours</span>
+          </div>
+        </div>
+        
+        <!-- Monthly Comparison -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-sm font-semibold text-gray-600" data-lang="monthlyComparison">Comparaison Mensuelle</span>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="text-center p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+              <p class="text-xs text-gray-500" data-lang="thisMonth">Ce mois</p>
+              <p class="text-2xl font-black text-blue-600" id="thisMonthTonnage">0 T</p>
+              <p class="text-xs text-gray-400" id="thisMonthOrders">0 commandes</p>
+            </div>
+            <div class="text-center p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <p class="text-xs text-gray-500" data-lang="lastMonth">Mois dernier</p>
+              <p class="text-2xl font-black text-gray-600" id="lastMonthTonnage">0 T</p>
+              <p class="text-xs text-gray-400" id="lastMonthOrders">0 commandes</p>
+            </div>
+          </div>
+          <div id="comparisonResult" class="mt-3 text-center"></div>
+        </div>
+      </div>
+
+      <!-- ==================== SEARCH & FILTERS ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+        <div class="flex flex-wrap items-center gap-4">
+          <!-- Search Input -->
+          <div class="relative flex-1 min-w-[200px]">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input type="text" id="searchInput" data-placeholder="searchPlaceholder" placeholder="Rechercher client, réf, pays..." 
+              class="search-input w-full dark:bg-slate-700 dark:border-gray-600 dark:text-white"
+              oninput="filterCommands()">
+          </div>
+          
+          <!-- Date Filter -->
+          <div class="flex items-center gap-2">
+            <input type="date" id="dateFrom" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+            <span class="text-gray-400">→</span>
+            <input type="date" id="dateTo" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+          </div>
+          
+          <!-- Status Filter -->
+          <div class="flex gap-2">
+            <button onclick="setStatusFilter('all')" class="filter-chip active" id="filter-all" data-lang="all">Tous</button>
+            <button onclick="setStatusFilter('EN ATTENTE')" class="filter-chip" id="filter-attente" data-lang="pending">⏳ Attente</button>
+            <button onclick="setStatusFilter('CHARGÉE')" class="filter-chip" id="filter-chargee" data-lang="loaded">✅ Chargées</button>
+          </div>
+          
+          <!-- Country Filter -->
+          <select id="countryFilter" class="px-4 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+            <option value="" data-lang="allCountries">Tous les pays</option>
+          </select>
+          
+          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors" data-lang="reset">
+            🔄 Reset
+          </button>
+        </div>
+        <div id="filterCount" class="mt-3 text-sm text-gray-500"></div>
+      </div>
+
+      <!-- ==================== VIEW TABS ==================== -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="flex border-b border-gray-200 dark:border-gray-700">
+          <button onclick="showView('table')" id="tab-table" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
+            📋 <span data-lang="tableView">Tableau</span>
+          </button>
+          <button onclick="showView('cards')" id="tab-cards" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+            📱 <span data-lang="cardView">Cartes</span>
+          </button>
+          <button onclick="showView('calendar')" id="tab-calendar" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+            📅 <span data-lang="calendarView">Calendrier</span>
+          </button>
+          <button onclick="showView('map')" id="tab-map" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+            🗺️ <span data-lang="mapView">Carte</span>
+          </button>
+        </div>
+        
+        <!-- Actions Bar -->
+        <div class="p-4 bg-gray-50 dark:bg-slate-700/50 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 gradient-success rounded-xl flex items-center justify-center">
-              <span class="text-xl">📊</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-gray-800 dark:text-white">Progression Globale</h3>
-              <p class="text-xs text-gray-500">État des chargements</p>
-            </div>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded">
+              <span class="text-sm font-medium" data-lang="selectAll">Tout sélectionner</span>
+            </label>
+            <span id="selectedCount" class="text-sm text-gray-500"></span>
           </div>
-          <div class="text-right">
-            <span class="text-4xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent" id="progressPercent">0%</span>
-          </div>
-        </div>
-        <div class="h-5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000 ease-out relative overflow-hidden" style="width: 0%">
-            <div class="absolute inset-0 animate-shimmer"></div>
-          </div>
-        </div>
-        <div class="flex justify-between mt-3 text-sm">
-          <span class="text-emerald-600 font-semibold" id="progressChargees">0 terminées</span>
-          <span class="text-amber-500 font-semibold" id="progressAttente">0 en cours</span>
-        </div>
-      </div>
-
-      <!-- ==================== INTERACTIVE MAP ==================== -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate__animated animate__fadeIn">
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-          <div class="flex items-center justify-between flex-wrap gap-4">
-            <div class="flex items-center gap-3">
-              <div class="w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg">
-                <span class="text-2xl">🗺️</span>
-              </div>
-              <div>
-                <h3 class="text-xl font-bold text-gray-800 dark:text-white">Carte des Destinations</h3>
-                <p class="text-sm text-gray-500">Cliquez sur un marqueur pour voir les détails</p>
-              </div>
-            </div>
-            <div id="mapStats" class="flex gap-4">
-              <div class="text-center px-4 py-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
-                <p class="text-2xl font-bold text-emerald-600" id="mapCountries">0</p>
-                <p class="text-xs text-gray-500">Pays</p>
-              </div>
-              <div class="text-center px-4 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-                <p class="text-2xl font-bold text-blue-600" id="mapTotalT">0T</p>
-                <p class="text-xs text-gray-500">Exportés</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="map" class="w-full"></div>
-      </div>
-
-      <!-- ==================== CHARTS ROW ==================== -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Top Clients Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeInLeft">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 gradient-purple rounded-xl flex items-center justify-center">
-              <span class="text-xl">👑</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-gray-800 dark:text-white">Top Clients</h3>
-              <p class="text-xs text-gray-500">Par volume de tonnes</p>
-            </div>
-          </div>
-          <div class="h-72">
-            <canvas id="clientsChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Status Pie Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeInRight">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 gradient-success rounded-xl flex items-center justify-center">
-              <span class="text-xl">📊</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-gray-800 dark:text-white">Répartition des Statuts</h3>
-              <p class="text-xs text-gray-500">Commandes par état</p>
-            </div>
-          </div>
-          <div class="h-72 flex items-center justify-center">
-            <canvas id="statusChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ==================== COUNTRIES GRID ==================== -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 animate__animated animate__fadeIn">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 gradient-warning rounded-xl flex items-center justify-center">
-            <span class="text-xl">🌍</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-gray-800 dark:text-white">Destinations Export</h3>
-            <p class="text-xs text-gray-500">Cliquez pour voir les détails par pays</p>
-          </div>
-        </div>
-        <div id="countriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <div class="col-span-full text-center py-12 text-gray-400">
-            <div class="text-6xl mb-4">🌍</div>
-            <p>Chargement des destinations...</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ==================== COMMANDS TABLE ==================== -->
-      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate__animated animate__fadeIn">
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
-              <span class="text-xl">📋</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-gray-800 dark:text-white">Liste des Commandes</h3>
-              <p class="text-xs text-gray-500">Gestion et suivi des chargements</p>
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <button onclick="exportExcel()" class="export-btn flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-emerald-500/30 hover:scale-105 active:scale-95 transition-all">
-              <span>📥</span>
-              <span>Export Excel</span>
+          <div class="flex gap-2">
+            <button onclick="bulkConfirm()" id="bulkConfirmBtn" class="hidden px-4 py-2 gradient-success text-white rounded-xl font-semibold text-sm">
+              ✅ <span data-lang="confirmSelected">Confirmer sélection</span>
             </button>
-            <button onclick="toggleView()" id="viewToggle" class="flex items-center gap-2 px-5 py-3 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold hover:bg-gray-200 dark:hover:bg-slate-600 transition-all">
-              <span>📱</span>
-              <span>Vue Cartes</span>
+            <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">
+              📥 <span data-lang="exportExcel">Export Excel</span>
+            </button>
+            <button onclick="exportPDF()" class="px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">
+              📄 <span data-lang="exportPDF">Export PDF</span>
             </button>
           </div>
         </div>
         
         <!-- Table View -->
-        <div id="tableView" class="overflow-x-auto">
+        <div id="view-table" class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-600">
+            <thead class="bg-gray-50 dark:bg-slate-700">
               <tr>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Client</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Référence</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Départ</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Pays</th>
-                <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Tonnes</th>
-                <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Statut</th>
-                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+                <th class="px-4 py-3 w-10"><input type="checkbox" id="headerCheckbox" onchange="toggleSelectAll()"></th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Client</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Réf</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Départ</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Statut</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody id="tableBody">
-              <tr><td colspan="8" class="text-center py-16 text-gray-400">
-                <div class="text-5xl mb-4">☁️</div>
-                Connexion Supabase en cours...
-              </td></tr>
+              <tr><td colspan="9" class="text-center py-12 text-gray-400">☁️ Chargement...</td></tr>
             </tbody>
           </table>
         </div>
         
         <!-- Cards View -->
-        <div id="cardsView" class="hidden p-6">
-          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="view-cards" class="hidden p-4">
+          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </div>
+        
+        <!-- Calendar View -->
+        <div id="view-calendar" class="hidden p-4">
+          <div class="flex items-center justify-between mb-4">
+            <button onclick="changeMonth(-1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">◀</button>
+            <h3 id="calendarTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
+            <button onclick="changeMonth(1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold hover:bg-gray-200 transition-colors">▶</button>
+          </div>
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="sun">Dim</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="mon">Lun</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="tue">Mar</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="wed">Mer</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="thu">Jeu</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="fri">Ven</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2" data-lang="sat">Sam</div>
+          </div>
+          <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+        </div>
+        
+        <!-- Map View -->
+        <div id="view-map" class="hidden">
+          <div id="map" class="w-full"></div>
         </div>
       </div>
+      
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">👑 <span data-lang="topClients">Top Clients</span></h3>
+          <div class="h-64"><canvas id="clientsChart"></canvas></div>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">📊 <span data-lang="statusDist">Répartition Statuts</span></h3>
+          <div class="h-64 flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+        </div>
+      </div>
+      
     </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-gray-200 dark:border-gray-700 py-8 mt-8 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-800 dark:to-slate-900">
-      <div class="container mx-auto px-4 text-center">
-        <div class="flex items-center justify-center gap-3 mb-3">
-          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
-            <span class="text-xl">🚚</span>
-          </div>
-          <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">Solana Logistique PRO</span>
-        </div>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">Projet de Fin d'Études • Dashboard de Suivi des Exports</p>
-        <p class="text-gray-400 dark:text-gray-500 text-xs mt-2">☁️ Synchronisation Supabase Multi-Appareils en Temps Réel</p>
-      </div>
+    <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase Multi-Device
     </footer>
   </div>
 
-  <!-- ==================== ADD MODAL ==================== -->
-  <div id="addModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+  <!-- ADD MODAL -->
+  <div id="addModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
-            <span class="text-xl">➕</span>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 dark:text-white">Nouvelle Commande Export</h3>
-        </div>
-        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-2xl">
-          ✕
-        </button>
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">➕ <span data-lang="newOrder">Nouvelle Commande</span></h3>
+        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
-      <form onsubmit="ajouterCmd(event)" class="p-6 space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onsubmit="ajouterCmd(event)" class="p-5 space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">👤 Client</label>
-            <input type="text" id="clientIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 <span data-lang="client">Client</span></label>
+            <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📄 Référence</label>
-            <input type="text" id="refIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📄 <span data-lang="reference">Référence</span></label>
+            <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📅 Date</label>
-            <input type="date" id="dateIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📅 <span data-lang="date">Date</span></label>
+            <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚚 Point Départ</label>
-            <input type="text" id="pointDepart" placeholder="76, 62, 29..." required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚚 <span data-lang="departure">Départ</span></label>
+            <input type="text" id="pointDepart" placeholder="76, 62..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🌍 Pays Destination</label>
-            <select id="paysIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
-              <option value="">Sélectionner un pays...</option>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 <span data-lang="country">Pays</span></label>
+            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+              <option value="">Sélectionner...</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">⚖️ Tonnes</label>
-            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ <span data-lang="tonnes">Tonnes</span></label>
+            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation</label>
-            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚛 <span data-lang="plate">Immat</span></label>
+            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📧 Email Client</label>
-            <input type="email" id="emailIn" required class="w-full px-4 py-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/20 transition-all text-lg">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📧 Email</label>
+            <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
         </div>
-        <div class="flex gap-4 pt-6">
-          <button type="button" onclick="closeAddModal()" class="flex-1 py-4 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-lg hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors">
-            Annuler
-          </button>
-          <button type="submit" class="flex-1 py-4 gradient-ocean text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            ✨ Ajouter & Synchroniser
-          </button>
+        <div class="flex gap-3 pt-4">
+          <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold" data-lang="cancel">Annuler</button>
+          <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold" data-lang="addSync">✨ Ajouter & Sync</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- ==================== COUNTRY DETAIL MODAL ==================== -->
-  <div id="countryModal" class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+  <!-- COUNTRY DETAIL MODAL -->
+  <div id="countryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
         <div class="flex items-center gap-3">
-          <div id="countryFlag" class="w-12 h-12 rounded-xl flex items-center justify-center text-3xl"></div>
+          <div id="countryFlag" class="text-4xl"></div>
           <div>
-            <h3 id="countryTitle" class="text-2xl font-bold text-gray-800 dark:text-white"></h3>
+            <h3 id="countryTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
             <p id="countrySubtitle" class="text-sm text-gray-500"></p>
           </div>
         </div>
-        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl transition-colors text-2xl">
-          ✕
-        </button>
+        <button onclick="closeCountryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
-      <div id="countryContent" class="p-6"></div>
+      <div id="countryContent" class="p-5"></div>
+    </div>
+  </div>
+
+  <!-- CALENDAR DAY DETAIL MODAL -->
+  <div id="calendarModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 id="calendarModalTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
+        <button onclick="closeCalendarModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="calendarModalContent" class="p-5"></div>
     </div>
   </div>
 
 <script>
-  // ==================== CONFIGURATION SUPABASE ====================
+  // ==================== CONFIGURATION ====================
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
 
-  // ==================== COUNTRIES DATA ====================
   const paysEmojis = {
     SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
     ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
@@ -761,65 +729,249 @@
     RO: 'Roumanie', GR: 'Grèce', FR: 'France'
   };
 
-  // Coordinates for each country (capital or center)
   const paysCoords = {
-    SN: [14.6937, -17.4441], // Dakar
-    PT: [38.7223, -9.1393],  // Lisbon
-    MA: [33.5731, -7.5898],  // Casablanca
-    TN: [36.8065, 10.1815],  // Tunis
-    DZ: [36.7538, 3.0588],   // Algiers
-    ES: [40.4168, -3.7038],  // Madrid
-    IT: [41.9028, 12.4964],  // Rome
-    DE: [52.5200, 13.4050],  // Berlin
-    BE: [50.8503, 4.3517],   // Brussels
-    NL: [52.3676, 4.9041],   // Amsterdam
-    GB: [51.5074, -0.1278],  // London
-    PL: [52.2297, 21.0122],  // Warsaw
-    RO: [44.4268, 26.1025],  // Bucharest
-    GR: [37.9838, 23.7275],  // Athens
-    FR: [46.2276, 2.2137]    // France center
+    SN: [14.6937, -17.4441], PT: [38.7223, -9.1393], MA: [33.5731, -7.5898],
+    TN: [36.8065, 10.1815], DZ: [36.7538, 3.0588], ES: [40.4168, -3.7038],
+    IT: [41.9028, 12.4964], DE: [52.5200, 13.4050], BE: [50.8503, 4.3517],
+    NL: [52.3676, 4.9041], GB: [51.5074, -0.1278], PL: [52.2297, 21.0122],
+    RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137]
+  };
+
+  // ==================== TRANSLATIONS ====================
+  const translations = {
+    fr: {
+      title: 'Solana Logistique',
+      subtitle: 'Dashboard Export & Suivi',
+      password: 'Mot de passe:',
+      passwordInput: 'Entrez le mot de passe',
+      errorPassword: '❌ Mot de passe incorrect',
+      loginBtn: '✨ Accéder au Dashboard',
+      newOrder: 'Nouvelle Commande',
+      totalTonnage: 'Total Tonnes',
+      pending: 'En Attente',
+      loaded: 'Chargées',
+      emailsSent: 'Emails',
+      toProcess: 'À traiter',
+      completed: 'Terminées',
+      notifications: 'Notifications',
+      progress: 'Progression',
+      monthlyComparison: 'Comparaison Mensuelle',
+      thisMonth: 'Ce mois',
+      lastMonth: 'Mois dernier',
+      searchPlaceholder: 'Rechercher client, réf, pays...',
+      all: 'Tous',
+      allCountries: 'Tous les pays',
+      reset: '🔄 Reset',
+      tableView: 'Tableau',
+      cardView: 'Cartes',
+      calendarView: 'Calendrier',
+      mapView: 'Carte',
+      selectAll: 'Tout sélectionner',
+      confirmSelected: 'Confirmer sélection',
+      exportExcel: 'Export Excel',
+      exportPDF: 'Export PDF',
+      sun: 'Dim', mon: 'Lun', tue: 'Mar', wed: 'Mer', thu: 'Jeu', fri: 'Ven', sat: 'Sam',
+      topClients: 'Top Clients',
+      statusDist: 'Répartition Statuts',
+      client: 'Client',
+      reference: 'Référence',
+      date: 'Date',
+      departure: 'Départ',
+      country: 'Pays',
+      tonnes: 'Tonnes',
+      plate: 'Immat',
+      cancel: 'Annuler',
+      addSync: '✨ Ajouter & Sync',
+      noResults: 'Aucun résultat trouvé',
+      vsLastMonth: 'vs mois dernier',
+      increase: 'hausse',
+      decrease: 'baisse',
+      orders: 'commandes'
+    },
+    en: {
+      title: 'Solana Logistics',
+      subtitle: 'Export & Tracking Dashboard',
+      password: 'Password:',
+      passwordInput: 'Enter password',
+      errorPassword: '❌ Incorrect password',
+      loginBtn: '✨ Access Dashboard',
+      newOrder: 'New Order',
+      totalTonnage: 'Total Tonnage',
+      pending: 'Pending',
+      loaded: 'Loaded',
+      emailsSent: 'Emails',
+      toProcess: 'To process',
+      completed: 'Completed',
+      notifications: 'Notifications',
+      progress: 'Progress',
+      monthlyComparison: 'Monthly Comparison',
+      thisMonth: 'This month',
+      lastMonth: 'Last month',
+      searchPlaceholder: 'Search client, ref, country...',
+      all: 'All',
+      allCountries: 'All countries',
+      reset: '🔄 Reset',
+      tableView: 'Table',
+      cardView: 'Cards',
+      calendarView: 'Calendar',
+      mapView: 'Map',
+      selectAll: 'Select all',
+      confirmSelected: 'Confirm selection',
+      exportExcel: 'Export Excel',
+      exportPDF: 'Export PDF',
+      sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat',
+      topClients: 'Top Clients',
+      statusDist: 'Status Distribution',
+      client: 'Client',
+      reference: 'Reference',
+      date: 'Date',
+      departure: 'Departure',
+      country: 'Country',
+      tonnes: 'Tonnes',
+      plate: 'Plate',
+      cancel: 'Cancel',
+      addSync: '✨ Add & Sync',
+      noResults: 'No results found',
+      vsLastMonth: 'vs last month',
+      increase: 'increase',
+      decrease: 'decrease',
+      orders: 'orders'
+    },
+    ar: {
+      title: 'سولانا للخدمات اللوجستية',
+      subtitle: 'لوحة تصدير وتتبع',
+      password: 'كلمة المرور:',
+      passwordInput: 'أدخل كلمة المرور',
+      errorPassword: '❌ كلمة مرور غير صحيحة',
+      loginBtn: '✨ الدخول للوحة',
+      newOrder: 'طلب جديد',
+      totalTonnage: 'إجمالي الأطنان',
+      pending: 'في الانتظار',
+      loaded: 'تم التحميل',
+      emailsSent: 'الرسائل',
+      toProcess: 'للمعالجة',
+      completed: 'مكتمل',
+      notifications: 'الإشعارات',
+      progress: 'التقدم',
+      monthlyComparison: 'مقارنة شهرية',
+      thisMonth: 'هذا الشهر',
+      lastMonth: 'الشهر الماضي',
+      searchPlaceholder: 'بحث العميل، المرجع، البلد...',
+      all: 'الكل',
+      allCountries: 'جميع البلدان',
+      reset: '🔄 إعادة تعيين',
+      tableView: 'جدول',
+      cardView: 'بطاقات',
+      calendarView: 'تقويم',
+      mapView: 'خريطة',
+      selectAll: 'تحديد الكل',
+      confirmSelected: 'تأكيد التحديد',
+      exportExcel: 'تصدير Excel',
+      exportPDF: 'تصدير PDF',
+      sun: 'أحد', mon: 'إثنين', tue: 'ثلاثاء', wed: 'أربعاء', thu: 'خميس', fri: 'جمعة', sat: 'سبت',
+      topClients: 'أفضل العملاء',
+      statusDist: 'توزيع الحالات',
+      client: 'العميل',
+      reference: 'المرجع',
+      date: 'التاريخ',
+      departure: 'المغادرة',
+      country: 'البلد',
+      tonnes: 'الأطنان',
+      plate: 'لوحة',
+      cancel: 'إلغاء',
+      addSync: '✨ إضافة ومزامنة',
+      noResults: 'لا توجد نتائج',
+      vsLastMonth: 'مقارنة بالشهر الماضي',
+      increase: 'ارتفاع',
+      decrease: 'انخفاض',
+      orders: 'طلبات'
+    }
   };
 
   // ==================== GLOBAL VARIABLES ====================
   let cmds = [];
-  let isCardView = false;
+  let filteredCmds = [];
+  let selectedCmds = new Set();
+  let currentStatusFilter = 'all';
   let clientsChart = null;
   let statusChart = null;
   let isDarkMode = false;
   let map = null;
   let markersLayer = null;
+  let currentLang = 'fr';
+  let currentCalendarDate = new Date();
+
+  // ==================== LANGUAGE FUNCTIONS ====================
+  function setLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    
+    // Update all language buttons
+    ['fr', 'en', 'ar'].forEach(l => {
+      const btn1 = document.getElementById(`lang-${l}`);
+      const btn2 = document.getElementById(`lang-${l}-2`);
+      if (btn1) btn1.classList.toggle('active', l === lang);
+      if (btn2) btn2.classList.toggle('active', l === lang);
+    });
+    
+    // Update all elements with data-lang attribute
+    document.querySelectorAll('[data-lang]').forEach(el => {
+      const key = el.getAttribute('data-lang');
+      if (translations[lang][key]) {
+        el.textContent = translations[lang][key];
+      }
+    });
+    
+    // Update placeholders
+    document.querySelectorAll('[data-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-placeholder');
+      if (translations[lang][key]) {
+        el.placeholder = translations[lang][key];
+      }
+    });
+  }
+
+  function t(key) {
+    return translations[currentLang][key] || key;
+  }
 
   // ==================== UTILITY FUNCTIONS ====================
   function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.className = `toast flex items-center gap-3 ${type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-red-500 to-pink-500'} text-white`;
-    toast.innerHTML = `
-      <span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span>
-      <span class="font-semibold">${message}</span>
-    `;
+    toast.innerHTML = `<span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span><span class="font-semibold">${message}</span>`;
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 4000);
   }
 
-  function showLoading() {
-    document.getElementById('loadingOverlay').classList.remove('hidden');
-  }
-
-  function hideLoading() {
-    document.getElementById('loadingOverlay').classList.add('hidden');
-  }
+  function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+  function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
   // ==================== DARK MODE ====================
   function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.documentElement.classList.toggle('dark', isDarkMode);
-    document.getElementById('darkModeBtn').innerHTML = isDarkMode ? '<span class="text-xl">☀️</span>' : '<span class="text-xl">🌙</span>';
-    
-    // Update charts
-    setTimeout(() => {
-      updateCharts();
-      updateMapTiles();
-    }, 100);
+    document.getElementById('darkModeBtn').textContent = isDarkMode ? '☀️' : '🌙';
+    setTimeout(() => { updateCharts(); updateMapTiles(); }, 100);
+  }
+
+  // ==================== NOTIFICATIONS ====================
+  function requestNotificationPermission() {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          showToast('✅ Notifications activées!');
+          document.getElementById('notifBtn').classList.add('bg-emerald-100');
+        }
+      });
+    }
+  }
+
+  function sendNotification(title, body) {
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '🚚' });
+    }
   }
 
   // ==================== LOGIN/LOGOUT ====================
@@ -842,20 +994,20 @@
     document.getElementById('loginPassword').value = '';
   }
 
-  // ==================== SUPABASE FUNCTIONS ====================
+  // ==================== SUPABASE ====================
   async function loadCmds() {
-    document.getElementById('syncIcon').innerHTML = '<span class="inline-block animate-rotate">⏳</span>';
+    document.getElementById('syncIcon').innerHTML = '⏳';
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
-      if (!res.ok) throw new Error('Supabase error');
+      if (!res.ok) throw new Error();
       cmds = await res.json();
+      filteredCmds = [...cmds];
       document.getElementById('supabaseBadge').classList.remove('hidden');
-      maj(); // Update everything
+      maj();
     } catch (e) {
-      console.error('Load error:', e);
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-16 text-red-500"><div class="text-5xl mb-4">❌</div>Erreur connexion Supabase</td></tr>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-red-500">❌ Erreur Supabase</td></tr>';
     }
     document.getElementById('syncIcon').innerHTML = '🔄';
   }
@@ -864,12 +1016,7 @@
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
         method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify([cmd])
       });
       return res.ok;
@@ -880,29 +1027,21 @@
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
         body: JSON.stringify(updates)
       });
-      if (res.ok) {
-        await loadCmds(); // Auto-refresh after update
-        return true;
-      }
+      if (res.ok) { await loadCmds(); return true; }
     } catch {}
     return false;
   }
 
-  async function deleteCmdFromDB(ref) {
+  async function deleteCmd(ref) {
     try {
       await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
-      await loadCmds(); // Auto-refresh after delete
+      await loadCmds();
     } catch {}
   }
 
@@ -936,15 +1075,16 @@
     
     if (ok) {
       closeAddModal();
-      await loadCmds(); // AUTO-REFRESH after adding
-      showToast('✅ Commande ajoutée avec succès!');
+      await loadCmds();
+      showToast('✅ Commande ajoutée!');
+      sendNotification('🚚 Nouvelle commande', `${n.client} - ${n.tonnes}T → ${n.pays}`);
     } else {
-      showToast('❌ Erreur lors de l\'ajout', 'error');
+      showToast('❌ Erreur', 'error');
     }
   }
 
   async function confirmerEmail(cmd) {
-    if (!confirm(`🚚 ${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\n📧 Confirmer et ouvrir email?`)) return;
+    if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer?`)) return;
     
     showLoading();
     const ok = await updateCmd(cmd.ref, {
@@ -956,558 +1096,478 @@
     
     if (ok) {
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE ET PRÊTE!\n\n━━━━━━━━━━━━━━━━━━━━\n📋 DÉTAILS DE LA COMMANDE\n━━━━━━━━━━━━━━━━━━━━\n\nRéférence: ${cmd.ref}\nPoint de départ: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\nCamion: ${cmd.immat || 'Non spécifié'}\n\n✅ Statut: LIVRAISON CONFIRMÉE\n\n━━━━━━━━━━━━━━━━━━━━\n📧 Email envoyé via Solana Dashboard`;
+      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-      showToast('✅ Commande confirmée!');
+      showToast('✅ Confirmée!');
     }
   }
 
   async function supprimerCmd(ref) {
-    if (!confirm('🗑️ Supprimer cette commande?')) return;
+    if (!confirm('Supprimer?')) return;
     showLoading();
-    await deleteCmdFromDB(ref);
+    await deleteCmd(ref);
     hideLoading();
-    showToast('🗑️ Commande supprimée');
+    showToast('🗑️ Supprimé');
   }
 
-  function synchroniser() {
-    loadCmds();
-  }
+  function synchroniser() { loadCmds(); }
 
-  // ==================== EXCEL EXPORT (FIXED) ====================
-  function exportExcel() {
-    if (cmds.length === 0) {
-      showToast('⚠️ Aucune commande à exporter', 'error');
-      return;
+  // ==================== BULK ACTIONS ====================
+  function toggleSelectAll() {
+    const checked = document.getElementById('selectAll').checked;
+    selectedCmds.clear();
+    if (checked) {
+      filteredCmds.forEach(c => selectedCmds.add(c.ref));
     }
-
-    // Create workbook
-    const wb = XLSX.utils.book_new();
-    
-    // Main data with proper headers
-    const mainData = cmds.map((c, index) => ({
-      'N°': index + 1,
-      'Client': c.client,
-      'Référence': c.ref,
-      'Date': c.date,
-      'Point de Départ': c.point_depart,
-      'Pays': c.pays,
-      'Nom du Pays': paysNoms[c.pays] || c.pays,
-      'Tonnes': c.tonnes,
-      'Immatriculation': c.immat || '-',
-      'Email Client': c.email,
-      'Statut': c.statut,
-      'Nombre d\'Emails': c.nb_emails || 0,
-      'Dernier Email': c.derniere_date_email || '-'
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(mainData);
-    
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 5 },   // N°
-      { wch: 20 },  // Client
-      { wch: 15 },  // Référence
-      { wch: 12 },  // Date
-      { wch: 15 },  // Départ
-      { wch: 8 },   // Pays
-      { wch: 15 },  // Nom Pays
-      { wch: 10 },  // Tonnes
-      { wch: 15 },  // Immat
-      { wch: 25 },  // Email
-      { wch: 12 },  // Statut
-      { wch: 12 },  // Nb Emails
-      { wch: 15 }   // Dernier Email
-    ];
-
-    XLSX.utils.book_append_sheet(wb, ws, "Commandes");
-
-    // Summary sheet
-    const summaryData = [
-      { 'Statistique': 'Total Commandes', 'Valeur': cmds.length },
-      { 'Statistique': 'Total Tonnes', 'Valeur': cmds.reduce((s, c) => s + c.tonnes, 0).toFixed(2) + ' T' },
-      { 'Statistique': 'Commandes En Attente', 'Valeur': cmds.filter(c => c.statut === 'EN ATTENTE').length },
-      { 'Statistique': 'Commandes Chargées', 'Valeur': cmds.filter(c => c.statut === 'CHARGÉE').length },
-      { 'Statistique': 'Total Emails Envoyés', 'Valeur': cmds.reduce((s, c) => s + (c.nb_emails || 0), 0) },
-      { 'Statistique': 'Date d\'Export', 'Valeur': new Date().toLocaleDateString('fr-FR') }
-    ];
-    
-    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-    wsSummary['!cols'] = [{ wch: 25 }, { wch: 20 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Résumé");
-
-    // By Country sheet
-    const countryStats = {};
-    cmds.forEach(c => {
-      if (!countryStats[c.pays]) countryStats[c.pays] = { tonnes: 0, nb: 0, clients: new Set() };
-      countryStats[c.pays].tonnes += c.tonnes;
-      countryStats[c.pays].nb++;
-      countryStats[c.pays].clients.add(c.client);
-    });
-
-    const countryData = Object.entries(countryStats).map(([code, stats]) => ({
-      'Code Pays': code,
-      'Pays': paysNoms[code] || code,
-      'Total Tonnes': stats.tonnes.toFixed(2),
-      'Nombre de Commandes': stats.nb,
-      'Clients Uniques': stats.clients.size
-    })).sort((a, b) => b['Total Tonnes'] - a['Total Tonnes']);
-
-    const wsCountry = XLSX.utils.json_to_sheet(countryData);
-    wsCountry['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, wsCountry, "Par Pays");
-
-    // Download
-    const fileName = `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-    showToast('📥 Export Excel téléchargé!');
+    updateSelectedCount();
+    renderTable();
   }
 
-  // ==================== DISPLAY FUNCTIONS ====================
+  function toggleSelect(ref) {
+    if (selectedCmds.has(ref)) {
+      selectedCmds.delete(ref);
+    } else {
+      selectedCmds.add(ref);
+    }
+    updateSelectedCount();
+  }
+
+  function updateSelectedCount() {
+    const count = selectedCmds.size;
+    document.getElementById('selectedCount').textContent = count > 0 ? `${count} sélectionné(s)` : '';
+    document.getElementById('bulkConfirmBtn').classList.toggle('hidden', count === 0);
+    document.getElementById('selectAll').checked = count === filteredCmds.length && count > 0;
+  }
+
+  async function bulkConfirm() {
+    if (!confirm(`Confirmer ${selectedCmds.size} commandes?`)) return;
+    showLoading();
+    for (const ref of selectedCmds) {
+      const cmd = cmds.find(c => c.ref === ref);
+      if (cmd && cmd.statut === 'EN ATTENTE') {
+        await updateCmd(ref, { statut: 'CHARGÉE', nb_emails: (cmd.nb_emails || 0) + 1, derniere_date_email: new Date().toLocaleDateString('fr-FR') });
+      }
+    }
+    selectedCmds.clear();
+    hideLoading();
+    showToast(`✅ ${selectedCmds.size || 'Toutes'} confirmées!`);
+  }
+
+  // ==================== FILTERS ====================
+  function filterCommands() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    const country = document.getElementById('countryFilter').value;
+    
+    filteredCmds = cmds.filter(c => {
+      const matchSearch = !search || c.client.toLowerCase().includes(search) || c.ref.toLowerCase().includes(search) || c.pays.toLowerCase().includes(search);
+      const matchDateFrom = !dateFrom || c.date >= dateFrom;
+      const matchDateTo = !dateTo || c.date <= dateTo;
+      const matchCountry = !country || c.pays === country;
+      const matchStatus = currentStatusFilter === 'all' || c.statut === currentStatusFilter;
+      return matchSearch && matchDateFrom && matchDateTo && matchCountry && matchStatus;
+    });
+    
+    document.getElementById('filterCount').textContent = filteredCmds.length !== cmds.length ? `${filteredCmds.length} / ${cmds.length} commandes` : '';
+    maj();
+  }
+
+  function setStatusFilter(status) {
+    currentStatusFilter = status;
+    ['all', 'EN ATTENTE', 'CHARGÉE'].forEach(s => {
+      const btn = document.getElementById(`filter-${s === 'all' ? 'all' : s.replace(' ', '-')}`);
+      if (btn) btn.classList.toggle('active', s === status);
+    });
+    filterCommands();
+  }
+
+  function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
+    document.getElementById('countryFilter').value = '';
+    currentStatusFilter = 'all';
+    ['all', 'EN ATTENTE', 'CHARGÉE'].forEach(s => {
+      const btn = document.getElementById(`filter-${s === 'all' ? 'all' : s.replace(' ', '-')}`);
+      if (btn) btn.classList.toggle('active', s === 'all');
+    });
+    filteredCmds = [...cmds];
+    document.getElementById('filterCount').textContent = '';
+    maj();
+  }
+
+  // ==================== VIEWS ====================
+  function showView(view) {
+    ['table', 'cards', 'calendar', 'map'].forEach(v => {
+      document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+      document.getElementById(`tab-${v}`).classList.toggle('border-blue-500', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('text-blue-600', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('bg-blue-50', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('border-transparent', v !== view);
+      document.getElementById(`tab-${v}`).classList.toggle('text-gray-500', v !== view);
+    });
+    
+    if (view === 'calendar') renderCalendar();
+    if (view === 'map') setTimeout(() => { if (!map) initMap(); else map.invalidateSize(); }, 100);
+  }
+
+  // ==================== DISPLAY ====================
   function maj() {
-    // Calculate stats
-    const tot = cmds.reduce((s, c) => s + c.tonnes, 0);
-    const att = cmds.filter(c => c.statut === 'EN ATTENTE').length;
-    const ch = cmds.filter(c => c.statut === 'CHARGÉE').length;
-    const em = cmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
-    const pct = cmds.length ? Math.round((ch / cmds.length) * 100) : 0;
+    const tot = filteredCmds.reduce((s, c) => s + c.tonnes, 0);
+    const att = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const ch = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
+    const em = filteredCmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
+    const pct = filteredCmds.length ? Math.round((ch / filteredCmds.length) * 100) : 0;
 
-    // Update KPIs with animation
-    animateValue('kpiTonnes', tot.toFixed(1) + ' T');
-    animateValue('kpiAttente', att);
-    animateValue('kpiChargees', ch);
-    animateValue('kpiEmails', em);
-
-    // Header
-    document.getElementById('headerStats').textContent = `${cmds.length} commandes • ${new Date().toLocaleDateString('fr-FR')}`;
-
-    // Progress bar
+    document.getElementById('kpiTonnes').textContent = tot.toFixed(1) + ' T';
+    document.getElementById('kpiAttente').textContent = att;
+    document.getElementById('kpiChargees').textContent = ch;
+    document.getElementById('kpiEmails').textContent = em;
+    document.getElementById('headerStats').textContent = `${filteredCmds.length} commandes`;
     document.getElementById('progressPercent').textContent = pct + '%';
     document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progressChargees').textContent = ch + ' terminées';
-    document.getElementById('progressAttente').textContent = att + ' en cours';
+    document.getElementById('progressChargees').textContent = `${ch} terminées`;
+    document.getElementById('progressAttente').textContent = `${att} en cours`;
 
-    // Map stats
-    const uniqueCountries = [...new Set(cmds.map(c => c.pays))].length;
-    document.getElementById('mapCountries').textContent = uniqueCountries;
-    document.getElementById('mapTotalT').textContent = tot.toFixed(0) + 'T';
-
-    // Render components
-    if (cmds.length === 0) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8" class="text-center py-16 text-gray-400"><div class="text-5xl mb-4">🎯</div>Ajoutez votre 1ère commande</td></tr>';
-      document.getElementById('cardsContainer').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><div class="text-5xl mb-4">🎯</div>Ajoutez votre 1ère commande</div>';
-      document.getElementById('countriesGrid').innerHTML = '<div class="col-span-full text-center py-12 text-gray-400"><div class="text-5xl mb-4">🌍</div>Ajoutez des commandes pour voir les destinations</div>';
-    } else {
-      renderTable();
-      renderCards();
-      updateCharts();
-      renderCountries();
+    updateMonthlyComparison();
+    renderTable();
+    renderCards();
+    updateCharts();
+    
+    if (document.getElementById('view-calendar').classList.contains('hidden') === false) {
+      renderCalendar();
+    }
+    if (map && document.getElementById('view-map').classList.contains('hidden') === false) {
       updateMapMarkers();
     }
   }
 
-  function animateValue(id, value) {
-    const el = document.getElementById(id);
-    el.style.transform = 'scale(1.1)';
-    el.textContent = value;
-    setTimeout(() => el.style.transform = 'scale(1)', 200);
+  function updateMonthlyComparison() {
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+    
+    const thisMonthCmds = cmds.filter(c => {
+      const d = new Date(c.date);
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    });
+    
+    const lastMonthCmds = cmds.filter(c => {
+      const d = new Date(c.date);
+      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+    });
+    
+    const thisT = thisMonthCmds.reduce((s, c) => s + c.tonnes, 0);
+    const lastT = lastMonthCmds.reduce((s, c) => s + c.tonnes, 0);
+    
+    document.getElementById('thisMonthTonnage').textContent = thisT.toFixed(1) + ' T';
+    document.getElementById('thisMonthOrders').textContent = `${thisMonthCmds.length} ${t('orders')}`;
+    document.getElementById('lastMonthTonnage').textContent = lastT.toFixed(1) + ' T';
+    document.getElementById('lastMonthOrders').textContent = `${lastMonthCmds.length} ${t('orders')}`;
+    
+    const diff = lastT > 0 ? ((thisT - lastT) / lastT * 100).toFixed(1) : 0;
+    const isPositive = thisT >= lastT;
+    document.getElementById('comparisonResult').innerHTML = lastT > 0 ? `
+      <span class="comparison-badge ${isPositive ? 'positive' : 'negative'}">
+        ${isPositive ? '📈' : '📉'} ${Math.abs(diff)}% ${isPositive ? t('increase') : t('decrease')} ${t('vsLastMonth')}
+      </span>
+    ` : '';
   }
 
   function renderTable() {
-    document.getElementById('tableBody').innerHTML = cmds.map((c, i) => {
-      const statutBadge = c.statut === 'CHARGÉE' 
-        ? '<span class="inline-flex items-center gap-1 px-4 py-2 gradient-success text-white text-xs font-bold rounded-full shadow-lg">✅ CHARGÉE</span>'
-        : '<span class="inline-flex items-center gap-1 px-4 py-2 gradient-warning text-white text-xs font-bold rounded-full shadow-lg animate-pulse">⏳ EN ATTENTE</span>';
-      
-      const btnAction = c.statut === 'EN ATTENTE'
-        ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-success text-white text-xs font-bold rounded-xl hover:scale-105 transition-transform shadow-lg">✅ Charger</button>`
-        : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-4 py-2 bg-blue-100 text-blue-700 text-xs font-bold rounded-xl hover:bg-blue-200 transition-colors">📧 Renvoyer</button>`;
-
-      return `
-        <tr class="table-row border-b border-gray-50 dark:border-gray-700/50 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}" style="animation: fadeIn 0.3s ease ${i * 0.05}s both;">
-          <td class="px-6 py-4">
-            <div class="font-bold text-gray-800 dark:text-white">${c.client}</div>
-          </td>
-          <td class="px-6 py-4">
-            <span class="font-mono text-sm bg-gray-100 dark:bg-slate-700 px-3 py-1 rounded-lg">${c.ref}</span>
-          </td>
-          <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.date}</td>
-          <td class="px-6 py-4 text-gray-600 dark:text-gray-300">${c.point_depart}</td>
-          <td class="px-6 py-4">
-            <div class="flex items-center gap-2">
-              <span class="text-2xl">${paysEmojis[c.pays] || '🌍'}</span>
-              <span class="font-medium">${c.pays}</span>
-            </div>
-          </td>
-          <td class="px-6 py-4 text-right">
-            <span class="text-xl font-black text-emerald-600">${c.tonnes.toFixed(2)}</span>
-            <span class="text-emerald-400">T</span>
-          </td>
-          <td class="px-6 py-4">${statutBadge}</td>
-          <td class="px-6 py-4">
-            <div class="flex justify-center gap-2">
-              ${btnAction}
-              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-2 gradient-danger text-white text-xs font-bold rounded-xl hover:scale-105 transition-transform shadow-lg">🗑️</button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+    if (filteredCmds.length === 0) {
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">${t('noResults')}</td></tr>`;
+      return;
+    }
+    
+    document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
+      <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}">
+        <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
+        <td class="px-4 py-3 font-bold">${c.client}</td>
+        <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
+        <td class="px-4 py-3">${c.date}</td>
+        <td class="px-4 py-3">${c.point_depart}</td>
+        <td class="px-4 py-3">${paysEmojis[c.pays]} ${c.pays}</td>
+        <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+        <td class="px-4 py-3">
+          <span class="px-3 py-1 ${c.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white text-xs font-bold rounded-full">
+            ${c.statut === 'CHARGÉE' ? '✅' : '⏳'}
+          </span>
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex justify-center gap-1">
+            ${c.statut === 'EN ATTENTE' 
+              ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>` 
+              : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg">📧</button>`}
+            <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
   }
 
   function renderCards() {
-    document.getElementById('cardsContainer').innerHTML = cmds.map((c, i) => {
-      const borderColor = c.statut === 'CHARGÉE' ? 'border-emerald-400 dark:border-emerald-600' : 'border-amber-400 dark:border-amber-600';
-      const statutBadge = c.statut === 'CHARGÉE'
-        ? '<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ Chargée</span>'
-        : '<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full animate-pulse">⏳ Attente</span>';
-      
-      const btnAction = c.statut === 'EN ATTENTE'
-        ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-3 gradient-success text-white text-sm font-bold rounded-xl hover:scale-[1.02] transition-transform">✅ Charger</button>`
-        : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-3 bg-blue-100 text-blue-700 text-sm font-bold rounded-xl hover:bg-blue-200 transition-colors">📧 Renvoyer</button>`;
-
-      return `
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border-2 ${borderColor} shadow-xl overflow-hidden hover:shadow-2xl transition-all" style="animation: fadeIn 0.4s ease ${i * 0.05}s both;">
-          <div class="p-5">
-            <div class="flex items-center justify-between mb-4">
-              <h4 class="text-lg font-bold text-gray-800 dark:text-white">${c.client}</h4>
-              ${statutBadge}
-            </h4>
-            <p class="text-sm font-mono text-gray-400 mb-4">${c.ref}</p>
-            <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-300 mb-4">
-              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
-                <span>📅</span>
-                <span>${c.date}</span>
-              </div>
-              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
-                <span>🚚</span>
-                <span>${c.point_depart}</span>
-              </div>
-              <div class="flex items-center gap-2 bg-gray-50 dark:bg-slate-700 p-2 rounded-lg">
-                <span class="text-lg">${paysEmojis[c.pays] || '🌍'}</span>
-                <span>${c.pays}</span>
-              </div>
-              <div class="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 p-2 rounded-lg">
-                <span class="text-lg">⚖️</span>
-                <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
-              </div>
-            </div>
-            <div class="flex gap-2">
-              ${btnAction}
-              <button onclick="supprimerCmd('${c.ref}')" class="px-4 py-3 gradient-danger text-white text-sm font-bold rounded-xl hover:scale-105 transition-transform">🗑️</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function renderCountries() {
-    const paysStats = {};
-    cmds.forEach(c => {
-      if (!paysStats[c.pays]) paysStats[c.pays] = { tonnes: 0, nb: 0 };
-      paysStats[c.pays].tonnes += c.tonnes;
-      paysStats[c.pays].nb++;
-    });
-
-    const entries = Object.entries(paysStats).sort((a, b) => b[1].tonnes - a[1].tonnes);
+    if (filteredCmds.length === 0) {
+      document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">${t('noResults')}</div>`;
+      return;
+    }
     
-    document.getElementById('countriesGrid').innerHTML = entries.map(([code, stats], i) => `
-      <div onclick="showCountryDetail('${code}')" class="country-card cursor-pointer bg-gradient-to-br from-emerald-50 via-cyan-50 to-teal-50 dark:from-emerald-900/30 dark:via-cyan-900/30 dark:to-teal-900/30 rounded-2xl p-5 border-2 border-emerald-200 dark:border-emerald-700 text-center" style="animation: fadeIn 0.4s ease ${i * 0.05}s both;">
-        <div class="text-5xl mb-3 transform hover:scale-125 transition-transform">${paysEmojis[code] || '🌍'}</div>
-        <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">${stats.tonnes.toFixed(1)}T</div>
-        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">${paysNoms[code] || code}</div>
-        <div class="text-xs text-cyan-500 mt-1 font-semibold">${stats.nb} commande${stats.nb > 1 ? 's' : ''}</div>
+    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
+      <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'CHARGÉE' ? 'border-emerald-400' : 'border-amber-400'} shadow-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-bold">${c.client}</span>
+          <span class="px-2 py-1 ${c.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white text-xs rounded-full">${c.statut === 'CHARGÉE' ? '✅' : '⏳'}</span>
+        </div>
+        <p class="text-xs font-mono text-gray-400 mb-2">${c.ref}</p>
+        <div class="grid grid-cols-2 gap-1 text-xs mb-3">
+          <div>📅 ${c.date}</div>
+          <div>🚚 ${c.point_depart}</div>
+          <div>${paysEmojis[c.pays]} ${c.pays}</div>
+          <div class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</div>
+        </div>
+        <div class="flex gap-2">
+          ${c.statut === 'EN ATTENTE' 
+            ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-success text-white text-xs rounded-lg font-bold">✅ Charger</button>` 
+            : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 bg-blue-100 text-blue-700 text-xs rounded-lg font-bold">📧 Renvoyer</button>`}
+          <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-2 gradient-danger text-white text-xs rounded-lg">🗑️</button>
+        </div>
       </div>
     `).join('');
   }
 
-  // ==================== MAP FUNCTIONS ====================
-  function initMap() {
-    // Initialize map centered on Europe
-    map = L.map('map', {
-      zoomControl: true,
-      scrollWheelZoom: true
-    }).setView([45.0, 5.0], 4);
-
-    // Update tiles based on dark mode
-    updateMapTiles();
-
-    // Initialize markers layer
-    markersLayer = L.markerClusterGroup({
-      spiderfyOnMaxZoom: true,
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      maxClusterRadius: 50,
-      iconCreateFunction: function(cluster) {
-        const count = cluster.getChildCount();
-        let size = 'small';
-        if (count > 10) size = 'medium';
-        if (count > 30) size = 'large';
-        
-        return L.divIcon({
-          html: `<div class="cluster-icon ${size}" style="
-            background: linear-gradient(135deg, #0077b6, #10b981);
-            width: ${size === 'large' ? 50 : size === 'medium' ? 40 : 30}px;
-            height: ${size === 'large' ? 50 : size === 'medium' ? 40 : 30}px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: ${size === 'large' ? 18 : size === 'medium' ? 14 : 12}px;
-            box-shadow: 0 4px 15px rgba(0,119,182,0.4);
-            border: 3px solid white;
-          ">${count}</div>`,
-          className: 'custom-cluster',
-          iconSize: L.point(40, 40)
-        });
-      }
+  // ==================== CALENDAR ====================
+  function renderCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : currentLang === 'en' ? 'en-US' : 'fr-FR', { month: 'long', year: 'numeric' });
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    
+    // Get orders by date
+    const ordersByDate = {};
+    cmds.forEach(c => {
+      const d = c.date;
+      if (!ordersByDate[d]) ordersByDate[d] = [];
+      ordersByDate[d].push(c);
     });
+    
+    let html = '';
+    
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="calendar-day bg-gray-50 dark:bg-slate-700/50 rounded-lg"></div>';
+    }
+    
+    // Days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const orders = ordersByDate[dateStr] || [];
+      const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+      const hasOrders = orders.length > 0;
+      
+      html += `
+        <div onclick="${hasOrders ? `showCalendarDayDetail('${dateStr}')` : ''}" 
+             class="calendar-day ${hasOrders ? 'has-orders' : ''} ${isToday ? 'today' : ''} rounded-lg p-2 cursor-pointer">
+          <div class="font-bold text-sm ${isToday ? 'text-blue-600' : ''}">${day}</div>
+          ${hasOrders ? `
+            <div class="mt-1">
+              <div class="text-xs font-bold text-emerald-600">${orders.reduce((s, c) => s + c.tonnes, 0).toFixed(1)}T</div>
+              <div class="text-xs text-gray-400">${orders.length} cmd</div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    document.getElementById('calendarGrid').innerHTML = html;
+  }
+
+  function changeMonth(delta) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  function showCalendarDayDetail(dateStr) {
+    const orders = cmds.filter(c => c.date === dateStr);
+    const totalT = orders.reduce((s, c) => s + c.tonnes, 0);
+    
+    document.getElementById('calendarModalTitle').textContent = new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('calendarModalContent').innerHTML = `
+      <div class="mb-4 p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl">
+        <div class="text-2xl font-bold text-emerald-600">${totalT.toFixed(1)} T</div>
+        <div class="text-sm text-gray-500">${orders.length} commandes</div>
+      </div>
+      <div class="space-y-2">
+        ${orders.map(c => `
+          <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between items-center">
+            <div>
+              <span class="font-bold">${c.client}</span>
+              <span class="text-sm text-gray-500 ml-2">${c.ref}</span>
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
+              <span class="ml-2">${paysEmojis[c.pays]}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    document.getElementById('calendarModal').classList.remove('hidden');
+  }
+
+  function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.add('hidden');
+  }
+
+  // ==================== MAP ====================
+  function initMap() {
+    map = L.map('map').setView([45.0, 5.0], 4);
+    updateMapTiles();
+    markersLayer = L.markerClusterGroup();
     map.addLayer(markersLayer);
+    updateMapMarkers();
   }
 
   function updateMapTiles() {
     if (!map) return;
-    
-    // Remove existing tile layers
-    map.eachLayer(layer => {
-      if (layer instanceof L.TileLayer) {
-        map.removeLayer(layer);
-      }
-    });
-
-    // Add appropriate tiles
-    if (isDarkMode) {
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
-    } else {
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-      }).addTo(map);
-    }
+    map.eachLayer(layer => { if (layer instanceof L.TileLayer) map.removeLayer(layer); });
+    L.tileLayer(isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap © CARTO',
+      maxZoom: 19
+    }).addTo(map);
   }
 
   function updateMapMarkers() {
     if (!map || !markersLayer) return;
     markersLayer.clearLayers();
-
-    // Group commands by country
+    
     const countryCmds = {};
-    cmds.forEach(c => {
+    filteredCmds.forEach(c => {
       if (!countryCmds[c.pays]) countryCmds[c.pays] = [];
       countryCmds[c.pays].push(c);
     });
-
-    // Create markers for each country
+    
     Object.entries(countryCmds).forEach(([code, commands]) => {
       const coords = paysCoords[code];
       if (!coords) return;
-
+      
       const totalT = commands.reduce((s, c) => s + c.tonnes, 0);
-      const attente = commands.filter(c => c.statut === 'EN ATTENTE').length;
-      const chargees = commands.filter(c => c.statut === 'CHARGÉE').length;
-
-      // Custom icon
       const icon = L.divIcon({
-        html: `
-          <div style="
-            background: linear-gradient(135deg, ${attente > 0 ? '#f59e0b' : '#10b981'}, ${attente > 0 ? '#fbbf24' : '#34d399'});
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-            border: 3px solid white;
-            cursor: pointer;
-            transition: all 0.3s;
-          ">${paysEmojis[code] || '🌍'}</div>
-        `,
-        className: 'custom-marker',
-        iconSize: [45, 45],
-        iconAnchor: [22, 22]
+        html: `<div style="background: linear-gradient(135deg, #0077b6, #10b981); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px solid white;">${paysEmojis[code] || '🌍'}</div>`,
+        className: '', iconSize: [40, 40], iconAnchor: [20, 20]
       });
-
+      
       const marker = L.marker(coords, { icon });
-      
-      // Popup content
-      const popupContent = `
-        <div style="min-width: 250px; font-family: 'Inter', sans-serif;">
-          <div style="
-            background: linear-gradient(135deg, #0077b6, #10b981);
-            color: white;
-            padding: 15px;
-            margin: -15px -15px 15px -15px;
-            border-radius: 12px 12px 0 0;
-          ">
-            <div style="font-size: 30px; margin-bottom: 5px;">${paysEmojis[code] || '🌍'}</div>
-            <div style="font-size: 18px; font-weight: bold;">${paysNoms[code] || code}</div>
+      marker.bindPopup(`
+        <div style="min-width: 200px;">
+          <div style="background: linear-gradient(135deg, #0077b6, #10b981); color: white; padding: 10px; margin: -10px -10px 10px; border-radius: 8px 8px 0 0;">
+            <span style="font-size: 24px;">${paysEmojis[code]}</span>
+            <div style="font-weight: bold;">${paysNoms[code]}</div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-            <div style="background: #f0fdf4; padding: 10px; border-radius: 10px; text-align: center;">
-              <div style="font-size: 24px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
-              <div style="font-size: 11px; color: #6b7280;">Total Tonnes</div>
-            </div>
-            <div style="background: #eff6ff; padding: 10px; border-radius: 10px; text-align: center;">
-              <div style="font-size: 24px; font-weight: bold; color: #0077b6;">${commands.length}</div>
-              <div style="font-size: 11px; color: #6b7280;">Commandes</div>
-            </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
+            <div style="color: #6b7280;">${commands.length} commandes</div>
           </div>
-          <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <span style="flex: 1; background: #fef3c7; color: #92400e; padding: 6px 10px; border-radius: 8px; font-size: 12px; text-align: center;">
-              ⏳ ${attente} attente
-            </span>
-            <span style="flex: 1; background: #d1fae5; color: #065f46; padding: 6px 10px; border-radius: 8px; font-size: 12px; text-align: center;">
-              ✅ ${chargees} chargée${chargees > 1 ? 's' : ''}
-            </span>
-          </div>
-          <button onclick="showCountryDetail('${code}')" style="
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #0077b6, #00b4d8);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 14px;
-          ">📋 Voir les détails</button>
         </div>
-      `;
-      
-      marker.bindPopup(popupContent, {
-        maxWidth: 300,
-        className: 'custom-popup'
-      });
-      
+      `);
       markersLayer.addLayer(marker);
     });
-
-    // Fit bounds to show all markers
+    
     if (Object.keys(countryCmds).length > 0) {
       const bounds = markersLayer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [50, 50] });
-      }
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [30, 30] });
     }
   }
 
   // ==================== CHARTS ====================
   function updateCharts() {
     const textColor = isDarkMode ? '#94a3b8' : '#64748b';
-    const gridColor = isDarkMode ? '#334155' : '#e2e8f0';
-
-    // Top Clients Chart
+    
+    // Clients Chart
     const clientsData = {};
-    cmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
-    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 8);
-
+    filteredCmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
+    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    
     if (clientsChart) clientsChart.destroy();
     clientsChart = new Chart(document.getElementById('clientsChart'), {
       type: 'bar',
       data: {
-        labels: topClients.map(c => c[0].slice(0, 12)),
-        datasets: [{
-          label: 'Tonnes',
-          data: topClients.map(c => c[1]),
-          backgroundColor: [
-            'rgba(0, 119, 182, 0.8)',
-            'rgba(0, 180, 216, 0.8)',
-            'rgba(16, 185, 129, 0.8)',
-            'rgba(245, 158, 11, 0.8)',
-            'rgba(139, 92, 246, 0.8)',
-            'rgba(239, 68, 68, 0.8)',
-            'rgba(6, 182, 212, 0.8)',
-            'rgba(236, 72, 153, 0.8)'
-          ],
-          borderRadius: 10,
-          borderSkipped: false
-        }]
+        labels: topClients.map(c => c[0].slice(0, 10)),
+        datasets: [{ data: topClients.map(c => c[1]), backgroundColor: ['#0077b6', '#00b4d8', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'], borderRadius: 8 }]
       },
       options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { 
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: isDarkMode ? '#1e293b' : 'white',
-            titleColor: isDarkMode ? 'white' : '#1e293b',
-            bodyColor: isDarkMode ? '#94a3b8' : '#64748b',
-            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
-            borderWidth: 1,
-            cornerRadius: 12,
-            padding: 12
-          }
-        },
-        scales: {
-          x: { 
-            grid: { color: gridColor },
-            ticks: { color: textColor, font: { weight: '500' } }
-          },
-          y: { 
-            grid: { display: false },
-            ticks: { color: textColor, font: { weight: '600' } }
-          }
-        }
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { grid: { color: isDarkMode ? '#334155' : '#e2e8f0' }, ticks: { color: textColor } }, y: { grid: { display: false }, ticks: { color: textColor } } }
       }
     });
-
-    // Status Pie Chart
-    const attente = cmds.filter(c => c.statut === 'EN ATTENTE').length;
-    const chargees = cmds.filter(c => c.statut === 'CHARGÉE').length;
-
+    
+    // Status Chart
+    const attente = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
+    const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
+    
     if (statusChart) statusChart.destroy();
     statusChart = new Chart(document.getElementById('statusChart'), {
       type: 'doughnut',
       data: {
         labels: ['En Attente', 'Chargées'],
-        datasets: [{
-          data: [attente, chargees],
-          backgroundColor: [
-            'rgba(245, 158, 11, 0.9)',
-            'rgba(16, 185, 129, 0.9)'
-          ],
-          borderWidth: 0,
-          hoverOffset: 10
-        }]
+        datasets: [{ data: [attente, chargees], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }]
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { 
-            position: 'bottom',
-            labels: { 
-              color: textColor, 
-              padding: 20,
-              font: { size: 14, weight: '600' },
-              usePointStyle: true,
-              pointStyle: 'circle'
-            }
-          },
-          tooltip: {
-            backgroundColor: isDarkMode ? '#1e293b' : 'white',
-            titleColor: isDarkMode ? 'white' : '#1e293b',
-            bodyColor: isDarkMode ? '#94a3b8' : '#64748b',
-            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
-            borderWidth: 1,
-            cornerRadius: 12,
-            padding: 12
-          }
-        },
-        cutout: '65%'
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: textColor, padding: 15 } } },
+        cutout: '60%'
       }
     });
+  }
+
+  // ==================== EXPORTS ====================
+  function exportExcel() {
+    const wb = XLSX.utils.book_new();
+    
+    const mainData = filteredCmds.map((c, i) => ({
+      'N°': i + 1, 'Client': c.client, 'Référence': c.ref, 'Date': c.date,
+      'Départ': c.point_depart, 'Pays': c.pays, 'Tonnes': c.tonnes,
+      'Immat': c.immat || '-', 'Statut': c.statut, 'Emails': c.nb_emails || 0
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(mainData);
+    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 8 }];
+    XLSX.utils.book_append_sheet(wb, ws, "Commandes");
+    
+    XLSX.writeFile(wb, `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('📥 Excel téléchargé!');
+  }
+
+  function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFontSize(20);
+    doc.setTextColor(0, 119, 182);
+    doc.text('Solana Logistique PRO', 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Export du ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
+    
+    const tableData = filteredCmds.map(c => [c.client, c.ref, c.date, c.pays, c.tonnes.toFixed(2) + 'T', c.statut]);
+    
+    doc.autoTable({
+      head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']],
+      body: tableData,
+      startY: 35,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [0, 119, 182] }
+    });
+    
+    doc.save(`Solana_Export_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('📄 PDF téléchargé!');
   }
 
   // ==================== MODALS ====================
@@ -1519,120 +1579,46 @@
 
   function closeAddModal() {
     document.getElementById('addModal').classList.add('hidden');
-    document.getElementById('clientIn').value = '';
-    document.getElementById('refIn').value = '';
-    document.getElementById('pointDepart').value = '';
-    document.getElementById('paysIn').value = '';
-    document.getElementById('tonnesIn').value = '';
-    document.getElementById('immatIn').value = '';
-    document.getElementById('emailIn').value = '';
+    ['clientIn', 'refIn', 'pointDepart', 'paysIn', 'tonnesIn', 'immatIn', 'emailIn'].forEach(id => document.getElementById(id).value = '');
   }
 
   function showCountryDetail(code) {
     const paysCmds = cmds.filter(c => c.pays === code);
     const totalT = paysCmds.reduce((s, c) => s + c.tonnes, 0);
-    const attente = paysCmds.filter(c => c.statut === 'EN ATTENTE').length;
-    const chargees = paysCmds.filter(c => c.statut === 'CHARGÉE').length;
-
-    document.getElementById('countryFlag').innerHTML = paysEmojis[code] || '🌍';
-    document.getElementById('countryFlag').className = 'w-12 h-12 rounded-xl flex items-center justify-center text-3xl bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900 dark:to-cyan-900';
+    
+    document.getElementById('countryFlag').textContent = paysEmojis[code] || '🌍';
     document.getElementById('countryTitle').textContent = paysNoms[code] || code;
-    document.getElementById('countrySubtitle').textContent = `${paysCmds.length} commande${paysCmds.length > 1 ? 's' : ''} • ${totalT.toFixed(1)} tonnes`;
-
+    document.getElementById('countrySubtitle').textContent = `${paysCmds.length} commandes • ${totalT.toFixed(1)}T`;
     document.getElementById('countryContent').innerHTML = `
-      <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 text-center">
-          <div class="text-3xl font-black text-blue-600">${totalT.toFixed(1)}T</div>
-          <div class="text-sm text-gray-500 mt-1">Total Exporté</div>
-        </div>
-        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 text-center">
-          <div class="text-3xl font-black text-emerald-600">${chargees}</div>
-          <div class="text-sm text-gray-500 mt-1">Chargées</div>
-        </div>
-        <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-5 text-center">
-          <div class="text-3xl font-black text-amber-600">${attente}</div>
-          <div class="text-sm text-gray-500 mt-1">En Attente</div>
-        </div>
-      </div>
-      
-      <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-gray-700">
-        <table class="w-full">
-          <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-slate-700 dark:to-slate-600">
-            <tr>
-              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Réf</th>
-              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Client</th>
-              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
-              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Départ</th>
-              <th class="px-5 py-4 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
-              <th class="px-5 py-4 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Statut</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${paysCmds.map(c => `
-              <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700/50">
-                <td class="px-5 py-4 font-mono text-sm">${c.ref}</td>
-                <td class="px-5 py-4 font-semibold">${c.client}</td>
-                <td class="px-5 py-4 text-gray-500">${c.date}</td>
-                <td class="px-5 py-4 text-gray-500">${c.point_depart}</td>
-                <td class="px-5 py-4 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
-                <td class="px-5 py-4">
-                  ${c.statut === 'CHARGÉE' 
-                    ? '<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅</span>' 
-                    : '<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳</span>'}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      <div class="space-y-2">
+        ${paysCmds.map(c => `
+          <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between">
+            <div><span class="font-bold">${c.client}</span> <span class="text-sm text-gray-400">${c.ref}</span></div>
+            <div><span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span></div>
+          </div>
+        `).join('')}
       </div>
     `;
-    
     document.getElementById('countryModal').classList.remove('hidden');
   }
 
-  function closeCountryModal() {
-    document.getElementById('countryModal').classList.add('hidden');
-  }
+  function closeCountryModal() { document.getElementById('countryModal').classList.add('hidden'); }
 
-  function toggleView() {
-    isCardView = !isCardView;
-    document.getElementById('tableView').classList.toggle('hidden', isCardView);
-    document.getElementById('cardsView').classList.toggle('hidden', !isCardView);
-    document.getElementById('viewToggle').innerHTML = isCardView 
-      ? '<span>📋</span><span>Vue Table</span>' 
-      : '<span>📱</span><span>Vue Cartes</span>';
-  }
-
-  // ==================== INITIALIZATION ====================
+  // ==================== INIT ====================
   function initApp() {
-    // Populate countries dropdown
+    // Populate country dropdowns
     const select = document.getElementById('paysIn');
+    const filter = document.getElementById('countryFilter');
     Object.keys(paysNoms).sort().forEach(code => {
-      const opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = `${paysEmojis[code]} ${paysNoms[code]}`;
-      select.appendChild(opt);
+      select.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
+      filter.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
     });
-
-    // Initialize map
-    initMap();
-
-    // Load data
+    
     loadCmds();
+    setLanguage('fr');
   }
 
-  // Focus on password input
   document.getElementById('loginPassword').focus();
-
-  // Add CSS animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  `;
-  document.head.appendChild(style);
 </script>
 
 </body>
