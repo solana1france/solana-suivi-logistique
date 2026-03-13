@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   
+  <!-- QRCode Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -32,73 +33,181 @@
     .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
     .gradient-delivered { background: linear-gradient(135deg, #059669, #10b981, #34d399); }
     
-    .glass { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); }
+    .glass { 
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
     .dark .glass { background: rgba(30, 41, 59, 0.9); }
     
-    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
-    @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.4); } 50% { box-shadow: 0 0 50px rgba(0, 180, 216, 0.8); } }
-    @keyframes slide-up { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(2deg); }
+    }
+    
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.4); }
+      50% { box-shadow: 0 0 50px rgba(0, 180, 216, 0.8); }
+    }
+    
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
     .animate-slide-up { animation: slide-up 0.6s ease-out; }
     .animate-rotate { animation: rotate 1s linear infinite; }
     
-    .kpi-card { transition: all 0.4s; position: relative; overflow: hidden; }
-    .kpi-card:hover { transform: translateY(-12px) scale(1.02); box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4); }
+    .kpi-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card:hover {
+      transform: translateY(-12px) scale(1.02);
+      box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
+    }
     
-    .table-row { transition: all 0.3s; }
+    .table-row { transition: all 0.3s ease; }
     .table-row:hover { background: linear-gradient(90deg, rgba(0, 119, 182, 0.05), rgba(0, 180, 216, 0.1)); }
     
     #map { height: 450px; border-radius: 20px; z-index: 1; }
     
-    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #0077b6, #10b981); border-radius: 10px; }
     
-    .toast { position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; border-radius: 16px; z-index: 9999; animation: slide-up 0.5s; }
-    .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9998; }
-    .loading-spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.3); border-top-color: #00b4d8; border-radius: 50%; animation: rotate 1s linear infinite; }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      padding: 16px 24px;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      z-index: 9999;
+      animation: slide-up 0.5s ease-out;
+    }
     
-    .calendar-day { min-height: 100px; border: 1px solid #e5e7eb; }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top-color: #00b4d8;
+      border-radius: 50%;
+      animation: rotate 1s linear infinite;
+    }
+    
+    .calendar-day {
+      min-height: 100px;
+      border: 1px solid #e5e7eb;
+      transition: all 0.2s;
+    }
     .calendar-day:hover { background: #f0f9ff; }
     .calendar-day.has-orders { background: linear-gradient(135deg, #ecfdf5, #f0f9ff); }
     .calendar-day.today { border: 2px solid #0077b6; background: #f0f9ff; }
     
-    .lang-btn { padding: 8px 16px; border-radius: 10px; font-weight: 600; }
+    .lang-btn { padding: 8px 16px; border-radius: 10px; font-weight: 600; transition: all 0.2s; }
     .lang-btn.active { background: linear-gradient(135deg, #0077b6, #00b4d8); color: white; }
+    .lang-btn:not(.active):hover { background: #f3f4f6; }
     
-    .search-input { background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px 16px 12px 44px; }
-    .search-input:focus { border-color: #0077b6; outline: none; }
+    .search-input {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 16px 12px 44px;
+      transition: all 0.2s;
+    }
+    .search-input:focus { border-color: #0077b6; box-shadow: 0 0 0 3px rgba(0,119,182,0.1); outline: none; }
     
-    .filter-chip { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 2px solid transparent; }
+    .filter-chip {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
     .filter-chip.active { background: linear-gradient(135deg, #0077b6, #00b4d8); color: white; }
     .filter-chip:not(.active) { background: #f3f4f6; border-color: #e5e7eb; }
+    .filter-chip:not(.active):hover { border-color: #0077b6; }
     
-    .photo-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid #e5e7eb; }
-    .photo-upload-btn { width: 100px; height: 100px; border: 2px dashed #d1d5db; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .photo-preview { 
+      width: 100px; 
+      height: 100px; 
+      object-fit: cover; 
+      border-radius: 12px; 
+      border: 2px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .photo-preview:hover { transform: scale(1.05); border-color: #0077b6; }
+    
+    .photo-upload-btn {
+      width: 100px;
+      height: 100px;
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-direction: column;
+      gap: 4px;
+    }
     .photo-upload-btn:hover { border-color: #0077b6; background: #f0f9ff; }
     
-    #qrCodeContainer canvas { border-radius: 10px; }
+    #qrCodeContainer canvas, #qrCodeContainer img {
+      border-radius: 10px;
+    }
     
-    .delivery-photo { max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; }
+    .delivery-photo {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Public view styles */
+    .public-view {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0077b6, #00b4d8);
+    }
   </style>
 </head>
-<body class="bg-gray-50 dark:bg-slate-900 min-h-screen">
+<body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-500">
 
-  <div id="loadingOverlay" class="loading-overlay hidden"><div class="loading-spinner"></div></div>
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
   <div id="toast" class="toast hidden"></div>
 
-  <!-- PAGE PUBLIQUE DE VISUALISATION (quand on scanne le QR) -->
-  <div id="publicView" class="hidden min-h-screen gradient-ocean flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden animate__animated animate__fadeInUp">
-      <div class="gradient-delivered p-6 text-center text-white">
-        <div class="text-5xl mb-2">🎉</div>
-        <h1 class="text-2xl font-bold">Livraison Confirmée</h1>
-        <p class="opacity-90">Solana Logistique</p>
-      </div>
-      <div id="publicViewContent" class="p-6">
-        <div class="text-center py-8"><div class="animate-rotate w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div><p class="mt-4 text-gray-500">Chargement...</p></div>
+  <!-- PUBLIC DELIVERY VIEW -->
+  <div id="publicView" class="hidden">
+    <div class="public-view flex items-center justify-center p-4 min-h-screen">
+      <div id="publicViewContent" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 animate__animated animate__fadeInUp">
+        <!-- Content will be injected here -->
       </div>
     </div>
   </div>
@@ -108,6 +217,7 @@
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <div class="absolute w-40 h-40 bg-white/10 rounded-full -top-20 -left-20 animate-float"></div>
       <div class="absolute w-32 h-32 bg-white/10 rounded-full top-1/4 right-10 animate-float" style="animation-delay: 1s;"></div>
+      <div class="absolute w-56 h-56 bg-white/10 rounded-full -bottom-28 left-1/4 animate-float" style="animation-delay: 2s;"></div>
     </div>
     
     <div class="glass rounded-3xl p-10 shadow-2xl max-w-md w-full mx-4 animate__animated animate__fadeInUp">
@@ -115,8 +225,9 @@
         <div class="w-28 h-28 gradient-ocean rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl animate-pulse-glow">
           <span class="text-6xl">🚚</span>
         </div>
+        
         <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3">Solana Logistique</h1>
-        <p class="text-gray-500 mb-8 text-lg">Dashboard Export & Suivi</p>
+        <p class="text-gray-500 dark:text-gray-400 mb-8 text-lg">Dashboard Export & Suivi</p>
         
         <div class="flex justify-center gap-2 mb-6">
           <button onclick="setLanguage('fr')" class="lang-btn active" id="lang-fr">🇫🇷 FR</button>
@@ -124,156 +235,331 @@
           <button onclick="setLanguage('ar')" class="lang-btn" id="lang-ar">🇸🇦 AR</button>
         </div>
         
-        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-5 mb-6 border border-blue-100">
-          <p class="text-blue-700"><span class="font-semibold">Mot de passe:</span> <code class="bg-blue-100 px-4 py-2 rounded-xl ml-2 font-mono">solana123</code></p>
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-5 mb-6 border border-blue-100">
+          <p class="text-blue-700 dark:text-blue-300">
+            <span class="font-semibold">Mot de passe:</span> 
+            <code class="bg-blue-100 dark:bg-blue-800 px-4 py-2 rounded-xl ml-2 font-mono text-lg">solana123</code>
+          </p>
         </div>
         
-        <input type="password" id="loginPassword" placeholder="Entrez le mot de passe" class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none mb-4" onkeypress="if(event.key==='Enter') login()">
+        <input type="password" id="loginPassword" placeholder="Entrez le mot de passe"
+          class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-800 dark:text-white focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 transition-all mb-4"
+          onkeypress="if(event.key==='Enter') login()">
+        
         <p id="loginError" class="text-red-500 text-sm mb-4 hidden">❌ Mot de passe incorrect</p>
-        <button onclick="login()" class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:scale-[1.02] transition-all">✨ Accéder au Dashboard</button>
+        
+        <button onclick="login()" class="w-full py-5 gradient-ocean text-white text-xl font-bold rounded-2xl shadow-2xl hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all">
+          ✨ Accéder au Dashboard
+        </button>
       </div>
     </div>
   </div>
 
   <!-- MAIN DASHBOARD -->
   <div id="dashboard" class="hidden">
-    <header class="sticky top-0 z-40 glass border-b border-gray-200/50">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-40 glass border-b border-gray-200/50 dark:border-gray-700/50">
       <div class="container mx-auto px-4 py-3">
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="flex items-center gap-3">
-            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl"><span class="text-2xl">🚚</span></div>
+            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl">
+              <span class="text-2xl">🚚</span>
+            </div>
             <div>
-              <h1 class="text-xl font-black bg-gradient-to-r from-blue-600 to-teal-400 bg-clip-text text-transparent">Solana Logistique PRO</h1>
-              <p class="text-xs text-gray-500"><span id="headerStats">Chargement...</span> <span id="supabaseBadge" class="hidden ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">☁️ Supabase</span></p>
+              <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent">
+                Solana Logistique PRO
+              </h1>
+              <p class="text-xs text-gray-500 flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span id="headerStats">Chargement...</span>
+                <span id="supabaseBadge" class="hidden ml-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">☁️ Supabase</span>
+              </p>
             </div>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="flex gap-1 bg-gray-100 rounded-xl p-1">
+          
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex gap-1 bg-gray-100 dark:bg-slate-700 rounded-xl p-1">
               <button onclick="setLanguage('fr')" class="lang-btn text-xs active" id="lang-fr-2">🇫🇷</button>
               <button onclick="setLanguage('en')" class="lang-btn text-xs" id="lang-en-2">🇬🇧</button>
               <button onclick="setLanguage('ar')" class="lang-btn text-xs" id="lang-ar-2">🇸🇦</button>
             </div>
-            <button onclick="synchroniser()" class="flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-xl text-sm"><span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span></button>
-            <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl text-sm">➕ <span class="hidden sm:inline">Nouvelle</span></button>
-            <button onclick="logout()" class="p-2 gradient-danger text-white rounded-xl">🚪</button>
+            
+            <button onclick="toggleDarkMode()" id="darkModeBtn" class="p-2 rounded-xl bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 transition-all">🌙</button>
+            <button onclick="synchroniser()" class="flex items-center gap-1 px-3 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-medium transition-all text-sm">
+              <span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span>
+            </button>
+            <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl font-semibold shadow-lg text-sm">
+              ➕ <span class="hidden sm:inline">Nouvelle</span>
+            </button>
+            <button onclick="logout()" class="p-2 gradient-danger text-white rounded-xl shadow-lg">🚪</button>
           </div>
         </div>
       </div>
     </header>
 
+    <!-- Main Content -->
     <main class="container mx-auto px-4 py-6 space-y-6">
+      
       <!-- KPI Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg"><p class="text-xs text-gray-500 uppercase">Total Tonnes</p><p class="text-3xl font-black text-blue-600 mt-1" id="kpiTonnes">0 T</p><div class="absolute bottom-3 right-3 w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center animate-float">📦</div></div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg"><p class="text-xs text-gray-500 uppercase">En Attente</p><p class="text-3xl font-black text-amber-500 mt-1" id="kpiAttente">0</p><div class="absolute bottom-3 right-3 w-12 h-12 gradient-warning rounded-xl flex items-center justify-center animate-float">⏳</div></div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg"><p class="text-xs text-gray-500 uppercase">Chargées</p><p class="text-3xl font-black text-emerald-500 mt-1" id="kpiChargees">0</p><div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center animate-float">✅</div></div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg"><p class="text-xs text-gray-500 uppercase">Livrées</p><p class="text-3xl font-black text-green-600 mt-1" id="kpiLivrees">0</p><div class="absolute bottom-3 right-3 w-12 h-12 gradient-delivered rounded-xl flex items-center justify-center animate-float">🎉</div></div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg"><p class="text-xs text-gray-500 uppercase">Emails</p><p class="text-3xl font-black text-purple-500 mt-1" id="kpiEmails">0</p><div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center animate-float">📧</div></div>
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Tonnes</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mt-1" id="kpiTonnes">0 T</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg animate-float">📦</div>
+        </div>
+        
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">En Attente</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mt-1" id="kpiAttente">0</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-warning rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.3s;">⏳</div>
+        </div>
+        
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Chargées</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent mt-1" id="kpiChargees">0</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.6s;">✅</div>
+        </div>
+        
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Livrées</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent mt-1" id="kpiLivrees">0</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-delivered rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.9s;">🎉</div>
+        </div>
+        
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Emails</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mt-1" id="kpiEmails">0</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 1.2s;">📧</div>
+        </div>
       </div>
 
       <!-- Progress -->
-      <div class="bg-white rounded-2xl p-5 shadow-lg">
-        <div class="flex justify-between mb-3"><span class="text-sm font-semibold text-gray-600">Progression</span><span class="text-2xl font-black text-emerald-600" id="progressPercent">0%</span></div>
-        <div class="h-4 bg-gray-100 rounded-full overflow-hidden"><div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div></div>
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-semibold text-gray-600">Progression</span>
+          <span class="text-2xl font-black text-emerald-600" id="progressPercent">0%</span>
+        </div>
+        <div class="h-4 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+        </div>
       </div>
 
-      <!-- Filters -->
-      <div class="bg-white rounded-2xl p-5 shadow-lg">
+      <!-- SEARCH & FILTERS -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
         <div class="flex flex-wrap items-center gap-4">
-          <div class="relative flex-1 min-w-[200px]"><span class="absolute left-4 top-1/2 -translate-y-1/2">🔍</span><input type="text" id="searchInput" placeholder="Rechercher..." class="search-input w-full pl-12" oninput="filterCommands()"></div>
-          <div class="flex gap-2">
+          <div class="relative flex-1 min-w-[200px]">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays..." 
+              class="search-input w-full dark:bg-slate-700 dark:border-gray-600 dark:text-white" oninput="filterCommands()">
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <input type="date" id="dateFrom" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+            <span class="text-gray-400">→</span>
+            <input type="date" id="dateTo" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+          </div>
+          
+          <div class="flex gap-2 flex-wrap">
             <button onclick="setStatusFilter('all')" class="filter-chip active" id="filter-all">Tous</button>
             <button onclick="setStatusFilter('EN ATTENTE')" class="filter-chip" id="filter-attente">⏳ Attente</button>
             <button onclick="setStatusFilter('CHARGÉE')" class="filter-chip" id="filter-chargee">✅ Chargées</button>
             <button onclick="setStatusFilter('LIVRÉE')" class="filter-chip" id="filter-livree">🎉 Livrées</button>
           </div>
-          <select id="countryFilter" class="px-4 py-2 rounded-xl border-2 border-gray-200" onchange="filterCommands()"><option value="">Tous pays</option></select>
-          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 rounded-xl">🔄 Reset</button>
+          
+          <select id="countryFilter" class="px-4 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
+            <option value="">Tous les pays</option>
+          </select>
+          
+          <button onclick="resetFilters()" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">🔄 Reset</button>
         </div>
       </div>
 
-      <!-- Table -->
-      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div class="p-4 bg-gray-50 flex justify-between">
-          <label class="flex items-center gap-2"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5"><span class="text-sm">Tout sélectionner</span></label>
+      <!-- VIEW TABS -->
+      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="flex border-b border-gray-200 dark:border-gray-700">
+          <button onclick="showView('table')" id="tab-table" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-900/20">📋 Tableau</button>
+          <button onclick="showView('cards')" id="tab-cards" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">📱 Cartes</button>
+          <button onclick="showView('calendar')" id="tab-calendar" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">📅 Calendrier</button>
+          <button onclick="showView('map')" id="tab-map" class="flex-1 py-4 px-6 font-semibold text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">🗺️ Carte</button>
+        </div>
+        
+        <!-- Actions Bar -->
+        <div class="p-4 bg-gray-50 dark:bg-slate-700/50 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded">
+              <span class="text-sm font-medium">Tout sélectionner</span>
+            </label>
+          </div>
           <div class="flex gap-2">
-            <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm">📥 Excel</button>
-            <button onclick="exportPDF()" class="px-4 py-2 bg-red-500 text-white rounded-xl text-sm">📄 PDF</button>
+            <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">📥 Export Excel</button>
+            <button onclick="exportPDF()" class="px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">📄 Export PDF</button>
           </div>
         </div>
-        <div class="overflow-x-auto">
+        
+        <!-- Table View -->
+        <div id="view-table" class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-gray-50">
+            <thead class="bg-gray-50 dark:bg-slate-700">
               <tr>
-                <th class="px-4 py-3 w-10"><input type="checkbox" onchange="toggleSelectAll()"></th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Client</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Réf</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Départ</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Pays</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Tonnes</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Statut</th>
-                <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Actions</th>
+                <th class="px-4 py-3 w-10"><input type="checkbox" id="headerCheckbox" onchange="toggleSelectAll()"></th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Client</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Réf</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Date</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Départ</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
+                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Statut</th>
+                <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody id="tableBody"><tr><td colspan="9" class="text-center py-12 text-gray-400">Chargement...</td></tr></tbody>
+            <tbody id="tableBody">
+              <tr><td colspan="9" class="text-center py-12 text-gray-400">☁️ Chargement...</td></tr>
+            </tbody>
           </table>
         </div>
+        
+        <!-- Cards View -->
+        <div id="view-cards" class="hidden p-4">
+          <div id="cardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+        </div>
+        
+        <!-- Calendar View -->
+        <div id="view-calendar" class="hidden p-4">
+          <div class="flex items-center justify-between mb-4">
+            <button onclick="changeMonth(-1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold">◀</button>
+            <h3 id="calendarTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
+            <button onclick="changeMonth(1)" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-bold">▶</button>
+          </div>
+          <div class="grid grid-cols-7 gap-1 mb-2">
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Dim</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Lun</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Mar</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Mer</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Jeu</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Ven</div>
+            <div class="text-center font-bold text-gray-500 text-sm py-2">Sam</div>
+          </div>
+          <div id="calendarGrid" class="grid grid-cols-7 gap-1"></div>
+        </div>
+        
+        <!-- Map View -->
+        <div id="view-map" class="hidden">
+          <div id="map" class="w-full"></div>
+        </div>
       </div>
-
-      <!-- Charts -->
+      
+      <!-- Charts Row -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="bg-white rounded-2xl p-5 shadow-lg"><h3 class="font-bold mb-4">👑 Top Clients</h3><div class="h-64"><canvas id="clientsChart"></canvas></div></div>
-        <div class="bg-white rounded-2xl p-5 shadow-lg"><h3 class="font-bold mb-4">📊 Statuts</h3><div class="h-64"><canvas id="statusChart"></canvas></div></div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top Clients</h3>
+          <div class="h-64"><canvas id="clientsChart"></canvas></div>
+        </div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📊 Répartition Statuts</h3>
+          <div class="h-64 flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+        </div>
       </div>
+      
     </main>
+
+    <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase | 📱 QR Code
+    </footer>
   </div>
 
   <!-- ADD MODAL -->
-  <div id="addModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b flex justify-between sticky top-0 bg-white z-10">
-        <h3 class="text-xl font-bold">➕ Nouvelle Commande</h3>
-        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">✕</button>
+  <div id="addModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">➕ Nouvelle Commande</h3>
+        <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <form onsubmit="ajouterCmd(event)" class="p-5 space-y-3">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div><label class="block text-sm font-semibold mb-1">👤 Client</label><input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">📄 Référence</label><input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">📅 Date</label><input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">🚚 Départ</label><input type="text" id="pointDepart" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">🌍 Pays</label><select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"><option value="">Sélectionner...</option></select></div>
-          <div><label class="block text-sm font-semibold mb-1">⚖️ Tonnes</label><input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">🚛 Immat</label><input type="text" id="immatIn" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
-          <div><label class="block text-sm font-semibold mb-1">📧 Email</label><input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none"></div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 Client</label>
+            <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📄 Référence</label>
+            <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📅 Date</label>
+            <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚚 Départ</label>
+            <input type="text" id="pointDepart" placeholder="76, 62..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 Pays</label>
+            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+              <option value="">Sélectionner...</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ Tonnes</label>
+            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚛 Immat</label>
+            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📧 Email</label>
+            <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
         </div>
         <div class="flex gap-3 pt-4">
-          <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Annuler</button>
-          <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold">✨ Ajouter</button>
+          <button type="button" onclick="closeAddModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
+          <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold">✨ Ajouter & Sync</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- DELIVERY MODAL -->
-  <div id="deliveryModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b flex justify-between sticky top-0 bg-white z-10">
-        <h3 class="text-xl font-bold">🎉 Confirmer Livraison</h3>
-        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">✕</button>
+  <!-- DELIVERY CONFIRMATION MODAL WITH PHOTOS -->
+  <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">🎉 Confirmer Livraison</h3>
+        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <div id="deliveryModalContent" class="p-6"></div>
     </div>
   </div>
 
-  <!-- QR MODAL -->
-  <div id="qrModal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
-      <div class="p-5 border-b flex justify-between sticky top-0 bg-white z-10">
-        <h3 class="text-xl font-bold">📱 Confirmation de Livraison</h3>
-        <button onclick="closeQRModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">✕</button>
+  <!-- QR CODE MODAL -->
+  <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">📱 Confirmation de Livraison</h3>
+        <button onclick="closeQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <div id="qrModalContent" class="p-6"></div>
+    </div>
+  </div>
+
+  <!-- PHOTO VIEWER MODAL -->
+  <div id="photoViewerModal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4" onclick="closePhotoViewer()">
+    <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300">✕</button>
+    <img id="photoViewerImage" src="" class="max-w-full max-h-full object-contain">
+  </div>
+
+  <!-- CALENDAR MODAL -->
+  <div id="calendarModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 id="calendarModalTitle" class="text-xl font-bold text-gray-800 dark:text-white"></h3>
+        <button onclick="closeCalendarModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="calendarModalContent" class="p-5"></div>
     </div>
   </div>
 
@@ -282,28 +568,51 @@
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
   
-  // L'URL de base de votre page (GitHub Pages ou autre)
-  // IMPORTANT: Remplacez par VOTRE URL réelle
-  const BASE_URL = window.location.origin + window.location.pathname;
+  // URL GitHub Pages - Solana Logistique
+  const BASE_URL = 'https://solana1france.github.io/solana-suivi-logistique';
 
-  const paysEmojis = { SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿', ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱', GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷', FR: '🇫🇷' };
-  const paysNoms = { SN: 'Sénégal', PT: 'Portugal', MA: 'Maroc', TN: 'Tunisie', DZ: 'Algérie', ES: 'Espagne', IT: 'Italie', DE: 'Allemagne', BE: 'Belgique', NL: 'Pays-Bas', GB: 'Royaume-Uni', PL: 'Pologne', RO: 'Roumanie', GR: 'Grèce', FR: 'France' };
-  const paysCoords = { SN: [14.6937, -17.4441], PT: [38.7223, -9.1393], MA: [33.5731, -7.5898], TN: [36.8065, 10.1815], DZ: [36.7538, 3.0588], ES: [40.4168, -3.7038], IT: [41.9028, 12.4964], DE: [52.5200, 13.4050], BE: [50.8503, 4.3517], NL: [52.3676, 4.9041], GB: [51.5074, -0.1278], PL: [52.2297, 21.0122], RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137] };
+  const paysEmojis = {
+    SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
+    ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
+    GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷', FR: '🇫🇷'
+  };
+
+  const paysNoms = {
+    SN: 'Sénégal', PT: 'Portugal', MA: 'Maroc',
+    TN: 'Tunisie', DZ: 'Algérie', ES: 'Espagne',
+    IT: 'Italie', DE: 'Allemagne', BE: 'Belgique',
+    NL: 'Pays-Bas', GB: 'Royaume-Uni', PL: 'Pologne',
+    RO: 'Roumanie', GR: 'Grèce', FR: 'France'
+  };
+
+  const paysCoords = {
+    SN: [14.6937, -17.4441], PT: [38.7223, -9.1393], MA: [33.5731, -7.5898],
+    TN: [36.8065, 10.1815], DZ: [36.7538, 3.0588], ES: [40.4168, -3.7038],
+    IT: [41.9028, 12.4964], DE: [52.5200, 13.4050], BE: [50.8503, 4.3517],
+    NL: [52.3676, 4.9041], GB: [51.5074, -0.1278], PL: [52.2297, 21.0122],
+    RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137]
+  };
 
   // ==================== GLOBAL VARIABLES ====================
   let cmds = [];
   let filteredCmds = [];
+  let selectedCmds = new Set();
   let currentStatusFilter = 'all';
   let clientsChart = null;
   let statusChart = null;
+  let isDarkMode = false;
+  let map = null;
+  let markersLayer = null;
+  let currentCalendarDate = new Date();
   let currentDeliveryCmd = null;
-  let currentDeliveryPhotos = [];
+  let currentQRInstance = null;
+  let uploadedPhotos = []; // Store uploaded photos as base64
 
-  // ==================== UTILITY ====================
-  function showToast(msg, type = 'success') {
+  // ==================== UTILITY FUNCTIONS ====================
+  function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.className = `toast flex items-center gap-3 ${type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-gradient-to-r from-red-500 to-pink-500'} text-white`;
-    toast.innerHTML = `<span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span><span>${msg}</span>`;
+    toast.innerHTML = `<span class="text-2xl">${type === 'success' ? '✅' : '❌'}</span><span class="font-semibold">${message}</span>`;
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 4000);
   }
@@ -311,99 +620,180 @@
   function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
   function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-  // ==================== INIT: Check URL for public view ====================
+  // ==================== CHECK FOR PUBLIC VIEW ====================
   function checkPublicView() {
     const urlParams = new URLSearchParams(window.location.search);
-    const viewRef = urlParams.get('livraison');
+    const viewMode = urlParams.get('view');
+    const ref = urlParams.get('ref');
     
-    if (viewRef) {
-      // Mode public view - afficher les détails de la livraison
-      document.getElementById('publicView').classList.remove('hidden');
+    if (viewMode === 'delivery' && ref) {
+      // Show public delivery view
       document.getElementById('loginScreen').classList.add('hidden');
-      loadPublicDelivery(viewRef);
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('publicView').classList.remove('hidden');
+      loadPublicDeliveryView(ref);
       return true;
     }
     return false;
   }
 
-  async function loadPublicDelivery(ref) {
+  async function loadPublicDeliveryView(ref) {
+    const container = document.getElementById('publicViewContent');
+    container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Chargement...</p></div>';
+    
     try {
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}&select=*`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
+      
+      if (!res.ok) throw new Error();
+      
       const data = await res.json();
       
-      if (data && data.length > 0) {
-        const cmd = data[0];
-        showPublicDelivery(cmd);
-      } else {
-        document.getElementById('publicViewContent').innerHTML = `<div class="text-center py-8 text-red-500"><p class="text-xl">❌ Livraison introuvable</p></div>`;
+      if (data.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10">
+            <div class="text-6xl mb-4">❌</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Commande non trouvée</h2>
+            <p class="text-gray-500">La référence "${ref}" n'existe pas.</p>
+          </div>
+        `;
+        return;
       }
-    } catch (e) {
-      document.getElementById('publicViewContent').innerHTML = `<div class="text-center py-8 text-red-500"><p>❌ Erreur de chargement</p></div>`;
+      
+      const cmd = data[0];
+      const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'Non spécifiée';
+      
+      // Parse photos
+      let photos = [];
+      if (cmd.photos) {
+        try {
+          photos = JSON.parse(cmd.photos);
+        } catch (e) {
+          // If it's a single base64 string
+          if (cmd.photos.startsWith('data:image')) {
+            photos = [cmd.photos];
+          }
+        }
+      }
+      
+      // Parse documents
+      let documents = [];
+      if (cmd.documents_cmr) {
+        try {
+          documents = typeof cmd.documents_cmr === 'string' ? JSON.parse(cmd.documents_cmr) : cmd.documents_cmr;
+        } catch (e) {}
+      }
+      
+      container.innerHTML = `
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="text-4xl">🎉</span>
+          </div>
+          <h1 class="text-2xl font-black text-gray-800 mb-1">Confirmation de Livraison</h1>
+          <p class="text-gray-500">Solana Logistique</p>
+        </div>
+        
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Référence</p>
+              <p class="font-bold text-lg">${cmd.ref}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Client</p>
+              <p class="font-bold text-lg">${cmd.client}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Tonnes</p>
+              <p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Destination</p>
+              <p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Départ</p>
+              <p class="font-bold">${cmd.point_depart || '-'}</p>
+            </div>
+            <div>
+              <p class="text-gray-500 text-xs uppercase">Date de livraison</p>
+              <p class="font-bold">${deliveryDate}</p>
+            </div>
+          </div>
+        </div>
+        
+        ${cmd.immat ? `
+        <div class="bg-blue-50 rounded-xl p-4 mb-6">
+          <p class="text-gray-500 text-xs uppercase">Immatriculation</p>
+          <p class="font-bold text-lg">🚛 ${cmd.immat}</p>
+        </div>
+        ` : ''}
+        
+        ${photos.length > 0 ? `
+        <div class="mb-6">
+          <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${photos.map((photo, i) => `
+              <img src="${photo}" alt="Photo ${i+1}" class="delivery-photo cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoViewer('${photo}')">
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
+        ${documents.length > 0 ? `
+        <div class="mb-6">
+          <h3 class="font-bold text-gray-800 mb-3">📄 Documents CMR</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${documents.map((doc, i) => `
+              <img src="${doc}" alt="CMR ${i+1}" class="delivery-photo cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoViewer('${doc}')">
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
+        <div class="text-center pt-4 border-t">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span>
+        </div>
+        
+        <div class="text-center mt-6 text-xs text-gray-400">
+          <p>🚚 Solana Logistique - Projet Fin d'Études</p>
+          <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+        </div>
+      `;
+      
+    } catch (error) {
+      container.innerHTML = `
+        <div class="text-center py-10">
+          <div class="text-6xl mb-4">❌</div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2>
+          <p class="text-gray-500">Impossible de charger les données.</p>
+        </div>
+      `;
     }
   }
 
-  function showPublicDelivery(cmd) {
-    const photos = cmd.photos ? JSON.parse(cmd.photos) : [];
-    const docs = cmd.documents_cmr || {};
-    
-    let photosHtml = '';
-    if (photos.length > 0) {
-      photosHtml = `
-        <div class="mt-6">
-          <h3 class="font-bold text-lg mb-3 flex items-center gap-2">📸 Photos de livraison</h3>
-          <div class="grid grid-cols-2 gap-3">
-            ${photos.map((p, i) => `<img src="${p}" class="delivery-photo shadow-lg" alt="Photo ${i+1}">`).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    let docsHtml = '';
-    if (docs.cmr || docs.bon) {
-      docsHtml = `
-        <div class="mt-6 bg-gray-50 rounded-xl p-4">
-          <h3 class="font-bold mb-3">📋 Documents validés</h3>
-          <div class="space-y-2">
-            ${docs.cmr ? '<div class="flex items-center gap-2 text-emerald-600"><span class="text-xl">✅</span> CMR / Lettre de voiture signée</div>' : ''}
-            ${docs.bon ? '<div class="flex items-center gap-2 text-emerald-600"><span class="text-xl">✅</span> Bon de livraison signé</div>' : ''}
-          </div>
-        </div>
-      `;
-    }
-    
-    document.getElementById('publicViewContent').innerHTML = `
-      <div class="text-center mb-6">
-        <div class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">
-          🎉 LIVRAISON CONFIRMÉE
-        </div>
-      </div>
-      
-      <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-5 mb-4">
-        <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><p class="text-gray-500">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
-          <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
-          <div><p class="text-gray-500">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes.toFixed(2)} T</p></div>
-          <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
-          <div><p class="text-gray-500">Départ</p><p class="font-bold">${cmd.point_depart}</p></div>
-          <div><p class="text-gray-500">Date livraison</p><p class="font-bold">${cmd.date_livraison || new Date().toLocaleDateString('fr-FR')}</p></div>
-        </div>
-      </div>
-      
-      ${docsHtml}
-      ${photosHtml}
-      
-      <div class="mt-6 text-center text-gray-400 text-sm">
-        <p>🚚 Solana Logistique - Confirmation de livraison</p>
-        <p class="mt-1">Validé le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-      </div>
-    `;
+  function openPhotoViewer(src) {
+    document.getElementById('photoViewerImage').src = src;
+    document.getElementById('photoViewerModal').classList.remove('hidden');
+  }
+
+  function closePhotoViewer() {
+    document.getElementById('photoViewerModal').classList.add('hidden');
+  }
+
+  // ==================== DARK MODE ====================
+  function toggleDarkMode() {
+    isDarkMode = !isDarkMode;
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.getElementById('darkModeBtn').textContent = isDarkMode ? '☀️' : '🌙';
+    setTimeout(() => { updateCharts(); updateMapTiles(); }, 100);
   }
 
   // ==================== LOGIN/LOGOUT ====================
   function login() {
-    if (document.getElementById('loginPassword').value === 'solana123') {
+    const pwd = document.getElementById('loginPassword').value;
+    if (pwd === 'solana123') {
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
       initApp();
@@ -424,8 +814,10 @@
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     ['fr', 'en', 'ar'].forEach(l => {
-      document.getElementById(`lang-${l}`)?.classList.toggle('active', l === lang);
-      document.getElementById(`lang-${l}-2`)?.classList.toggle('active', l === lang);
+      const btn1 = document.getElementById(`lang-${l}`);
+      const btn2 = document.getElementById(`lang-${l}-2`);
+      if (btn1) btn1.classList.toggle('active', l === lang);
+      if (btn2) btn2.classList.toggle('active', l === lang);
     });
   }
 
@@ -436,6 +828,7 @@
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=*&order=ref.desc`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
+      if (!res.ok) throw new Error();
       cmds = await res.json();
       filteredCmds = [...cmds];
       document.getElementById('supabaseBadge').classList.remove('hidden');
@@ -447,35 +840,42 @@
   }
 
   async function saveCmd(cmd) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
-      method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify([cmd])
-    });
-    return res.ok;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify([cmd])
+      });
+      return res.ok;
+    } catch { return false; }
   }
 
   async function updateCmdDB(ref, updates) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(updates)
-    });
-    return res.ok;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify(updates)
+      });
+      return res.ok;
+    } catch { return false; }
   }
 
   async function deleteCmd(ref) {
-    await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
-      method: 'DELETE',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-    });
-    loadCmds();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      await loadCmds();
+    } catch {}
   }
 
   // ==================== ACTIONS ====================
   async function ajouterCmd(e) {
     e.preventDefault();
     showLoading();
+    
     const n = {
       client: document.getElementById('clientIn').value.trim(),
       ref: document.getElementById('refIn').value.trim(),
@@ -488,25 +888,54 @@
       statut: 'EN ATTENTE',
       nb_emails: 0
     };
-    if (cmds.find(c => c.ref === n.ref)) { hideLoading(); showToast('⚠️ Référence existante!', 'error'); return; }
+    
+    if (cmds.find(c => c.ref === n.ref)) {
+      hideLoading();
+      showToast('⚠️ Référence déjà existante!', 'error');
+      return;
+    }
+    
     const ok = await saveCmd(n);
     hideLoading();
-    if (ok) { closeAddModal(); loadCmds(); showToast('✅ Commande ajoutée!'); } else showToast('❌ Erreur', 'error');
+    
+    if (ok) {
+      closeAddModal();
+      await loadCmds();
+      showToast('✅ Commande ajoutée!');
+    } else {
+      showToast('❌ Erreur', 'error');
+    }
   }
 
   async function confirmerEmail(cmd) {
     if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer le chargement?`)) return;
+    
     showLoading();
-    const ok = await updateCmdDB(cmd.ref, { statut: 'CHARGÉE', nb_emails: (cmd.nb_emails || 0) + 1, date_chargement: new Date().toISOString().split('T')[0] });
+    
+    const updates = {
+      statut: 'CHARGÉE',
+      nb_emails: (cmd.nb_emails || 0) + 1
+    };
+    
+    const ok = await updateCmdDB(cmd.ref, updates);
+    
     if (ok) {
       const idx = cmds.findIndex(c => c.ref === cmd.ref);
-      if (idx !== -1) { cmds[idx].statut = 'CHARGÉE'; filterCommands(); }
+      if (idx !== -1) {
+        cmds[idx] = { ...cmds[idx], ...updates };
+        filterCommands();
+      }
       hideLoading();
+      
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
       const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
+      
       showToast('✅ Commande chargée!');
-    } else { hideLoading(); showToast('❌ Erreur', 'error'); }
+    } else {
+      hideLoading();
+      showToast('❌ Erreur', 'error');
+    }
   }
 
   async function supprimerCmd(ref) {
@@ -519,228 +948,384 @@
 
   function synchroniser() { loadCmds(); }
 
-  // ==================== PHOTOS ====================
-  function handlePhotoUpload(e) {
-    const files = e.target.files;
-    if (!files) return;
-    for (let file of files) {
-      if (currentDeliveryPhotos.length >= 5) { showToast('Max 5 photos', 'error'); return; }
-      const reader = new FileReader();
-      reader.onload = function(ev) { currentDeliveryPhotos.push(ev.target.result); updatePhotoPreview(); };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function updatePhotoPreview() {
-    const container = document.getElementById('photoPreviewContainer');
-    if (!container) return;
-    let html = currentDeliveryPhotos.map((p, i) => `
-      <div class="relative">
-        <img src="${p}" class="photo-preview">
-        <button type="button" onclick="removePhoto(${i})" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">×</button>
-      </div>
-    `).join('');
-    if (currentDeliveryPhotos.length < 5) html += `<label class="photo-upload-btn"><input type="file" accept="image/*" multiple onchange="handlePhotoUpload(event)" class="hidden"><span class="text-2xl text-gray-400">+</span></label>`;
-    container.innerHTML = html;
-  }
-
-  function removePhoto(idx) { currentDeliveryPhotos.splice(idx, 1); updatePhotoPreview(); }
-
-  // ==================== DELIVERY ====================
+  // ==================== DELIVERY CONFIRMATION WITH PHOTOS ====================
   function showDeliveryConfirmation(cmd) {
     currentDeliveryCmd = cmd;
-    currentDeliveryPhotos = [];
+    uploadedPhotos = [];
     
     document.getElementById('deliveryModalContent').innerHTML = `
       <div class="text-center mb-6">
-        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
-        <h3 class="text-xl font-bold">Confirmer la livraison</h3>
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4">
+          <span class="text-4xl">🎉</span>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
         <p class="text-gray-500">Commande ${cmd.ref}</p>
       </div>
       
-      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6">
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 mb-6">
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
-          <div><p class="text-gray-500">Tonnes</p><p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p></div>
-          <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p></div>
-          <div><p class="text-gray-500">Immat</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+          <div>
+            <p class="text-gray-500">Client</p>
+            <p class="font-bold">${cmd.client}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Tonnes</p>
+            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Destination</p>
+            <p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Immatriculation</p>
+            <p class="font-bold">${cmd.immat || '-'}</p>
+          </div>
         </div>
       </div>
       
-      <div class="bg-gray-50 rounded-2xl p-5 mb-6">
-        <h4 class="font-bold mb-3">📸 Photos de livraison</h4>
-        <p class="text-xs text-gray-500 mb-3">Ajoutez jusqu'à 5 photos</p>
-        <div id="photoPreviewContainer" class="flex gap-3 flex-wrap">
-          <label class="photo-upload-btn"><input type="file" accept="image/*" multiple onchange="handlePhotoUpload(event)" class="hidden"><span class="text-2xl text-gray-400">+</span></label>
+      <!-- Photo Upload Section -->
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos de livraison</h4>
+        <p class="text-sm text-gray-500 mb-3">Ajoutez des photos de la livraison (optionnel)</p>
+        
+        <div class="flex flex-wrap gap-3" id="photoPreviewContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">Ajouter</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)">
+          </label>
         </div>
       </div>
       
-      <div class="bg-gray-50 rounded-2xl p-5 mb-6">
-        <h4 class="font-bold mb-3">📋 Documents</h4>
-        <div class="space-y-2">
-          <label class="flex items-center gap-3 bg-white rounded-xl p-3 cursor-pointer"><input type="checkbox" id="docCMR" checked class="w-5 h-5"><span>CMR signé</span></label>
-          <label class="flex items-center gap-3 bg-white rounded-xl p-3 cursor-pointer"><input type="checkbox" id="docBon" checked class="w-5 h-5"><span>Bon de livraison</span></label>
+      <!-- Documents Section -->
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR</h4>
+        <p class="text-sm text-gray-500 mb-3">Ajoutez les documents de transport (optionnel)</p>
+        
+        <div class="flex flex-wrap gap-3" id="documentPreviewContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">CMR</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handleDocumentUpload(event)">
+          </label>
         </div>
       </div>
       
       <div class="flex gap-3">
-        <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 rounded-xl font-bold">Annuler</button>
-        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer</button>
+        <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
+        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer Livraison</button>
       </div>
     `;
+    
     document.getElementById('deliveryModal').classList.remove('hidden');
   }
 
+  function handlePhotoUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('photoPreviewContainer');
+    
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        uploadedPhotos.push({ type: 'photo', data: base64 });
+        
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `
+          <img src="${base64}" class="photo-preview">
+          <button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" 
+            class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600">✕</button>
+        `;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleDocumentUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('documentPreviewContainer');
+    
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        uploadedPhotos.push({ type: 'document', data: base64 });
+        
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `
+          <img src="${base64}" class="photo-preview">
+          <button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" 
+            class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600">✕</button>
+        `;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   async function confirmDeliveryFinal() {
-    if (!currentDeliveryCmd) return;
+    if (!currentDeliveryCmd) {
+      showToast('❌ Erreur', 'error');
+      return;
+    }
+    
     showLoading();
     
-    const docs = {
-      cmr: document.getElementById('docCMR')?.checked || false,
-      bon: document.getElementById('docBon')?.checked || false,
-      date: new Date().toISOString()
-    };
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Separate photos and documents
+    const photos = uploadedPhotos.filter(p => p.type === 'photo').map(p => p.data);
+    const documents = uploadedPhotos.filter(p => p.type === 'document').map(p => p.data);
     
     const updates = {
       statut: 'LIVRÉE',
-      date_livraison: new Date().toISOString().split('T')[0],
-      photos: currentDeliveryPhotos.length > 0 ? JSON.stringify(currentDeliveryPhotos) : null,
-      documents_cmr: docs
+      date_livraison: today,
+      photos: photos.length > 0 ? JSON.stringify(photos) : null,
+      documents_cmr: documents.length > 0 ? documents : null
     };
     
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
     if (ok) {
       const idx = cmds.findIndex(c => c.ref === currentDeliveryCmd.ref);
-      if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
+      if (idx !== -1) {
+        cmds[idx] = { ...cmds[idx], ...updates };
+        filterCommands();
+      }
+      
       hideLoading();
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
-      setTimeout(() => showQRModal({ ...currentDeliveryCmd, ...updates }), 300);
-    } else { hideLoading(); showToast('❌ Erreur', 'error'); }
+      
+      // Show QR Modal with the updated command
+      const updatedCmd = { ...currentDeliveryCmd, ...updates };
+      setTimeout(() => {
+        showQRModal(updatedCmd);
+      }, 300);
+      
+    } else {
+      hideLoading();
+      showToast('❌ Erreur', 'error');
+    }
   }
 
   function closeDeliveryModal() {
     document.getElementById('deliveryModal').classList.add('hidden');
     currentDeliveryCmd = null;
-    currentDeliveryPhotos = [];
+    uploadedPhotos = [];
   }
 
-  // ==================== QR CODE ====================
+  // ==================== QR CODE WITH LINK ====================
   function showQRModal(cmd) {
-    // Générer le lien vers la page publique
-    const publicUrl = `${BASE_URL}?livraison=${encodeURIComponent(cmd.ref)}`;
+    // Generate the public viewing URL
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
     
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- QR Code Section -->
         <div class="text-center">
-          <div class="bg-white p-4 rounded-2xl shadow-lg inline-block">
-            <div id="qrCodeContainer"></div>
+          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block">
+            <div id="qrCodeContainer" class="flex justify-center"></div>
           </div>
-          <p class="mt-4 text-sm text-gray-500">Scannez pour voir la livraison</p>
-          <p class="mt-2 text-xs text-blue-600 break-all">${publicUrl}</p>
-          <div class="mt-4 flex gap-2 justify-center">
-            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl text-sm">📥 Télécharger</button>
-            <button onclick="copyLink('${publicUrl}')" class="px-4 py-2 bg-gray-100 rounded-xl text-sm">📋 Copier lien</button>
+          <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails de livraison</p>
+          <p class="text-xs text-gray-400 mt-1 break-all">${viewUrl}</p>
+          <div class="mt-4 flex gap-2 justify-center flex-wrap">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger QR</button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
           </div>
         </div>
         
+        <!-- Details Section -->
         <div class="space-y-4">
-          <div class="bg-blue-50 rounded-2xl p-4">
-            <h4 class="font-bold mb-3">📦 Détails</h4>
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
             <div class="space-y-2 text-sm">
-              <div class="flex justify-between"><span class="text-gray-500">Réf:</span><span class="font-bold">${cmd.ref}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-bold">${cmd.client}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span>${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Date:</span><span class="font-semibold">${cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}</span></div>
             </div>
           </div>
           
+          <!-- Photos Preview -->
           ${cmd.photos ? `
-          <div class="bg-emerald-50 rounded-xl p-4">
-            <p class="font-bold text-emerald-700">📸 ${JSON.parse(cmd.photos).length} photo(s) enregistrée(s)</p>
-            <p class="text-sm text-emerald-600 mt-1">Visibles via le QR Code</p>
+          <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-3">
+            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">📸 Photos incluses</p>
+            <div class="flex gap-2 overflow-x-auto">
+              ${(typeof cmd.photos === 'string' ? JSON.parse(cmd.photos) : cmd.photos).slice(0, 3).map(p => `
+                <img src="${p}" class="w-16 h-16 object-cover rounded-lg">
+              `).join('')}
+            </div>
           </div>
           ` : ''}
           
-          <button onclick="sendDeliveryEmail('${cmd.ref}', '${publicUrl}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold text-lg">
+          <!-- Email Buttons -->
+          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2">
             📧 Envoyer email au client
           </button>
           
+          <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-4 text-sm">
+            <p class="font-bold text-yellow-800 dark:text-yellow-200">💡 Astuce</p>
+            <p class="text-yellow-700 dark:text-yellow-300 mt-1">Le QR Code contient un lien vers une page publique. Quand on le scanne, on voit les détails de livraison avec les photos!</p>
+          </div>
+          
+          <!-- Status -->
           <div class="text-center">
-            <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold">🎉 LIVRÉE</span>
+            <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">🎉 LIVRÉE</span>
           </div>
         </div>
       </div>
     `;
+    
     document.getElementById('qrModal').classList.remove('hidden');
     
+    // Generate QR Code with the URL
     setTimeout(() => {
-      new QRCode(document.getElementById('qrCodeContainer'), {
-        text: publicUrl,
-        width: 200,
-        height: 200,
-        colorDark: '#0077b6',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
+      generateQRCode(viewUrl);
     }, 100);
   }
 
-  function closeQRModal() { document.getElementById('qrModal').classList.add('hidden'); }
+  function generateQRCode(text) {
+    const container = document.getElementById('qrCodeContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    currentQRInstance = new QRCode(container, {
+      text: text,
+      width: 220,
+      height: 220,
+      colorDark: '#0077b6',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
 
-  function downloadQRCode(ref) {
-    const canvas = document.querySelector('#qrCodeContainer canvas');
-    if (canvas) {
-      const link = document.createElement('a');
-      link.download = `QR_${ref}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      showToast('📥 QR téléchargé!');
+  function closeQRModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+    if (currentQRInstance) {
+      currentQRInstance = null;
     }
   }
 
-  function copyLink(url) {
-    navigator.clipboard.writeText(url).then(() => showToast('📋 Lien copié!'));
+  function downloadQRCode(ref) {
+    const container = document.getElementById('qrCodeContainer');
+    const canvas = container ? container.querySelector('canvas') : null;
+    
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QR_Livraison_${ref}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('📥 QR Code téléchargé!');
+    } else {
+      showToast('❌ Erreur téléchargement', 'error');
+    }
   }
 
-  function sendDeliveryEmail(ref, url) {
+  function printQRCode(ref) {
+    const container = document.getElementById('qrCodeContainer');
+    const canvas = container ? container.querySelector('canvas') : null;
+    
+    if (canvas) {
+      const imgData = canvas.toDataURL('image/png');
+      const today = new Date().toLocaleDateString('fr-FR');
+      const viewUrl = `${BASE_URL}?view=delivery&ref=${ref}`;
+      
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Confirmation Livraison - ${ref}</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 30px; }
+            h1 { color: #0077b6; margin-bottom: 5px; }
+            .qr { margin: 20px auto; padding: 20px; background: white; display: inline-block; border-radius: 10px; }
+            .info { text-align: left; margin: 20px auto; max-width: 300px; }
+            .info p { margin: 5px 0; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+            .footer { margin-top: 30px; color: #666; font-size: 12px; }
+            .url { word-break: break-all; color: #0077b6; font-size: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1>🚚 Solana Logistique</h1>
+          <h2>Confirmation de Livraison</h2>
+          <div class="qr">
+            <img src="${imgData}" style="width: 200px; height: 200px;">
+          </div>
+          <div class="info">
+            <p><strong>Référence:</strong> ${ref}</p>
+            <p><strong>Date:</strong> ${today}</p>
+          </div>
+          <p style="color: #0077b6; font-weight: bold;">Scannez ce QR code pour voir les détails</p>
+          <p class="url">${viewUrl}</p>
+          <div class="footer">
+            <p>Solana Logistique - Projet Fin d'Études</p>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  }
+
+  function sendDeliveryEmail(ref) {
     const cmd = cmds.find(c => c.ref === ref);
     if (!cmd) return;
     
-    const sujet = `🎉 Livraison Confirmée - ${ref}`;
+    const today = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(ref)}`;
+    
+    const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref}`;
     const message = `Bonjour ${cmd.client},
 
 ═══════════════════════════════
 🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!
 ═══════════════════════════════
 
-Référence: ${ref}
+Référence: ${cmd.ref}
+Client: ${cmd.client}
 Tonnes: ${cmd.tonnes.toFixed(2)} T
-Destination: ${paysNoms[cmd.pays]}
+Destination: ${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}
+Date de livraison: ${today}
 
-📱 VOIR LES DÉTAILS ET PHOTOS:
-${url}
+═══════════════════════════════
+📱 VOIR LES DÉTAILS EN LIGNE
+═══════════════════════════════
 
-Scannez le QR code en pièce jointe ou cliquez sur le lien ci-dessus.
+Cliquez sur ce lien pour voir les détails de livraison avec les photos:
+${viewUrl}
 
 Merci de votre confiance!
+
 🚚 Solana Logistique`;
     
     window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-    showToast('📧 Email préparé! Ajoutez le QR en pièce jointe.');
+    showToast('📧 Email préparé!');
   }
 
   // ==================== FILTERS ====================
   function filterCommands() {
     const search = document.getElementById('searchInput').value.toLowerCase();
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
     const country = document.getElementById('countryFilter').value;
+    
     filteredCmds = cmds.filter(c => {
-      const matchSearch = !search || c.client.toLowerCase().includes(search) || c.ref.toLowerCase().includes(search);
+      const matchSearch = !search || c.client.toLowerCase().includes(search) || c.ref.toLowerCase().includes(search) || c.pays.toLowerCase().includes(search);
+      const matchDateFrom = !dateFrom || c.date >= dateFrom;
+      const matchDateTo = !dateTo || c.date <= dateTo;
       const matchCountry = !country || c.pays === country;
       const matchStatus = currentStatusFilter === 'all' || c.statut === currentStatusFilter;
-      return matchSearch && matchCountry && matchStatus;
+      return matchSearch && matchDateFrom && matchDateTo && matchCountry && matchStatus;
     });
+    
     maj();
   }
 
@@ -755,6 +1340,8 @@ Merci de votre confiance!
 
   function resetFilters() {
     document.getElementById('searchInput').value = '';
+    document.getElementById('dateFrom').value = '';
+    document.getElementById('dateTo').value = '';
     document.getElementById('countryFilter').value = '';
     currentStatusFilter = 'all';
     ['all', 'EN ATTENTE', 'CHARGÉE', 'LIVRÉE'].forEach(s => {
@@ -763,6 +1350,21 @@ Merci de votre confiance!
     });
     filteredCmds = [...cmds];
     maj();
+  }
+
+  // ==================== VIEWS ====================
+  function showView(view) {
+    ['table', 'cards', 'calendar', 'map'].forEach(v => {
+      document.getElementById(`view-${v}`).classList.toggle('hidden', v !== view);
+      document.getElementById(`tab-${v}`).classList.toggle('border-blue-500', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('text-blue-600', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('bg-blue-50', v === view);
+      document.getElementById(`tab-${v}`).classList.toggle('border-transparent', v !== view);
+      document.getElementById(`tab-${v}`).classList.toggle('text-gray-500', v !== view);
+    });
+    
+    if (view === 'calendar') renderCalendar();
+    if (view === 'map') setTimeout(() => { if (!map) initMap(); else map.invalidateSize(); }, 100);
   }
 
   // ==================== DISPLAY ====================
@@ -784,29 +1386,46 @@ Merci de votre confiance!
     document.getElementById('progressBar').style.width = pct + '%';
 
     renderTable();
+    renderCards();
     updateCharts();
+    
+    if (!document.getElementById('view-calendar').classList.contains('hidden')) renderCalendar();
+    if (map && !document.getElementById('view-map').classList.contains('hidden')) updateMapMarkers();
   }
 
   function getStatusBadge(statut) {
-    if (statut === 'LIVRÉE') return '<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>';
-    if (statut === 'CHARGÉE') return '<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>';
-    return '<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>';
+    if (statut === 'LIVRÉE') return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
+    if (statut === 'CHARGÉE') return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
+    return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
   }
 
   function getActionButtons(cmd) {
     let buttons = '';
-    if (cmd.statut === 'EN ATTENTE') buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
-    else if (cmd.statut === 'CHARGÉE') buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
-    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
+    
+    if (cmd.statut === 'EN ATTENTE') {
+      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
+    } else if (cmd.statut === 'CHARGÉE') {
+      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
+    }
+    
+    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') {
+      buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
+    }
+    
     buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>`;
+    
     return buttons;
   }
 
   function renderTable() {
-    if (filteredCmds.length === 0) { document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>'; return; }
+    if (filteredCmds.length === 0) {
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
+      return;
+    }
+    
     document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
-      <tr class="table-row border-b ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30' : ''}">
-        <td class="px-4 py-3"><input type="checkbox" onchange="toggleSelect('${c.ref}')" class="w-5 h-5"></td>
+      <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}">
+        <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
         <td class="px-4 py-3 font-bold">${c.client}</td>
         <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
         <td class="px-4 py-3">${c.date}</td>
@@ -819,73 +1438,232 @@ Merci de votre confiance!
     `).join('');
   }
 
-  function toggleSelectAll() { /* ... */ }
-  function toggleSelect(ref) { /* ... */ }
-
-  // ==================== CHARTS ====================
-  function updateCharts() {
-    const clientsData = {};
-    filteredCmds.forEach(c => clientsData[c.client] = (clientsData[c.client] || 0) + c.tonnes);
-    const topClients = Object.entries(clientsData).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    if (clientsChart) clientsChart.destroy();
-    clientsChart = new Chart(document.getElementById('clientsChart'), {
-      type: 'bar',
-      data: { labels: topClients.map(c => c[0].slice(0, 10)), datasets: [{ data: topClients.map(c => c[1]), backgroundColor: ['#0077b6', '#00b4d8', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'], borderRadius: 8 }] },
-      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
+  function renderCards() {
+    if (filteredCmds.length === 0) {
+      document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">Aucun résultat</div>`;
+      return;
+    }
     
-    const attente = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
-    const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
-    const livrees = filteredCmds.filter(c => c.statut === 'LIVRÉE').length;
-    if (statusChart) statusChart.destroy();
-    statusChart = new Chart(document.getElementById('statusChart'), {
-      type: 'doughnut',
-      data: { labels: ['En Attente', 'Chargées', 'Livrées'], datasets: [{ data: [attente, chargees, livrees], backgroundColor: ['#f59e0b', '#0077b6', '#10b981'], borderWidth: 0 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
+      <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'LIVRÉE' ? 'border-emerald-400' : c.statut === 'CHARGÉE' ? 'border-blue-400' : 'border-amber-400'} shadow-lg p-4">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-bold">${c.client}</span>
+          ${getStatusBadge(c.statut)}
+        </div>
+        <div class="text-sm text-gray-500 space-y-1">
+          <p>📄 ${c.ref}</p>
+          <p>📅 ${c.date}</p>
+          <p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p>
+          <p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p>
+        </div>
+        <div class="flex gap-1 mt-3 justify-end">
+          ${getActionButtons(c)}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ==================== CALENDAR ====================
+  function renderCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    
+    let html = '';
+    
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="calendar-day bg-gray-50 dark:bg-slate-800"></div>';
+    }
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayCmds = cmds.filter(c => c.date === dateStr);
+      const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+      
+      html += `
+        <div class="calendar-day ${dayCmds.length > 0 ? 'has-orders' : ''} ${isToday ? 'today' : ''} p-2 cursor-pointer" onclick="showDayOrders('${dateStr}')">
+          <div class="font-bold text-sm ${isToday ? 'text-blue-600' : ''}">${day}</div>
+          ${dayCmds.length > 0 ? `<div class="mt-1"><span class="text-xs bg-blue-500 text-white px-1 rounded">${dayCmds.length}</span></div>` : ''}
+        </div>
+      `;
+    }
+    
+    document.getElementById('calendarGrid').innerHTML = html;
+  }
+
+  function changeMonth(delta) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+    renderCalendar();
+  }
+
+  function showDayOrders(date) {
+    const dayCmds = cmds.filter(c => c.date === date);
+    if (dayCmds.length === 0) return;
+    
+    document.getElementById('calendarModalTitle').textContent = `📅 ${new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`;
+    document.getElementById('calendarModalContent').innerHTML = dayCmds.map(c => `
+      <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl mb-2">
+        <div>
+          <p class="font-bold">${c.client}</p>
+          <p class="text-sm text-gray-500">${c.ref} - ${c.tonnes.toFixed(2)}T → ${paysNoms[c.pays]}</p>
+        </div>
+        ${getStatusBadge(c.statut)}
+      </div>
+    `).join('');
+    document.getElementById('calendarModal').classList.remove('hidden');
+  }
+
+  function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.add('hidden');
+  }
+
+  // ==================== MAP ====================
+  function initMap() {
+    map = L.map('map').setView([46.2276, 2.2137], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    markersLayer = L.markerClusterGroup();
+    map.addLayer(markersLayer);
+    updateMapMarkers();
+  }
+
+  function updateMapMarkers() {
+    if (!markersLayer) return;
+    markersLayer.clearLayers();
+    
+    filteredCmds.forEach(c => {
+      if (paysCoords[c.pays]) {
+        const color = c.statut === 'LIVRÉE' ? '#10b981' : c.statut === 'CHARGÉE' ? '#0077b6' : '#f59e0b';
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${paysEmojis[c.pays] || '📦'}</div>`,
+          iconSize: [30, 30]
+        });
+        
+        L.marker(paysCoords[c.pays], { icon })
+          .bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T<br>${getStatusBadge(c.statut)}`)
+          .addTo(markersLayer);
+      }
     });
   }
 
-  // ==================== EXPORTS ====================
+  function updateMapTiles() {
+    if (!map) return;
+    map.eachLayer(layer => { if (layer instanceof L.TileLayer) map.removeLayer(layer); });
+    L.tileLayer(isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+  }
+
+  // ==================== CHARTS ====================
+  function updateCharts() {
+    // Clients Chart
+    const clientData = {};
+    cmds.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
+    const topClients = Object.entries(clientData).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    if (clientsChart) clientsChart.destroy();
+    clientsChart = new Chart(document.getElementById('clientsChart'), {
+      type: 'bar',
+      data: {
+        labels: topClients.map(c => c[0]),
+        datasets: [{ label: 'Tonnes', data: topClients.map(c => c[1]), backgroundColor: ['#0077b6', '#00b4d8', '#90e0ef', '#10b981', '#34d399'], borderRadius: 10 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+    
+    // Status Chart
+    const statusData = [cmds.filter(c => c.statut === 'EN ATTENTE').length, cmds.filter(c => c.statut === 'CHARGÉE').length, cmds.filter(c => c.statut === 'LIVRÉE').length];
+    
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(document.getElementById('statusChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['En Attente', 'Chargées', 'Livrées'],
+        datasets: [{ data: statusData, backgroundColor: ['#f59e0b', '#0077b6', '#10b981'], borderWidth: 0 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+  }
+
+  // ==================== EXPORT ====================
   function exportExcel() {
-    const wb = XLSX.utils.book_new();
-    const data = filteredCmds.map((c, i) => ({ 'N°': i + 1, 'Client': c.client, 'Réf': c.ref, 'Date': c.date, 'Pays': c.pays, 'Tonnes': c.tonnes, 'Statut': c.statut }));
+    const data = filteredCmds.map(c => ({ Client: c.client, Référence: c.ref, Date: c.date, Départ: c.point_depart, Pays: c.pays, Destination: paysNoms[c.pays], Tonnes: c.tonnes, Statut: c.statut, Email: c.email }));
     const ws = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, "Commandes");
-    XLSX.writeFile(wb, `Solana_Export.xlsx`);
-    showToast('📥 Excel téléchargé!');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
+    XLSX.writeFile(wb, `Solana_Commandes_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('📥 Excel exporté!');
   }
 
   function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFontSize(20);
-    doc.text('Solana Logistique', 14, 20);
-    doc.autoTable({ head: [['Client', 'Réf', 'Date', 'Tonnes', 'Statut']], body: filteredCmds.map(c => [c.client, c.ref, c.date, c.tonnes + 'T', c.statut]), startY: 35 });
-    doc.save('Solana_Export.pdf');
-    showToast('📄 PDF téléchargé!');
+    doc.setTextColor(0, 119, 182);
+    doc.text('Solana Logistique - Commandes', 14, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Exporté le ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
+    
+    doc.autoTable({
+      head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']],
+      body: filteredCmds.map(c => [c.client, c.ref, c.date, paysNoms[c.pays], c.tonnes.toFixed(2) + ' T', c.statut]),
+      startY: 35,
+      headStyles: { fillColor: [0, 119, 182] },
+      alternateRowStyles: { fillColor: [240, 249, 255] }
+    });
+    
+    doc.save(`Solana_Commandes_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('📄 PDF exporté!');
+  }
+
+  // ==================== SELECTION ====================
+  function toggleSelect(ref) {
+    if (selectedCmds.has(ref)) selectedCmds.delete(ref);
+    else selectedCmds.add(ref);
+  }
+
+  function toggleSelectAll() {
+    const allRefs = filteredCmds.map(c => c.ref);
+    if (selectedCmds.size === allRefs.length) selectedCmds.clear();
+    else allRefs.forEach(r => selectedCmds.add(r));
+    maj();
   }
 
   // ==================== MODALS ====================
-  function showAddModal() { document.getElementById('addModal').classList.remove('hidden'); document.getElementById('dateIn').valueAsDate = new Date(); }
-  function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); ['clientIn', 'refIn', 'pointDepart', 'paysIn', 'tonnesIn', 'immatIn', 'emailIn'].forEach(id => document.getElementById(id).value = ''); }
+  function showAddModal() {
+    document.getElementById('addModal').classList.remove('hidden');
+    document.getElementById('dateIn').value = new Date().toISOString().split('T')[0];
+    
+    // Populate country select
+    const select = document.getElementById('paysIn');
+    select.innerHTML = '<option value="">Sélectionner...</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
+  }
+
+  function closeAddModal() {
+    document.getElementById('addModal').classList.add('hidden');
+  }
 
   // ==================== INIT ====================
   function initApp() {
-    const select = document.getElementById('paysIn');
-    const filter = document.getElementById('countryFilter');
-    Object.keys(paysNoms).sort().forEach(code => {
-      select.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
-      filter.innerHTML += `<option value="${code}">${paysEmojis[code]} ${paysNoms[code]}</option>`;
-    });
+    // Populate country filter
+    const countrySelect = document.getElementById('countryFilter');
+    countrySelect.innerHTML = '<option value="">Tous les pays</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
+    
     loadCmds();
-    setLanguage('fr');
   }
 
   // ==================== START ====================
+  // Check for public view first
   if (!checkPublicView()) {
-    document.getElementById('loginPassword').focus();
+    // Show login screen if not in public view mode
+    document.getElementById('loginScreen').classList.remove('hidden');
   }
 </script>
+
 </body>
 </html>
 
