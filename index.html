@@ -27,9 +27,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   
-  <!-- QRCode.js for QR Code Generation -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
@@ -175,8 +172,13 @@
     }
     .photo-upload-btn:hover { border-color: #0077b6; background: #f0f9ff; }
     
-    #qrcode { display: flex; justify-content: center; align-items: center; }
-    #qrcode img { border-radius: 10px; }
+    .qr-image {
+      width: 220px;
+      height: 220px;
+      border-radius: 12px;
+      background: white;
+      padding: 10px;
+    }
   </style>
 </head>
 <body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-500">
@@ -580,6 +582,7 @@
   let currentCalendarDate = new Date();
   let currentDeliveryPhotos = [];
   let currentDeliveryCmd = null;
+  let currentQRImageUrl = '';
 
   // ==================== UTILITY FUNCTIONS ====================
   function showToast(message, type = 'success') {
@@ -731,7 +734,6 @@
     const ok = await updateCmdDB(cmd.ref, updates);
     
     if (ok) {
-      // Update local immediately
       const idx = cmds.findIndex(c => c.ref === cmd.ref);
       if (idx !== -1) {
         cmds[idx] = { ...cmds[idx], ...updates };
@@ -739,7 +741,6 @@
       }
       hideLoading();
       
-      // Open email
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
       const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\n\nDélai estimé: ${deliveryTimeEstimation[cmd.pays] || '?'} jours`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
@@ -895,7 +896,6 @@
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
     if (ok) {
-      // Update local data
       const idx = cmds.findIndex(c => c.ref === currentDeliveryCmd.ref);
       if (idx !== -1) {
         cmds[idx] = { ...cmds[idx], statut: 'LIVRÉE' };
@@ -906,13 +906,17 @@
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
       
-      // Prepare QR and email
       const updatedCmd = { ...currentDeliveryCmd, statut: 'LIVRÉE' };
       
-      // Open email with QR
+      // Open email first
       setTimeout(() => {
-        openDeliveryEmailWithQR(updatedCmd);
-      }, 300);
+        openDeliveryEmail(updatedCmd);
+      }, 200);
+      
+      // Then show QR modal
+      setTimeout(() => {
+        showQRModal(updatedCmd);
+      }, 800);
       
     } else {
       hideLoading();
@@ -926,9 +930,9 @@
     currentDeliveryPhotos = [];
   }
 
-  // ==================== QR CODE & EMAIL ====================
-  function generateQRCodeData(cmd) {
-    return JSON.stringify({
+  // ==================== QR CODE USING API ====================
+  function generateQRCodeUrl(cmd) {
+    const qrData = {
       ref: cmd.ref,
       client: cmd.client,
       tonnes: cmd.tonnes,
@@ -936,37 +940,19 @@
       depart: cmd.point_depart,
       date: cmd.date,
       statut: cmd.statut,
-      validated: new Date().toISOString()
-    });
+      dateLivraison: new Date().toLocaleDateString('fr-FR')
+    };
+    
+    const dataString = `REF:${cmd.ref}|CLIENT:${cmd.client}|TONNES:${cmd.tonnes}|DEST:${paysNoms[cmd.pays]}|LIVRE LE:${new Date().toLocaleDateString('fr-FR')}`;
+    const encodedData = encodeURIComponent(dataString);
+    
+    // Using QR Server API - reliable and free
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedData}&bgcolor=ffffff&color=0077b6&format=png`;
   }
 
-  function openDeliveryEmailWithQR(cmd) {
-    const qrData = generateQRCodeData(cmd);
-    
-    // Create QR code container
-    const qrContainer = document.createElement('div');
-    qrContainer.id = 'tempQR';
-    qrContainer.style.cssText = 'position: fixed; left: -9999px; top: 0;';
-    document.body.appendChild(qrContainer);
-    
-    // Generate QR code
-    const qrcode = new QRCode(qrContainer, {
-      text: qrData,
-      width: 200,
-      height: 200,
-      colorDark: '#0077b6',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-    
-    // Wait for QR to be generated
-    setTimeout(() => {
-      const qrImg = qrContainer.querySelector('img');
-      const qrDataUrl = qrImg ? qrImg.src : '';
-      
-      // Prepare email
-      const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmd.client},
+  function openDeliveryEmail(cmd) {
+    const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
+    const message = `Bonjour ${cmd.client},
 
 ═══════════════════════════════
 🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!
@@ -980,36 +966,26 @@ Destination: ${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}
 Date de livraison: ${new Date().toLocaleDateString('fr-FR')}
 
 ═══════════════════════════════
-📱 QR CODE DE CONFIRMATION
-═══════════════════════════════
-
-Scannez le QR code joint à cet email pour confirmer la réception.
-
+📱 Un QR Code de confirmation vous sera envoyé séparément.
 ═══════════════════════════════
 
 Merci de votre confiance!
 
 🚚 Solana Logistique`;
-      
-      // Open email client
-      window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-      
-      // Show QR modal
-      showQRModal(cmd, qrContainer);
-      
-    }, 500);
+    
+    window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
   }
 
-  function showQRModal(cmd, existingQRContainer = null) {
-    const qrData = generateQRCodeData(cmd);
+  function showQRModal(cmd) {
+    currentQRImageUrl = generateQRCodeUrl(cmd);
     
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- QR Code Section -->
         <div class="text-center">
           <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6">
-            <div id="qrcode" class="flex justify-center"></div>
-            <p class="mt-4 text-sm text-gray-500">Scannez pour confirmer la livraison</p>
+            <img id="qrImage" src="${currentQRImageUrl}" alt="QR Code" class="qr-image mx-auto" crossorigin="anonymous">
+            <p class="mt-4 text-sm text-gray-500">Scannez ce QR code pour confirmer</p>
           </div>
           <div class="mt-4 flex gap-2 justify-center flex-wrap">
             <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger QR</button>
@@ -1020,8 +996,9 @@ Merci de votre confiance!
         <!-- Details Section -->
         <div class="space-y-4">
           <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
-            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Commande ${cmd.ref}</h4>
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
             <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span></div>
@@ -1043,22 +1020,6 @@ Merci de votre confiance!
     `;
     
     document.getElementById('qrModal').classList.remove('hidden');
-    
-    // Generate QR code in the modal
-    setTimeout(() => {
-      const qrDiv = document.getElementById('qrcode');
-      if (qrDiv) {
-        qrDiv.innerHTML = '';
-        new QRCode(qrDiv, {
-          text: qrData,
-          width: 200,
-          height: 200,
-          colorDark: '#0077b6',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.H
-        });
-      }
-    }, 100);
   }
 
   function closeQRModal() {
@@ -1066,35 +1027,64 @@ Merci de votre confiance!
   }
 
   function downloadQRCode(ref) {
-    const qrDiv = document.getElementById('qrcode');
-    const qrImg = qrDiv ? qrDiv.querySelector('img') : null;
-    if (qrImg) {
-      const link = document.createElement('a');
-      link.download = `QR_Livraison_${ref}.png`;
-      link.href = qrImg.src;
-      link.click();
-      showToast('📥 QR Code téléchargé!');
+    const qrImg = document.getElementById('qrImage');
+    if (qrImg && qrImg.src) {
+      // Create a canvas to convert the image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const link = document.createElement('a');
+        link.download = `QR_Livraison_${ref}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        showToast('📥 QR Code téléchargé!');
+      };
+      img.onerror = function() {
+        // Fallback: open image in new tab
+        window.open(currentQRImageUrl, '_blank');
+        showToast('📥 QR Code ouvert dans un nouvel onglet');
+      };
+      img.src = currentQRImageUrl;
     }
   }
 
   function printQRCode(ref) {
-    const qrDiv = document.getElementById('qrcode');
-    const qrImg = qrDiv ? qrDiv.querySelector('img') : null;
-    if (qrImg) {
-      const win = window.open('', '_blank');
-      win.document.write(`
-        <html><head><title>QR - ${ref}</title></head>
-        <body style="text-align:center;padding:50px;font-family:Arial;">
-          <h2 style="color:#0077b6;">🚚 Solana Logistique</h2>
-          <h3>Livraison ${ref}</h3>
-          <img src="${qrImg.src}" style="width:300px;height:300px;border-radius:10px;">
-          <p style="color:#666;">Scannez ce QR code pour confirmer la livraison</p>
-          <p style="font-size:12px;color:#999;">${new Date().toLocaleDateString('fr-FR')}</p>
-        </body></html>
-      `);
-      win.document.close();
-      win.print();
-    }
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>QR Code - Livraison ${ref}</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
+          h1 { color: #0077b6; }
+          .qr-container { background: white; padding: 20px; border-radius: 10px; display: inline-block; }
+          .details { margin-top: 20px; text-align: left; display: inline-block; }
+          .details p { margin: 5px 0; }
+        </style>
+      </head>
+      <body>
+        <h1>🚚 Solana Logistique</h1>
+        <h2>Livraison ${ref}</h2>
+        <div class="qr-container">
+          <img src="${currentQRImageUrl}" alt="QR Code" style="width: 250px; height: 250px;">
+        </div>
+        <p style="margin-top: 20px; color: #666;">Scannez ce QR code pour confirmer la livraison</p>
+        <p style="font-size: 12px; color: #999;">Date: ${new Date().toLocaleDateString('fr-FR')}</p>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   }
 
   function sendDeliveryEmailAgain(ref) {
@@ -1485,6 +1475,5 @@ Merci de votre confiance!
 
 </body>
 </html>
-
 
 
