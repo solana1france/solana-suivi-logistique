@@ -27,6 +27,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   
+  <!-- QRCode.js for QR Code Generation -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
@@ -44,6 +47,7 @@
     .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
     .gradient-dark { background: linear-gradient(135deg, #1e293b, #334155, #475569); }
     .gradient-blue { background: linear-gradient(135deg, #3b82f6, #60a5fa, #93c5fd); }
+    .gradient-delivered { background: linear-gradient(135deg, #059669, #10b981, #34d399); }
     
     /* Glass Effect */
     .glass { 
@@ -84,6 +88,11 @@
       100% { transform: scale(2); opacity: 0; }
     }
     
+    @keyframes qr-pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+      50% { transform: scale(1.02); box-shadow: 0 0 40px rgba(16, 185, 129, 0.8); }
+    }
+    
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
     .animate-slide-up { animation: slide-up 0.6s ease-out; }
@@ -93,6 +102,7 @@
       animation: shimmer 2s infinite;
     }
     .animate-rotate { animation: rotate 1s linear infinite; }
+    .animate-qr-pulse { animation: qr-pulse 2s ease-in-out infinite; }
     
     /* KPI Cards */
     .kpi-card {
@@ -276,6 +286,27 @@
     .filter-chip:not(.active):hover {
       border-color: #0077b6;
     }
+    
+    /* QR Code Styles */
+    .qr-container {
+      background: white;
+      padding: 20px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    
+    .qr-code-canvas {
+      border-radius: 10px;
+    }
+    
+    .delivery-route {
+      stroke-dasharray: 10, 5;
+      animation: dash 1s linear infinite;
+    }
+    
+    @keyframes dash {
+      to { stroke-dashoffset: -15; }
+    }
   </style>
 </head>
 <body class="bg-gray-50 dark:bg-slate-900 min-h-screen transition-colors duration-500">
@@ -401,7 +432,7 @@
     <main class="container mx-auto px-4 py-6 space-y-6">
       
       <!-- KPI Cards with Comparison -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         
         <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
           <div class="absolute inset-0 gradient-ocean opacity-5 rounded-2xl"></div>
@@ -433,6 +464,17 @@
           <div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.6s;">✅</div>
         </div>
         
+        <!-- NEW: Delivered KPI -->
+        <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
+          <div class="absolute inset-0 gradient-delivered opacity-5 rounded-2xl"></div>
+          <div class="relative z-10">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide" data-lang="delivered">Livrées</p>
+            <p class="text-3xl font-black bg-gradient-to-r from-green-600 to-emerald-500 bg-clip-text text-transparent mt-1" id="kpiLivrees">0</p>
+            <p class="text-xs text-gray-400 mt-2" data-lang="confirmed">Confirmées</p>
+          </div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-delivered rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.9s;">🎉</div>
+        </div>
+        
         <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
           <div class="absolute inset-0 gradient-purple opacity-5 rounded-2xl"></div>
           <div class="relative z-10">
@@ -440,7 +482,7 @@
             <p class="text-3xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mt-1" id="kpiEmails">0</p>
             <p class="text-xs text-gray-400 mt-2" data-lang="notifications">Notifications</p>
           </div>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.9s;">📧</div>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 1.2s;">📧</div>
         </div>
       </div>
 
@@ -500,11 +542,12 @@
             <input type="date" id="dateTo" class="px-3 py-2 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white text-sm" onchange="filterCommands()">
           </div>
           
-          <!-- Status Filter -->
-          <div class="flex gap-2">
+          <!-- Status Filter - UPDATED with LIVRÉE -->
+          <div class="flex gap-2 flex-wrap">
             <button onclick="setStatusFilter('all')" class="filter-chip active" id="filter-all" data-lang="all">Tous</button>
             <button onclick="setStatusFilter('EN ATTENTE')" class="filter-chip" id="filter-attente" data-lang="pending">⏳ Attente</button>
             <button onclick="setStatusFilter('CHARGÉE')" class="filter-chip" id="filter-chargee" data-lang="loaded">✅ Chargées</button>
+            <button onclick="setStatusFilter('LIVRÉE')" class="filter-chip" id="filter-livree" data-lang="delivered">🎉 Livrées</button>
           </div>
           
           <!-- Country Filter -->
@@ -545,7 +588,7 @@
             </label>
             <span id="selectedCount" class="text-sm text-gray-500"></span>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button onclick="bulkConfirm()" id="bulkConfirmBtn" class="hidden px-4 py-2 gradient-success text-white rounded-xl font-semibold text-sm">
               ✅ <span data-lang="confirmSelected">Confirmer sélection</span>
             </button>
@@ -626,7 +669,7 @@
     </main>
 
     <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
-      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase Multi-Device
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase Multi-Device | 📱 QR Code Delivery
     </footer>
   </div>
 
@@ -679,6 +722,54 @@
           <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold" data-lang="addSync">✨ Ajouter & Sync</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ==================== QR CODE MODAL ==================== -->
+  <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">📱 QR Code de Livraison</h3>
+        <button onclick="closeQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="qrModalContent" class="p-6">
+        <!-- Content will be dynamically generated -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SCAN QR MODAL ==================== -->
+  <div id="scanQRModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">📷 Scanner QR Code</h3>
+        <button onclick="closeScanQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="scanQRModalContent" class="p-6">
+        <div class="text-center">
+          <div class="mb-4">
+            <input type="text" id="qrSearchRef" placeholder="Entrez la référence de commande..." 
+              class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
+          </div>
+          <button onclick="searchDeliveryByRef()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">
+            🔍 Rechercher
+          </button>
+          <div id="scanResult" class="mt-6"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DELIVERY CONFIRMATION MODAL ==================== -->
+  <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">🎉 Confirmer Livraison</h3>
+        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="deliveryModalContent" class="p-6">
+        <!-- Content will be dynamically generated -->
+      </div>
     </div>
   </div>
 
@@ -737,6 +828,20 @@
     RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137]
   };
 
+  // Distance estimation from France (km) - average distances
+  const distanceFromFrance = {
+    SN: 4200, PT: 1150, MA: 1850, TN: 1450, DZ: 1350,
+    ES: 650, IT: 850, DE: 650, BE: 250, NL: 400,
+    GB: 350, PL: 1050, RO: 1650, GR: 1750, FR: 0
+  };
+
+  // Average delivery time estimation (in days) - based on distance
+  const deliveryTimeEstimation = {
+    SN: 8, PT: 2, MA: 4, TN: 3, DZ: 3,
+    ES: 1, IT: 2, DE: 1, BE: 1, NL: 1,
+    GB: 1, PL: 2, RO: 3, GR: 3, FR: 0
+  };
+
   // ==================== TRANSLATIONS ====================
   const translations = {
     fr: {
@@ -750,6 +855,8 @@
       totalTonnage: 'Total Tonnes',
       pending: 'En Attente',
       loaded: 'Chargées',
+      delivered: 'Livrées',
+      confirmed: 'Confirmées',
       emailsSent: 'Emails',
       toProcess: 'À traiter',
       completed: 'Terminées',
@@ -786,7 +893,21 @@
       vsLastMonth: 'vs mois dernier',
       increase: 'hausse',
       decrease: 'baisse',
-      orders: 'commandes'
+      orders: 'commandes',
+      generateQR: 'Générer QR',
+      scanQR: 'Scanner QR',
+      deliveryTime: 'Délai estimé',
+      days: 'jours',
+      distance: 'Distance',
+      km: 'km',
+      deliveryDate: 'Date de livraison',
+      cmrDocument: 'Document CMR',
+      deliveryNote: 'Bon de livraison',
+      confirmDelivery: 'Confirmer la livraison',
+      deliveryConfirmed: 'Livraison confirmée',
+      viewQR: 'Voir QR',
+      printQR: 'Imprimer QR',
+      downloadQR: 'Télécharger QR'
     },
     en: {
       title: 'Solana Logistics',
@@ -799,6 +920,8 @@
       totalTonnage: 'Total Tonnage',
       pending: 'Pending',
       loaded: 'Loaded',
+      delivered: 'Delivered',
+      confirmed: 'Confirmed',
       emailsSent: 'Emails',
       toProcess: 'To process',
       completed: 'Completed',
@@ -835,7 +958,21 @@
       vsLastMonth: 'vs last month',
       increase: 'increase',
       decrease: 'decrease',
-      orders: 'orders'
+      orders: 'orders',
+      generateQR: 'Generate QR',
+      scanQR: 'Scan QR',
+      deliveryTime: 'Estimated time',
+      days: 'days',
+      distance: 'Distance',
+      km: 'km',
+      deliveryDate: 'Delivery date',
+      cmrDocument: 'CMR Document',
+      deliveryNote: 'Delivery note',
+      confirmDelivery: 'Confirm delivery',
+      deliveryConfirmed: 'Delivery confirmed',
+      viewQR: 'View QR',
+      printQR: 'Print QR',
+      downloadQR: 'Download QR'
     },
     ar: {
       title: 'سولانا للخدمات اللوجستية',
@@ -848,6 +985,8 @@
       totalTonnage: 'إجمالي الأطنان',
       pending: 'في الانتظار',
       loaded: 'تم التحميل',
+      delivered: 'تم التسليم',
+      confirmed: 'مؤكد',
       emailsSent: 'الرسائل',
       toProcess: 'للمعالجة',
       completed: 'مكتمل',
@@ -884,7 +1023,21 @@
       vsLastMonth: 'مقارنة بالشهر الماضي',
       increase: 'ارتفاع',
       decrease: 'انخفاض',
-      orders: 'طلبات'
+      orders: 'طلبات',
+      generateQR: 'إنشاء QR',
+      scanQR: 'مسح QR',
+      deliveryTime: 'الوقت المقدر',
+      days: 'أيام',
+      distance: 'المسافة',
+      km: 'كم',
+      deliveryDate: 'تاريخ التسليم',
+      cmrDocument: 'وثيقة CMR',
+      deliveryNote: 'إشعار التسليم',
+      confirmDelivery: 'تأكيد التسليم',
+      deliveryConfirmed: 'تم تأكيد التسليم',
+      viewQR: 'عرض QR',
+      printQR: 'طباعة QR',
+      downloadQR: 'تحميل QR'
     }
   };
 
@@ -1061,7 +1214,11 @@
       email: document.getElementById('emailIn').value.trim(),
       statut: 'EN ATTENTE',
       nb_emails: 0,
-      derniere_date_email: null
+      derniere_date_email: null,
+      date_chargement: null,
+      date_livraison: null,
+      qr_code: null,
+      documents_cmr: null
     };
     
     if (cmds.find(c => c.ref === n.ref)) {
@@ -1084,19 +1241,20 @@
   }
 
   async function confirmerEmail(cmd) {
-    if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer?`)) return;
+    if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer le chargement?`)) return;
     
     showLoading();
     const ok = await updateCmd(cmd.ref, {
       statut: 'CHARGÉE',
       nb_emails: (cmd.nb_emails || 0) + 1,
-      derniere_date_email: new Date().toLocaleDateString('fr-FR')
+      derniere_date_email: new Date().toLocaleDateString('fr-FR'),
+      date_chargement: new Date().toISOString().split('T')[0]
     });
     hideLoading();
     
     if (ok) {
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T`;
+      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T\n\nDélai estimé: ${deliveryTimeEstimation[cmd.pays] || '?'} jours`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
       showToast('✅ Confirmée!');
     }
@@ -1111,6 +1269,377 @@
   }
 
   function synchroniser() { loadCmds(); }
+
+  // ==================== QR CODE FUNCTIONS ====================
+  function generateQRCodeData(cmd) {
+    const deliveryData = {
+      ref: cmd.ref,
+      client: cmd.client,
+      tonnes: cmd.tonnes,
+      pays: cmd.pays,
+      depart: cmd.point_depart,
+      date: cmd.date,
+      date_chargement: cmd.date_chargement,
+      immat: cmd.immat,
+      statut: cmd.statut,
+      generated: new Date().toISOString()
+    };
+    return JSON.stringify(deliveryData);
+  }
+
+  async function showQRModal(cmd) {
+    const qrData = generateQRCodeData(cmd);
+    const distance = distanceFromFrance[cmd.pays] || 0;
+    const deliveryDays = deliveryTimeEstimation[cmd.pays] || 0;
+    const estimatedDeliveryDate = cmd.date_chargement ? 
+      new Date(new Date(cmd.date_chargement).getTime() + deliveryDays * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR') : '-';
+    
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- QR Code Section -->
+        <div class="text-center">
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-6 animate-qr-pulse">
+            <canvas id="qrCanvas" class="mx-auto qr-code-canvas"></canvas>
+            <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails de livraison</p>
+          </div>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">
+              📥 ${t('downloadQR')}
+            </button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm">
+              🖨️ ${t('printQR')}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Delivery Details Section -->
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              📦 Commande ${cmd.ref}
+            </h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Client:</span>
+                <span class="font-semibold">${cmd.client}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Tonnes:</span>
+                <span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Destination:</span>
+                <span class="font-semibold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Départ:</span>
+                <span class="font-semibold">${cmd.point_depart}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Delivery Estimation -->
+          <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              🚚 ${t('deliveryTime')}
+            </h4>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white dark:bg-slate-700 rounded-xl p-3 text-center">
+                <p class="text-2xl font-black text-blue-600">${distance} km</p>
+                <p class="text-xs text-gray-500">${t('distance')}</p>
+              </div>
+              <div class="bg-white dark:bg-slate-700 rounded-xl p-3 text-center">
+                <p class="text-2xl font-black text-emerald-600">${deliveryDays} ${t('days')}</p>
+                <p class="text-xs text-gray-500">${t('deliveryTime')}</p>
+              </div>
+            </div>
+            <div class="mt-3 text-center">
+              <p class="text-sm text-gray-500">${t('deliveryDate')}:</p>
+              <p class="text-lg font-bold text-emerald-600">${estimatedDeliveryDate}</p>
+            </div>
+          </div>
+          
+          <!-- Documents Section -->
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+              📄 Documents de Transport
+            </h4>
+            <div class="space-y-2">
+              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
+                <span class="flex items-center gap-2">
+                  <span class="text-xl">📋</span>
+                  <span>CMR / Lettre de voiture</span>
+                </span>
+                <span class="text-emerald-500">✓</span>
+              </div>
+              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
+                <span class="flex items-center gap-2">
+                  <span class="text-xl">📦</span>
+                  <span>Bon de livraison</span>
+                </span>
+                <span class="text-emerald-500">✓</span>
+              </div>
+              <div class="flex items-center justify-between bg-white dark:bg-slate-700 rounded-xl p-3">
+                <span class="flex items-center gap-2">
+                  <span class="text-xl">🧾</span>
+                  <span>Facture transport</span>
+                </span>
+                <span class="text-emerald-500">✓</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Status Badge -->
+          <div class="text-center">
+            <span class="inline-flex items-center gap-2 px-6 py-3 ${cmd.statut === 'LIVRÉE' ? 'gradient-delivered' : cmd.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white rounded-full font-bold text-lg">
+              ${cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳'} ${cmd.statut}
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.getElementById('qrModal').classList.remove('hidden');
+    
+    // Generate QR Code
+    setTimeout(() => {
+      const canvas = document.getElementById('qrCanvas');
+      if (canvas) {
+        QRCode.toCanvas(canvas, qrData, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#0077b6',
+            light: '#ffffff'
+          }
+        }, function(error) {
+          if (error) console.error(error);
+        });
+      }
+    }, 100);
+  }
+
+  function closeQRModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+  }
+
+  function downloadQRCode(ref) {
+    const canvas = document.getElementById('qrCanvas');
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QR_${ref}_${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+      showToast('📥 QR Code téléchargé!');
+    }
+  }
+
+  function printQRCode(ref) {
+    const canvas = document.getElementById('qrCanvas');
+    if (canvas) {
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head><title>QR Code - ${ref}</title></head>
+          <body style="text-align: center; padding: 50px;">
+            <h2>Solana Logistique - ${ref}</h2>
+            <img src="${canvas.toDataURL()}" style="width: 300px; height: 300px;">
+            <p>Scannez ce QR code pour voir les détails de livraison</p>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  }
+
+  // ==================== DELIVERY CONFIRMATION ====================
+  async function showDeliveryConfirmation(cmd) {
+    const distance = distanceFromFrance[cmd.pays] || 0;
+    const deliveryDays = deliveryTimeEstimation[cmd.pays] || 0;
+    
+    document.getElementById('deliveryModalContent').innerHTML = `
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
+          <span class="text-4xl">🎉</span>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
+        <p class="text-gray-500">Commande ${cmd.ref}</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 mb-6">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <p class="text-gray-500">Client</p>
+            <p class="font-bold">${cmd.client}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Tonnes</p>
+            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Destination</p>
+            <p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Immatriculation</p>
+            <p class="font-bold">${cmd.immat || '-'}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-gray-50 dark:bg-slate-700 rounded-2xl p-5 mb-6">
+        <h4 class="font-bold mb-3">📋 Documents à valider</h4>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 bg-white dark:bg-slate-600 rounded-xl p-3 cursor-pointer">
+            <input type="checkbox" id="docCMR" checked class="w-5 h-5 rounded">
+            <span>CMR / Lettre de voiture signée</span>
+          </label>
+          <label class="flex items-center gap-3 bg-white dark:bg-slate-600 rounded-xl p-3 cursor-pointer">
+            <input type="checkbox" id="docBon" checked class="w-5 h-5 rounded">
+            <span>Bon de livraison signé</span>
+          </label>
+          <label class="flex items-center gap-3 bg-white dark:bg-slate-600 rounded-xl p-3 cursor-pointer">
+            <input type="checkbox" id="docPhoto" class="w-5 h-5 rounded">
+            <span>Photo de livraison</span>
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex gap-3">
+        <button onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">
+          Annuler
+        </button>
+        <button onclick="confirmDelivery('${cmd.ref}')" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
+          ✅ Confirmer Livraison
+        </button>
+      </div>
+    `;
+    
+    document.getElementById('deliveryModal').classList.remove('hidden');
+  }
+
+  async function confirmDelivery(ref) {
+    showLoading();
+    
+    const cmd = cmds.find(c => c.ref === ref);
+    if (!cmd) {
+      hideLoading();
+      showToast('❌ Commande introuvable', 'error');
+      return;
+    }
+    
+    const ok = await updateCmd(ref, {
+      statut: 'LIVRÉE',
+      date_livraison: new Date().toISOString().split('T')[0],
+      documents_cmr: JSON.stringify({
+        cmr: document.getElementById('docCMR')?.checked || false,
+        bon: document.getElementById('docBon')?.checked || false,
+        photo: document.getElementById('docPhoto')?.checked || false,
+        validatedAt: new Date().toISOString()
+      })
+    });
+    
+    hideLoading();
+    
+    if (ok) {
+      closeDeliveryModal();
+      showToast('🎉 Livraison confirmée!');
+      sendNotification('🎉 Livraison confirmée', `${cmd.client} - ${cmd.ref}`);
+      
+      // Generate QR Code for delivered command
+      setTimeout(() => showQRModal({...cmd, statut: 'LIVRÉE'}), 500);
+    } else {
+      showToast('❌ Erreur lors de la confirmation', 'error');
+    }
+  }
+
+  function closeDeliveryModal() {
+    document.getElementById('deliveryModal').classList.add('hidden');
+  }
+
+  // ==================== SCAN QR / SEARCH DELIVERY ====================
+  function showScanQRModal() {
+    document.getElementById('scanQRModal').classList.remove('hidden');
+    document.getElementById('scanResult').innerHTML = '';
+    document.getElementById('qrSearchRef').value = '';
+  }
+
+  function closeScanQRModal() {
+    document.getElementById('scanQRModal').classList.add('hidden');
+  }
+
+  function searchDeliveryByRef() {
+    const ref = document.getElementById('qrSearchRef').value.trim().toUpperCase();
+    if (!ref) {
+      showToast('❌ Entrez une référence', 'error');
+      return;
+    }
+    
+    const cmd = cmds.find(c => c.ref.toUpperCase() === ref);
+    if (!cmd) {
+      document.getElementById('scanResult').innerHTML = `
+        <div class="text-center text-red-500">
+          <span class="text-4xl">❌</span>
+          <p class="mt-2">Commande introuvable</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const statusColor = cmd.statut === 'LIVRÉE' ? 'emerald' : cmd.statut === 'CHARGÉE' ? 'blue' : 'amber';
+    const statusIcon = cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳';
+    
+    document.getElementById('scanResult').innerHTML = `
+      <div class="bg-gradient-to-r from-${statusColor}-50 to-teal-50 dark:from-${statusColor}-900/30 dark:to-teal-900/30 rounded-2xl p-5 text-left">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h4 class="font-bold text-lg">${cmd.client}</h4>
+            <p class="text-sm text-gray-500">${cmd.ref}</p>
+          </div>
+          <span class="px-4 py-2 bg-${statusColor}-100 text-${statusColor}-700 rounded-full font-bold">
+            ${statusIcon} ${cmd.statut}
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="text-gray-500">Tonnes</p>
+            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Destination</p>
+            <p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Départ</p>
+            <p class="font-bold">${cmd.point_depart}</p>
+          </div>
+          <div>
+            <p class="text-gray-500">Date</p>
+            <p class="font-bold">${cmd.date}</p>
+          </div>
+          ${cmd.date_livraison ? `
+          <div class="col-span-2">
+            <p class="text-gray-500">Date de livraison</p>
+            <p class="font-bold text-emerald-600">${cmd.date_livraison}</p>
+          </div>
+          ` : ''}
+        </div>
+        
+        <div class="mt-4 flex gap-2">
+          <button onclick="closeScanQRModal(); showQRModal(${JSON.stringify(cmd).replace(/"/g, '&quot;')})" class="flex-1 py-2 gradient-ocean text-white rounded-xl font-bold text-sm">
+            📱 Voir QR
+          </button>
+          ${cmd.statut === 'CHARGÉE' ? `
+          <button onclick="closeScanQRModal(); showDeliveryConfirmation(${JSON.stringify(cmd).replace(/"/g, '&quot;')})" class="flex-1 py-2 gradient-delivered text-white rounded-xl font-bold text-sm">
+            ✅ Livrer
+          </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
 
   // ==================== BULK ACTIONS ====================
   function toggleSelectAll() {
@@ -1175,7 +1704,7 @@
 
   function setStatusFilter(status) {
     currentStatusFilter = status;
-    ['all', 'EN ATTENTE', 'CHARGÉE'].forEach(s => {
+    ['all', 'EN ATTENTE', 'CHARGÉE', 'LIVRÉE'].forEach(s => {
       const btn = document.getElementById(`filter-${s === 'all' ? 'all' : s.replace(' ', '-')}`);
       if (btn) btn.classList.toggle('active', s === status);
     });
@@ -1188,7 +1717,7 @@
     document.getElementById('dateTo').value = '';
     document.getElementById('countryFilter').value = '';
     currentStatusFilter = 'all';
-    ['all', 'EN ATTENTE', 'CHARGÉE'].forEach(s => {
+    ['all', 'EN ATTENTE', 'CHARGÉE', 'LIVRÉE'].forEach(s => {
       const btn = document.getElementById(`filter-${s === 'all' ? 'all' : s.replace(' ', '-')}`);
       if (btn) btn.classList.toggle('active', s === 'all');
     });
@@ -1217,17 +1746,19 @@
     const tot = filteredCmds.reduce((s, c) => s + c.tonnes, 0);
     const att = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
     const ch = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
+    const liv = filteredCmds.filter(c => c.statut === 'LIVRÉE').length;
     const em = filteredCmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
-    const pct = filteredCmds.length ? Math.round((ch / filteredCmds.length) * 100) : 0;
+    const pct = filteredCmds.length ? Math.round(((ch + liv) / filteredCmds.length) * 100) : 0;
 
     document.getElementById('kpiTonnes').textContent = tot.toFixed(1) + ' T';
     document.getElementById('kpiAttente').textContent = att;
     document.getElementById('kpiChargees').textContent = ch;
+    document.getElementById('kpiLivrees').textContent = liv;
     document.getElementById('kpiEmails').textContent = em;
     document.getElementById('headerStats').textContent = `${filteredCmds.length} commandes`;
     document.getElementById('progressPercent').textContent = pct + '%';
     document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progressChargees').textContent = `${ch} terminées`;
+    document.getElementById('progressChargees').textContent = `${ch + liv} terminées`;
     document.getElementById('progressAttente').textContent = `${att} en cours`;
 
     updateMonthlyComparison();
@@ -1277,6 +1808,35 @@
     ` : '';
   }
 
+  function getStatusBadge(statut) {
+    if (statut === 'LIVRÉE') {
+      return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
+    } else if (statut === 'CHARGÉE') {
+      return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
+    } else {
+      return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
+    }
+  }
+
+  function getActionButtons(cmd) {
+    let buttons = '';
+    
+    if (cmd.statut === 'EN ATTENTE') {
+      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg" title="Charger">✅</button>`;
+    } else if (cmd.statut === 'CHARGÉE') {
+      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg" title="Livrer">🎉</button>`;
+      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg" title="Renvoyer email">📧</button>`;
+    }
+    
+    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') {
+      buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg" title="QR Code">📱</button>`;
+    }
+    
+    buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg" title="Supprimer">🗑️</button>`;
+    
+    return buttons;
+  }
+
   function renderTable() {
     if (filteredCmds.length === 0) {
       document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">${t('noResults')}</td></tr>`;
@@ -1284,7 +1844,7 @@
     }
     
     document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
-      <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'CHARGÉE' ? 'bg-emerald-50/30 dark:bg-emerald-900/10' : ''}">
+      <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}">
         <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
         <td class="px-4 py-3 font-bold">${c.client}</td>
         <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
@@ -1292,17 +1852,10 @@
         <td class="px-4 py-3">${c.point_depart}</td>
         <td class="px-4 py-3">${paysEmojis[c.pays]} ${c.pays}</td>
         <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
+        <td class="px-4 py-3">${getStatusBadge(c.statut)}</td>
         <td class="px-4 py-3">
-          <span class="px-3 py-1 ${c.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white text-xs font-bold rounded-full">
-            ${c.statut === 'CHARGÉE' ? '✅' : '⏳'}
-          </span>
-        </td>
-        <td class="px-4 py-3">
-          <div class="flex justify-center gap-1">
-            ${c.statut === 'EN ATTENTE' 
-              ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>` 
-              : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-lg">📧</button>`}
-            <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>
+          <div class="flex justify-center gap-1 flex-wrap">
+            ${getActionButtons(c)}
           </div>
         </td>
       </tr>
@@ -1316,10 +1869,10 @@
     }
     
     document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
-      <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'CHARGÉE' ? 'border-emerald-400' : 'border-amber-400'} shadow-lg p-4">
+      <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'LIVRÉE' ? 'border-emerald-400' : c.statut === 'CHARGÉE' ? 'border-blue-400' : 'border-amber-400'} shadow-lg p-4">
         <div class="flex justify-between items-center mb-2">
           <span class="font-bold">${c.client}</span>
-          <span class="px-2 py-1 ${c.statut === 'CHARGÉE' ? 'gradient-success' : 'gradient-warning'} text-white text-xs rounded-full">${c.statut === 'CHARGÉE' ? '✅' : '⏳'}</span>
+          ${getStatusBadge(c.statut)}
         </div>
         <p class="text-xs font-mono text-gray-400 mb-2">${c.ref}</p>
         <div class="grid grid-cols-2 gap-1 text-xs mb-3">
@@ -1328,10 +1881,14 @@
           <div>${paysEmojis[c.pays]} ${c.pays}</div>
           <div class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</div>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           ${c.statut === 'EN ATTENTE' 
             ? `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-success text-white text-xs rounded-lg font-bold">✅ Charger</button>` 
-            : `<button onclick='confirmerEmail(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 bg-blue-100 text-blue-700 text-xs rounded-lg font-bold">📧 Renvoyer</button>`}
+            : c.statut === 'CHARGÉE'
+              ? `<button onclick='showDeliveryConfirmation(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 gradient-delivered text-white text-xs rounded-lg font-bold">🎉 Livrer</button>
+                 <button onclick='showQRModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="px-3 py-2 bg-purple-100 text-purple-700 text-xs rounded-lg font-bold">📱</button>`
+              : `<button onclick='showQRModal(${JSON.stringify(c).replace(/'/g, "\\'")})' class="flex-1 py-2 bg-purple-100 text-purple-700 text-xs rounded-lg font-bold">📱 QR</button>`
+          }
           <button onclick="supprimerCmd('${c.ref}')" class="px-3 py-2 gradient-danger text-white text-xs rounded-lg">🗑️</button>
         </div>
       </div>
@@ -1409,6 +1966,7 @@
             <div>
               <span class="font-bold">${c.client}</span>
               <span class="text-sm text-gray-500 ml-2">${c.ref}</span>
+              ${getStatusBadge(c.statut)}
             </div>
             <div class="text-right">
               <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
@@ -1458,21 +2016,33 @@
       if (!coords) return;
       
       const totalT = commands.reduce((s, c) => s + c.tonnes, 0);
+      const livrees = commands.filter(c => c.statut === 'LIVRÉE').length;
+      const chargees = commands.filter(c => c.statut === 'CHARGÉE').length;
+      const attente = commands.filter(c => c.statut === 'EN ATTENTE').length;
+      
+      // Color based on status
+      const statusColor = livrees > 0 ? '#10b981' : chargees > 0 ? '#0077b6' : '#f59e0b';
+      
       const icon = L.divIcon({
-        html: `<div style="background: linear-gradient(135deg, #0077b6, #10b981); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 2px solid white;">${paysEmojis[code] || '🌍'}</div>`,
-        className: '', iconSize: [40, 40], iconAnchor: [20, 20]
+        html: `<div style="background: ${statusColor}; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); border: 3px solid white;">${paysEmojis[code] || '🌍'}</div>`,
+        className: '', iconSize: [44, 44], iconAnchor: [22, 22]
       });
       
       const marker = L.marker(coords, { icon });
       marker.bindPopup(`
-        <div style="min-width: 200px;">
-          <div style="background: linear-gradient(135deg, #0077b6, #10b981); color: white; padding: 10px; margin: -10px -10px 10px; border-radius: 8px 8px 0 0;">
-            <span style="font-size: 24px;">${paysEmojis[code]}</span>
-            <div style="font-weight: bold;">${paysNoms[code]}</div>
+        <div style="min-width: 220px;">
+          <div style="background: linear-gradient(135deg, #0077b6, #10b981); color: white; padding: 12px; margin: -10px -10px 10px; border-radius: 8px 8px 0 0;">
+            <span style="font-size: 28px;">${paysEmojis[code]}</span>
+            <div style="font-weight: bold; font-size: 16px;">${paysNoms[code]}</div>
           </div>
           <div style="text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
-            <div style="color: #6b7280;">${commands.length} commandes</div>
+            <div style="font-size: 26px; font-weight: bold; color: #10b981;">${totalT.toFixed(1)}T</div>
+            <div style="color: #6b7280; margin-bottom: 8px;">${commands.length} commandes</div>
+            <div style="display: flex; justify-content: center; gap: 8px; font-size: 11px;">
+              ${attente > 0 ? `<span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px;">⏳ ${attente}</span>` : ''}
+              ${chargees > 0 ? `<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px;">✅ ${chargees}</span>` : ''}
+              ${livrees > 0 ? `<span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 10px;">🎉 ${livrees}</span>` : ''}
+            </div>
           </div>
         </div>
       `);
@@ -1508,16 +2078,17 @@
       }
     });
     
-    // Status Chart
+    // Status Chart - Updated with LIVRÉE
     const attente = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
     const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
+    const livrees = filteredCmds.filter(c => c.statut === 'LIVRÉE').length;
     
     if (statusChart) statusChart.destroy();
     statusChart = new Chart(document.getElementById('statusChart'), {
       type: 'doughnut',
       data: {
-        labels: ['En Attente', 'Chargées'],
-        datasets: [{ data: [attente, chargees], backgroundColor: ['#f59e0b', '#10b981'], borderWidth: 0 }]
+        labels: ['En Attente', 'Chargées', 'Livrées'],
+        datasets: [{ data: [attente, chargees, livrees], backgroundColor: ['#f59e0b', '#0077b6', '#10b981'], borderWidth: 0 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -1534,11 +2105,12 @@
     const mainData = filteredCmds.map((c, i) => ({
       'N°': i + 1, 'Client': c.client, 'Référence': c.ref, 'Date': c.date,
       'Départ': c.point_depart, 'Pays': c.pays, 'Tonnes': c.tonnes,
-      'Immat': c.immat || '-', 'Statut': c.statut, 'Emails': c.nb_emails || 0
+      'Immat': c.immat || '-', 'Statut': c.statut, 'Emails': c.nb_emails || 0,
+      'Date Chargement': c.date_chargement || '-', 'Date Livraison': c.date_livraison || '-'
     }));
     
     const ws = XLSX.utils.json_to_sheet(mainData);
-    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 8 }];
+    ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 15 }, { wch: 15 }];
     XLSX.utils.book_append_sheet(wb, ws, "Commandes");
     
     XLSX.writeFile(wb, `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -1592,9 +2164,15 @@
     document.getElementById('countryContent').innerHTML = `
       <div class="space-y-2">
         ${paysCmds.map(c => `
-          <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between">
-            <div><span class="font-bold">${c.client}</span> <span class="text-sm text-gray-400">${c.ref}</span></div>
-            <div><span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span></div>
+          <div class="p-3 bg-gray-50 dark:bg-slate-700 rounded-xl flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <span class="font-bold">${c.client}</span>
+              <span class="text-sm text-gray-400">${c.ref}</span>
+              ${getStatusBadge(c.statut)}
+            </div>
+            <div class="text-right">
+              <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</span>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -1623,3 +2201,4 @@
 
 </body>
 </html>
+
