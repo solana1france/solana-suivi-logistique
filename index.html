@@ -17,8 +17,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   
-  <!-- QRCode Generator -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
@@ -63,16 +63,10 @@
       to { transform: rotate(360deg); }
     }
     
-    @keyframes countUp {
-      from { opacity: 0; transform: scale(0.5); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    
     .animate-float { animation: float 4s ease-in-out infinite; }
     .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
     .animate-slide-up { animation: slide-up 0.6s ease-out; }
     .animate-rotate { animation: rotate 1s linear infinite; }
-    .animate-count { animation: countUp 0.5s ease-out; }
     
     .kpi-card {
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -208,7 +202,6 @@
       background: linear-gradient(135deg, #0077b6, #00b4d8);
     }
     
-    /* Reports Page Styles */
     .reports-page {
       position: fixed;
       inset: 0;
@@ -233,14 +226,15 @@
     .stat-badge.down { background: #fee2e2; color: #991b1b; }
     .stat-badge.neutral { background: #fef3c7; color: #92400e; }
     
-    .prediction-card {
-      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
-      border: 1px solid rgba(99, 102, 241, 0.2);
-    }
-    
     .chart-container {
       position: relative;
       height: 300px;
+    }
+    
+    /* Print styles for reports */
+    @media print {
+      .reports-page { position: static; }
+      button { display: none !important; }
     }
   </style>
 </head>
@@ -266,7 +260,7 @@
   <div id="reportsPage" class="reports-page hidden">
     <div class="container mx-auto px-4 py-6">
       <!-- Reports Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div class="flex items-center gap-4">
           <button onclick="closeReportsPage()" class="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-lg hover:shadow-xl transition-all">
             <span class="text-2xl">←</span>
@@ -279,10 +273,10 @@
           </div>
         </div>
         <div class="flex gap-2">
-          <button onclick="exportReportPDF()" class="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">
+          <button onclick="exportReportPDF()" class="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors shadow-lg">
             📄 Export PDF
           </button>
-          <button onclick="exportReportExcel()" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">
+          <button onclick="exportReportExcel()" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors shadow-lg">
             📥 Export Excel
           </button>
         </div>
@@ -292,23 +286,21 @@
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg mb-6">
         <div class="flex flex-wrap items-center gap-4">
           <span class="font-semibold text-gray-700 dark:text-gray-300">📅 Période:</span>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button onclick="setReportPeriod('week')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-week">7 jours</button>
             <button onclick="setReportPeriod('month')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all gradient-purple text-white" id="period-month">30 jours</button>
             <button onclick="setReportPeriod('quarter')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-quarter">3 mois</button>
             <button onclick="setReportPeriod('year')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-year">Année</button>
             <button onclick="setReportPeriod('all')" class="px-4 py-2 rounded-xl text-sm font-medium transition-all bg-gray-100 dark:bg-slate-700" id="period-all">Tout</button>
           </div>
-
         </div>
       </div>
 
       <!-- KPI Summary -->
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">📦</span>
-            <span class="stat-badge up" id="kpiTonnesChange">+12%</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">Total Tonnes</p>
           <p class="text-2xl font-black text-indigo-600" id="reportKpiTonnes">0 T</p>
@@ -317,7 +309,6 @@
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">🚚</span>
-            <span class="stat-badge up" id="kpiCmdsChange">+8%</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">Commandes</p>
           <p class="text-2xl font-black text-blue-600" id="reportKpiCmds">0</p>
@@ -326,7 +317,6 @@
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">🌍</span>
-            <span class="stat-badge neutral" id="kpiCountriesChange">0</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">Pays livrés</p>
           <p class="text-2xl font-black text-teal-600" id="reportKpiCountries">0</p>
@@ -335,7 +325,6 @@
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">✅</span>
-            <span class="stat-badge up" id="kpiDeliveredChange">+15%</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">Livrées</p>
           <p class="text-2xl font-black text-emerald-600" id="reportKpiDelivered">0</p>
@@ -344,7 +333,6 @@
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">⏳</span>
-            <span class="stat-badge down" id="kpiPendingChange">-5%</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">En attente</p>
           <p class="text-2xl font-black text-amber-600" id="reportKpiPending">0</p>
@@ -353,7 +341,6 @@
         <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
           <div class="flex items-center justify-between mb-2">
             <span class="text-2xl">📈</span>
-            <span class="stat-badge up" id="kpiRateChange">+10%</span>
           </div>
           <p class="text-xs text-gray-500 uppercase">Taux livraison</p>
           <p class="text-2xl font-black text-purple-600" id="reportKpiRate">0%</p>
@@ -361,158 +348,159 @@
       </div>
 
       <!-- Charts Row 1 -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Monthly Tonnes Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-gray-800 dark:text-white">📊 Tonnes par Mois</h3>
-            <select id="chartYearSelect" class="px-3 py-1 rounded-lg border dark:bg-slate-700 dark:border-gray-600 text-sm" onchange="updateMonthlyChart()">
-            </select>
+      <div id="reportContent">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- Monthly Tonnes Chart -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="font-bold text-gray-800 dark:text-white">📊 Tonnes par Mois</h3>
+              <select id="chartYearSelect" class="px-3 py-1 rounded-lg border dark:bg-slate-700 dark:border-gray-600 text-sm" onchange="updateMonthlyChart()">
+              </select>
+            </div>
+            <div class="chart-container">
+              <canvas id="monthlyTonnesChart"></canvas>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="monthlyTonnesChart"></canvas>
+          
+          <!-- Weekly Tonnes Chart -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">📅 Tonnes par Semaine</h3>
+            <div class="chart-container">
+              <canvas id="weeklyTonnesChart"></canvas>
+            </div>
           </div>
         </div>
-        
-        <!-- Year Comparison Chart -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📅 Comparaison Annuelle</h3>
-          <div class="chart-container">
-            <canvas id="yearComparisonChart"></canvas>
-          </div>
-        </div>
-      </div>
 
-      <!-- Charts Row 2 -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <!-- Status Distribution -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">📋 Répartition Statuts</h3>
-          <div class="chart-container" style="height: 250px;">
-            <canvas id="statusDistChart"></canvas>
+        <!-- Charts Row 2 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <!-- Status Distribution -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">📋 Répartition Statuts</h3>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="statusDistChart"></canvas>
+            </div>
+          </div>
+          
+          <!-- Top Clients -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top 5 Clients</h3>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="topClientsChart"></canvas>
+            </div>
+          </div>
+          
+          <!-- Top Destinations -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">🌍 Top Destinations</h3>
+            <div class="chart-container" style="height: 250px;">
+              <canvas id="topDestinationsChart"></canvas>
+            </div>
           </div>
         </div>
-        
-        <!-- Top Clients -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top 5 Clients</h3>
-          <div class="chart-container" style="height: 250px;">
-            <canvas id="topClientsChart"></canvas>
-          </div>
-        </div>
-        
-        <!-- Top Destinations -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">🌍 Top Destinations</h3>
-          <div class="chart-container" style="height: 250px;">
-            <canvas id="topDestinationsChart"></canvas>
-          </div>
-        </div>
-      </div>
 
-      <!-- Recent Activity Section -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg mb-6">
-        <div class="flex items-center gap-3 mb-4">
-          <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
-            <span class="text-xl">🕐</span>
-          </div>
-          <div>
-            <h3 class="font-bold text-gray-800 dark:text-white">Activité Récente</h3>
-            <p class="text-xs text-gray-500">Dernières opérations du jour</p>
-          </div>
-        </div>
-        
-        <div id="recentActivityList" class="space-y-3">
-          <!-- Recent activities will be injected here -->
-        </div>
-        
-        <div class="mt-4 pt-4 border-t dark:border-gray-700">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-500">📊 Total aujourd'hui</span>
-            <span class="font-bold text-indigo-600" id="todayTotal">0 T</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Detailed Stats Table -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
-        <div class="p-4 border-b dark:border-gray-700">
-          <h3 class="font-bold text-gray-800 dark:text-white">📋 Statistiques Détaillées par Pays</h3>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-gray-50 dark:bg-slate-700">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
-                <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">% Total</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Progression</th>
-              </tr>
-            </thead>
-            <tbody id="countryStatsTable">
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Performance Indicators -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">⚡ Indicateurs de Performance</h3>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between mb-1">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Taux de livraison</span>
-                <span class="text-sm font-bold text-emerald-600" id="perfDeliveryRate">0%</span>
-              </div>
-              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div id="perfDeliveryBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
-              </div>
+        <!-- Recent Activity Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+              <span class="text-xl">🕐</span>
             </div>
             <div>
-              <div class="flex justify-between mb-1">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Taux de chargement</span>
-                <span class="text-sm font-bold text-blue-600" id="perfLoadingRate">0%</span>
-              </div>
-              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div id="perfLoadingBar" class="h-full gradient-ocean rounded-full transition-all duration-1000" style="width: 0%"></div>
-              </div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Activité Récente</h3>
+              <p class="text-xs text-gray-500">Dernières opérations</p>
             </div>
-            <div>
-              <div class="flex justify-between mb-1">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Satisfaction client</span>
-                <span class="text-sm font-bold text-purple-600" id="perfSatisfaction">0%</span>
-              </div>
-              <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                <div id="perfSatisfactionBar" class="h-full gradient-purple rounded-full transition-all duration-1000" style="width: 0%"></div>
-              </div>
+          </div>
+          
+          <div id="recentActivityList" class="space-y-3">
+          </div>
+          
+          <div class="mt-4 pt-4 border-t dark:border-gray-700">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">📊 Total aujourd'hui</span>
+              <span class="font-bold text-indigo-600" id="todayTotal">0 T</span>
             </div>
           </div>
         </div>
-        
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">🏆 Records & Achievements</h3>
-          <div class="space-y-3">
-            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl">
-              <span class="text-3xl">🥇</span>
+
+        <!-- Detailed Stats Table -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
+          <div class="p-4 border-b dark:border-gray-700">
+            <h3 class="font-bold text-gray-800 dark:text-white">📋 Statistiques Détaillées par Pays</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 dark:bg-slate-700">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
+                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
+                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">% Total</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Progression</th>
+                </tr>
+              </thead>
+              <tbody id="countryStatsTable">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Performance Indicators & Records -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">⚡ Indicateurs de Performance</h3>
+            <div class="space-y-4">
               <div>
-                <p class="text-sm font-semibold">Meilleur client</p>
-                <p class="text-lg font-bold text-amber-600" id="recordBestClient">-</p>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Taux de livraison</span>
+                  <span class="text-sm font-bold text-emerald-600" id="perfDeliveryRate">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfDeliveryBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Taux de chargement</span>
+                  <span class="text-sm font-bold text-blue-600" id="perfLoadingRate">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfLoadingBar" class="h-full gradient-ocean rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Efficacité</span>
+                  <span class="text-sm font-bold text-purple-600" id="perfEfficiency">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfEfficiencyBar" class="h-full gradient-purple rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
               </div>
             </div>
-            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
-              <span class="text-3xl">📦</span>
-              <div>
-                <p class="text-sm font-semibold">Plus grosse livraison</p>
-                <p class="text-lg font-bold text-blue-600" id="recordBiggestDelivery">0 T</p>
+          </div>
+          
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">🏆 Records & Achievements</h3>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl">
+                <span class="text-3xl">🥇</span>
+                <div>
+                  <p class="text-sm font-semibold">Meilleur client</p>
+                  <p class="text-lg font-bold text-amber-600" id="recordBestClient">-</p>
+                </div>
               </div>
-            </div>
-            <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl">
-              <span class="text-3xl">🌍</span>
-              <div>
-                <p class="text-sm font-semibold">Destination favorite</p>
-                <p class="text-lg font-bold text-emerald-600" id="recordTopDestination">-</p>
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
+                <span class="text-3xl">📦</span>
+                <div>
+                  <p class="text-sm font-semibold">Plus grosse livraison</p>
+                  <p class="text-lg font-bold text-blue-600" id="recordBiggestDelivery">0 T</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl">
+                <span class="text-3xl">🌍</span>
+                <div>
+                  <p class="text-sm font-semibold">Destination favorite</p>
+                  <p class="text-lg font-bold text-emerald-600" id="recordTopDestination">-</p>
+                </div>
               </div>
             </div>
           </div>
@@ -607,7 +595,6 @@
               <span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span>
             </button>
             
-            <!-- RAPPORTS BUTTON - NEW! -->
             <button onclick="openReportsPage()" class="flex items-center gap-1 px-4 py-2 gradient-report text-white rounded-xl font-semibold shadow-lg text-sm animate-pulse-glow">
               📊 <span class="hidden sm:inline">Rapports</span>
             </button>
@@ -844,7 +831,7 @@
     </div>
   </div>
 
-  <!-- DELIVERY CONFIRMATION MODAL WITH PHOTOS -->
+  <!-- DELIVERY CONFIRMATION MODAL -->
   <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
       <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
@@ -887,7 +874,6 @@
   // ==================== CONFIGURATION ====================
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
-  
   const BASE_URL = 'https://solana1france.github.io/solana-suivi-logistique';
 
   const paysEmojis = {
@@ -930,7 +916,7 @@
 
   // Report charts
   let monthlyChart = null;
-  let yearCompChart = null;
+  let weeklyChart = null;
   let statusDistChart = null;
   let topClientsReportChart = null;
   let topDestChart = null;
@@ -950,9 +936,6 @@
   // ==================== REPORTS PAGE ====================
   function openReportsPage() {
     document.getElementById('reportsPage').classList.remove('hidden');
-    document.getElementById('reportDate').textContent = new Date().toLocaleDateString('fr-FR', { 
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-    });
     initReportsPage();
   }
 
@@ -970,7 +953,6 @@
   }
 
   function initReportsPage() {
-    // Populate year selector
     const yearSelect = document.getElementById('chartYearSelect');
     const years = [...new Set(cmds.map(c => new Date(c.date).getFullYear()))].sort((a, b) => b - a);
     const currentYear = new Date().getFullYear();
@@ -982,7 +964,7 @@
   function updateReportCharts() {
     updateReportKPIs();
     updateMonthlyChart();
-    updateYearComparisonChart();
+    updateWeeklyChart();
     updateStatusDistChart();
     updateTopClientsChart();
     updateTopDestinationsChart();
@@ -1070,59 +1052,63 @@
     });
   }
 
-  function updateYearComparisonChart() {
-    const currentYear = new Date().getFullYear();
-    const lastYear = currentYear - 1;
+  function updateWeeklyChart() {
+    // Get last 8 weeks
+    const weeks = [];
+    const weeklyData = [];
+    const now = new Date();
     
-    const currentYearData = Array(12).fill(0);
-    const lastYearData = Array(12).fill(0);
-    
-    cmds.forEach(c => {
-      const date = new Date(c.date);
-      const year = date.getFullYear();
-      const month = date.getMonth();
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(now.getTime() - (i * 7 + (now.getDay())) * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
       
-      if (year === currentYear) currentYearData[month] += c.tonnes;
-      else if (year === lastYear) lastYearData[month] += c.tonnes;
-    });
+      const weekNum = getWeekNumber(weekStart);
+      weeks.push(`S${weekNum}`);
+      
+      const weekTonnes = cmds.filter(c => {
+        const d = new Date(c.date);
+        return d >= weekStart && d < weekEnd;
+      }).reduce((s, c) => s + c.tonnes, 0);
+      
+      weeklyData.push(weekTonnes);
+    }
 
-    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-
-    if (yearCompChart) yearCompChart.destroy();
-    yearCompChart = new Chart(document.getElementById('yearComparisonChart'), {
+    if (weeklyChart) weeklyChart.destroy();
+    weeklyChart = new Chart(document.getElementById('weeklyTonnesChart'), {
       type: 'line',
       data: {
-        labels: months,
-        datasets: [
-          {
-            label: currentYear.toString(),
-            data: currentYearData,
-            borderColor: 'rgb(99, 102, 241)',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-            fill: true,
-            tension: 0.4
-          },
-          {
-            label: lastYear.toString(),
-            data: lastYearData,
-            borderColor: 'rgb(156, 163, 175)',
-            backgroundColor: 'rgba(156, 163, 175, 0.1)',
-            fill: true,
-            tension: 0.4,
-            borderDash: [5, 5]
-          }
-        ]
+        labels: weeks,
+        datasets: [{
+          label: 'Tonnes',
+          data: weeklyData,
+          borderColor: 'rgb(20, 184, 166)',
+          backgroundColor: 'rgba(20, 184, 166, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: 'rgb(20, 184, 166)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 6
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' } },
+        plugins: { legend: { display: false } },
         scales: {
           y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
           x: { grid: { display: false } }
         }
       }
     });
+  }
+
+  function getWeekNumber(d) {
+    const date = new Date(d);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 4 - (date.getDay() || 7));
+    const yearStart = new Date(date.getFullYear(), 0, 1);
+    return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
   }
 
   function updateStatusDistChart() {
@@ -1160,7 +1146,7 @@
     topClientsReportChart = new Chart(document.getElementById('topClientsChart'), {
       type: 'bar',
       data: {
-        labels: topClients.map(c => c[0].substring(0, 10)),
+        labels: topClients.map(c => c[0].substring(0, 12)),
         datasets: [{
           label: 'Tonnes',
           data: topClients.map(c => c[1]),
@@ -1219,7 +1205,7 @@
       const percent = totalTonnes > 0 ? ((data.tonnes / totalTonnes) * 100).toFixed(1) : 0;
       return `
         <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-          <td class="px-4 py-3 font-semibold">${paysEmojis[pays]} ${paysNoms[pays]}</td>
+          <td class="px-4 py-3 font-semibold">${paysEmojis[pays] || ''} ${paysNoms[pays] || pays}</td>
           <td class="px-4 py-3 text-right">${data.count}</td>
           <td class="px-4 py-3 text-right font-bold text-emerald-600">${data.tonnes.toFixed(2)} T</td>
           <td class="px-4 py-3 text-right">${percent}%</td>
@@ -1234,9 +1220,7 @@
   }
 
   function updateRecentActivity() {
-    // Get recent commands (last 5)
     const recent = [...cmds].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-    
     const container = document.getElementById('recentActivityList');
     
     if (!container) return;
@@ -1247,7 +1231,6 @@
     }
     
     container.innerHTML = recent.map(cmd => {
-      const statusColor = cmd.statut === 'LIVRÉE' ? 'emerald' : cmd.statut === 'CHARGÉE' ? 'blue' : 'amber';
       const statusIcon = cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳';
       
       return `
@@ -1260,14 +1243,13 @@
             </div>
           </div>
           <div class="text-right">
-            <p class="font-bold text-${statusColor}-600">${cmd.tonnes.toFixed(2)} T</p>
+            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
             <p class="text-xs text-gray-500">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p>
           </div>
         </div>
       `;
     }).join('');
     
-    // Update today's total
     const today = new Date().toISOString().split('T')[0];
     const todayCmds = cmds.filter(c => c.date === today);
     const todayTotal = todayCmds.reduce((s, c) => s + c.tonnes, 0);
@@ -1283,7 +1265,7 @@
     
     const deliveryRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
     const loadingRate = total > 0 ? Math.round((charged / total) * 100) : 0;
-    const satisfaction = Math.min(95, deliveryRate + Math.random() * 5); // Simulated
+    const efficiency = Math.round((deliveryRate + loadingRate) / 2);
 
     document.getElementById('perfDeliveryRate').textContent = deliveryRate + '%';
     document.getElementById('perfDeliveryBar').style.width = deliveryRate + '%';
@@ -1291,8 +1273,8 @@
     document.getElementById('perfLoadingRate').textContent = loadingRate + '%';
     document.getElementById('perfLoadingBar').style.width = loadingRate + '%';
     
-    document.getElementById('perfSatisfaction').textContent = satisfaction.toFixed(0) + '%';
-    document.getElementById('perfSatisfactionBar').style.width = satisfaction + '%';
+    document.getElementById('perfEfficiency').textContent = efficiency + '%';
+    document.getElementById('perfEfficiencyBar').style.width = efficiency + '%';
   }
 
   function updateRecords() {
@@ -1308,36 +1290,303 @@
 
     document.getElementById('recordBestClient').textContent = topClient ? topClient[0] : '-';
     document.getElementById('recordBiggestDelivery').textContent = biggest.tonnes.toFixed(2) + ' T';
-    document.getElementById('recordTopDestination').textContent = topDest ? `${paysEmojis[topDest[0]]} ${paysNoms[topDest[0]]}` : '-';
+    document.getElementById('recordTopDestination').textContent = topDest ? `${paysEmojis[topDest[0]] || ''} ${paysNoms[topDest[0]] || topDest[0]}` : '-';
   }
 
-  function exportReportPDF() {
+  // ==================== PROFESSIONAL PDF EXPORT ====================
+  async function exportReportPDF() {
+    showLoading();
     showToast('📄 Génération du rapport PDF...');
-    setTimeout(() => {
-      showToast('📥 Rapport PDF exporté!');
-    }, 1000);
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // Colors
+    const primaryColor = [0, 119, 182];
+    const accentColor = [99, 102, 241];
+    const successColor = [16, 185, 129];
+    
+    // Header
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', pageWidth/2, 20, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Rapport Analytique', pageWidth/2, 32, { align: 'center' });
+    
+    // Date
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(10);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, 50);
+    
+    // KPI Section
+    doc.setFontSize(14);
+    doc.setTextColor(...primaryColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📊 Indicateurs Clés', 14, 65);
+    
+    const filtered = getFilteredCmdsForReport();
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const totalCmds = filtered.length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
+    
+    // KPI Boxes
+    let yPos = 75;
+    const boxWidth = 42;
+    const boxHeight = 25;
+    const gap = 8;
+    
+    const kpis = [
+      { label: 'Tonnes', value: totalTonnes.toFixed(1) + ' T', color: [99, 102, 241] },
+      { label: 'Commandes', value: totalCmds.toString(), color: [0, 119, 182] },
+      { label: 'Livrées', value: delivered.toString(), color: [16, 185, 129] },
+      { label: 'Taux', value: rate + '%', color: [139, 92, 246] }
+    ];
+    
+    kpis.forEach((kpi, i) => {
+      const x = 14 + i * (boxWidth + gap);
+      doc.setFillColor(...kpi.color);
+      doc.roundedRect(x, yPos, boxWidth, boxHeight, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.text(kpi.label, x + boxWidth/2, yPos + 8, { align: 'center' });
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + boxWidth/2, yPos + 18, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+    });
+    
+    // Capture charts as images
+    yPos = 110;
+    
+    // Monthly Chart
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📈 Tonnes par Mois', 14, yPos);
+    
+    try {
+      const monthlyCanvas = document.getElementById('monthlyTonnesChart');
+      if (monthlyCanvas) {
+        const monthlyImg = monthlyCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(monthlyImg, 'PNG', 14, yPos + 5, 85, 50);
+      }
+    } catch (e) {}
+    
+    // Weekly Chart
+    doc.text('📅 Tonnes par Semaine', 110, yPos);
+    try {
+      const weeklyCanvas = document.getElementById('weeklyTonnesChart');
+      if (weeklyCanvas) {
+        const weeklyImg = weeklyCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(weeklyImg, 'PNG', 110, yPos + 5, 85, 50);
+      }
+    } catch (e) {}
+    
+    // Status Chart
+    yPos = 175;
+    doc.text('📋 Répartition des Statuts', 14, yPos);
+    try {
+      const statusCanvas = document.getElementById('statusDistChart');
+      if (statusCanvas) {
+        const statusImg = statusCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(statusImg, 'PNG', 14, yPos + 5, 55, 45);
+      }
+    } catch (e) {}
+    
+    // Top Clients Chart
+    doc.text('👑 Top Clients', 80, yPos);
+    try {
+      const clientsCanvas = document.getElementById('topClientsChart');
+      if (clientsCanvas) {
+        const clientsImg = clientsCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(clientsImg, 'PNG', 75, yPos + 5, 55, 45);
+      }
+    } catch (e) {}
+    
+    // Top Destinations
+    doc.text('🌍 Top Destinations', 140, yPos);
+    try {
+      const destCanvas = document.getElementById('topDestinationsChart');
+      if (destCanvas) {
+        const destImg = destCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(destImg, 'PNG', 135, yPos + 5, 55, 45);
+      }
+    } catch (e) {}
+    
+    // New page for table
+    doc.addPage();
+    
+    // Table Header
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('📋 Statistiques par Pays', pageWidth/2, 16, { align: 'center' });
+    
+    // Table
+    const countryData = {};
+    filtered.forEach(c => {
+      if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
+      countryData[c.pays].count++;
+      countryData[c.pays].tonnes += c.tonnes;
+    });
+    
+    const tableData = Object.entries(countryData)
+      .map(([pays, data]) => [
+        `${paysEmojis[pays] || ''} ${paysNoms[pays] || pays}`,
+        data.count.toString(),
+        data.tonnes.toFixed(2) + ' T',
+        ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%'
+      ])
+      .sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
+    
+    doc.autoTable({
+      startY: 35,
+      head: [['Pays', 'Commandes', 'Tonnes', '% Total']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: primaryColor, textColor: [255,255,255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 249, 255] },
+      styles: { fontSize: 10, cellPadding: 4 },
+      columnStyles: {
+        0: { cellWidth: 60 },
+        1: { cellWidth: 35, halign: 'center' },
+        2: { cellWidth: 40, halign: 'right' },
+        3: { cellWidth: 30, halign: 'center' }
+      }
+    });
+    
+    // Footer
+    const finalY = doc.lastAutoTable.finalY + 15;
+    
+    // Records section
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(14, finalY, pageWidth - 28, 40, 5, 5, 'F');
+    
+    doc.setFontSize(12);
+    doc.setTextColor(...primaryColor);
+    doc.setFont('helvetica', 'bold');
+    doc.text('🏆 Records', 20, finalY + 10);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    doc.setFont('helvetica', 'normal');
+    
+    const clientData2 = {};
+    cmds.forEach(c => { clientData2[c.client] = (clientData2[c.client] || 0) + c.tonnes; });
+    const topClient = Object.entries(clientData2).sort((a, b) => b[1] - a[1])[0];
+    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0 });
+    
+    doc.text(`🥇 Meilleur client: ${topClient ? topClient[0] : '-'}`, 20, finalY + 22);
+    doc.text(`📦 Plus grosse livraison: ${biggest.tonnes.toFixed(2)} T`, 20, finalY + 32);
+    doc.text(`📊 Total commandes: ${cmds.length}`, 110, finalY + 22);
+    doc.text(`⚖️ Total tonnes: ${cmds.reduce((s,c) => s + c.tonnes, 0).toFixed(2)} T`, 110, finalY + 32);
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('🚚 Solana Logistique PRO - Rapport généré automatiquement', pageWidth/2, pageHeight - 10, { align: 'center' });
+    
+    hideLoading();
+    doc.save(`Solana_Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('📥 Rapport PDF exporté avec graphiques!');
   }
 
   function exportReportExcel() {
-    const data = cmds.map(c => ({
-      Client: c.client,
-      Référence: c.ref,
-      Date: c.date,
-      Départ: c.point_depart,
-      Pays: paysNoms[c.pays],
-      Tonnes: c.tonnes,
-      Statut: c.statut,
-      Email: c.email
-    }));
+    showLoading();
     
-    const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
+    
+    // Sheet 1: Summary
+    const filtered = getFilteredCmdsForReport();
+    const summaryData = [
+      ['SOLANA LOGISTIQUE - RAPPORT ANALYTIQUE'],
+      ['Date', new Date().toLocaleDateString('fr-FR')],
+      [''],
+      ['INDICATEURS CLÉS'],
+      ['Total Tonnes', filtered.reduce((s, c) => s + c.tonnes, 0).toFixed(2)],
+      ['Nombre de commandes', filtered.length],
+      ['Commandes livrées', filtered.filter(c => c.statut === 'LIVRÉE').length],
+      ['Commandes en attente', filtered.filter(c => c.statut === 'EN ATTENTE').length],
+      ['Taux de livraison', filtered.length > 0 ? Math.round((filtered.filter(c => c.statut === 'LIVRÉE').length / filtered.length) * 100) + '%' : '0%'],
+      [''],
+      ['STATISTIQUES PAR PAYS'],
+      ['Pays', 'Commandes', 'Tonnes', '% Total']
+    ];
+    
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const countryData = {};
+    filtered.forEach(c => {
+      if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
+      countryData[c.pays].count++;
+      countryData[c.pays].tonnes += c.tonnes;
+    });
+    
+    Object.entries(countryData)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes)
+      .forEach(([pays, data]) => {
+        summaryData.push([
+          `${paysNoms[pays] || pays}`,
+          data.count,
+          data.tonnes.toFixed(2),
+          ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%'
+        ]);
+      });
+    
+    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws1['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Résumé');
+    
+    // Sheet 2: All commands
+    const commandsData = [
+      ['Client', 'Référence', 'Date', 'Départ', 'Pays', 'Tonnes', 'Statut', 'Email']
+    ];
+    
+    filtered.forEach(c => {
+      commandsData.push([
+        c.client, c.ref, c.date, c.point_depart,
+        paysNoms[c.pays] || c.pays, c.tonnes, c.statut, c.email
+      ]);
+    });
+    
+    const ws2 = XLSX.utils.aoa_to_sheet(commandsData);
+    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Commandes');
+    
+    // Sheet 3: Top Clients
+    const clientStats = {};
+    filtered.forEach(c => {
+      if (!clientStats[c.client]) clientStats[c.client] = { count: 0, tonnes: 0 };
+      clientStats[c.client].count++;
+      clientStats[c.client].tonnes += c.tonnes;
+    });
+    
+    const topClientsData = [['Client', 'Commandes', 'Tonnes']];
+    Object.entries(clientStats)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes)
+      .slice(0, 10)
+      .forEach(([client, data]) => {
+        topClientsData.push([client, data.count, data.tonnes.toFixed(2)]);
+      });
+    
+    const ws3 = XLSX.utils.aoa_to_sheet(topClientsData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Top Clients');
+    
+    hideLoading();
     XLSX.writeFile(wb, `Solana_Rapport_${new Date().toISOString().split('T')[0]}.xlsx`);
     showToast('📥 Rapport Excel exporté!');
   }
 
-  // ==================== CHECK FOR PUBLIC VIEW ====================
+  // ==================== PUBLIC VIEW ====================
   function checkPublicView() {
     const urlParams = new URLSearchParams(window.location.search);
     const viewMode = urlParams.get('view');
@@ -1363,17 +1612,10 @@
       });
       
       if (!res.ok) throw new Error();
-      
       const data = await res.json();
       
       if (data.length === 0) {
-        container.innerHTML = `
-          <div class="text-center py-10">
-            <div class="text-6xl mb-4">❌</div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Commande non trouvée</h2>
-            <p class="text-gray-500">La référence "${ref}" n'existe pas.</p>
-          </div>
-        `;
+        container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Commande non trouvée</h2></div>';
         return;
       }
       
@@ -1382,107 +1624,29 @@
       
       let photos = [];
       if (cmd.photos) {
-        try {
-          photos = JSON.parse(cmd.photos);
-        } catch (e) {
-          if (cmd.photos.startsWith('data:image')) {
-            photos = [cmd.photos];
-          }
-        }
-      }
-      
-      let documents = [];
-      if (cmd.documents_cmr) {
-        try {
-          documents = typeof cmd.documents_cmr === 'string' ? JSON.parse(cmd.documents_cmr) : cmd.documents_cmr;
-        } catch (e) {}
+        try { photos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) photos = [cmd.photos]; }
       }
       
       container.innerHTML = `
         <div class="text-center mb-6">
-          <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4">
-            <span class="text-4xl">🎉</span>
-          </div>
+          <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
           <h1 class="text-2xl font-black text-gray-800 mb-1">Confirmation de Livraison</h1>
           <p class="text-gray-500">Solana Logistique</p>
         </div>
-        
         <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6">
           <div class="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Référence</p>
-              <p class="font-bold text-lg">${cmd.ref}</p>
-            </div>
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Client</p>
-              <p class="font-bold text-lg">${cmd.client}</p>
-            </div>
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Tonnes</p>
-              <p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p>
-            </div>
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Destination</p>
-              <p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p>
-            </div>
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Départ</p>
-              <p class="font-bold">${cmd.point_depart || '-'}</p>
-            </div>
-            <div>
-              <p class="text-gray-500 text-xs uppercase">Date de livraison</p>
-              <p class="font-bold">${deliveryDate}</p>
-            </div>
+            <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Date de livraison</p><p class="font-bold">${deliveryDate}</p></div>
           </div>
         </div>
-        
-        ${cmd.immat ? `
-        <div class="bg-blue-50 rounded-xl p-4 mb-6">
-          <p class="text-gray-500 text-xs uppercase">Immatriculation</p>
-          <p class="font-bold text-lg">🚛 ${cmd.immat}</p>
-        </div>
-        ` : ''}
-        
-        ${photos.length > 0 ? `
-        <div class="mb-6">
-          <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
-          <div class="grid grid-cols-2 gap-3">
-            ${photos.map((photo, i) => `
-              <img src="${photo}" alt="Photo ${i+1}" class="delivery-photo cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoViewer('${photo}')">
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        ${documents.length > 0 ? `
-        <div class="mb-6">
-          <h3 class="font-bold text-gray-800 mb-3">📄 Documents CMR</h3>
-          <div class="grid grid-cols-2 gap-3">
-            ${documents.map((doc, i) => `
-              <img src="${doc}" alt="CMR ${i+1}" class="delivery-photo cursor-pointer hover:opacity-90 transition-opacity" onclick="openPhotoViewer('${doc}')">
-            `).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        <div class="text-center pt-4 border-t">
-          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span>
-        </div>
-        
-        <div class="text-center mt-6 text-xs text-gray-400">
-          <p>🚚 Solana Logistique - Projet Fin d'Études</p>
-          <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
-        </div>
+        ${photos.length > 0 ? `<div class="mb-6"><h3 class="font-bold text-gray-800 mb-3">📸 Photos</h3><div class="grid grid-cols-2 gap-3">${photos.map((p, i) => `<img src="${p}" class="delivery-photo">`).join('')}</div></div>` : ''}
+        <div class="text-center pt-4 border-t"><span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span></div>
       `;
-      
     } catch (error) {
-      container.innerHTML = `
-        <div class="text-center py-10">
-          <div class="text-6xl mb-4">❌</div>
-          <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2>
-          <p class="text-gray-500">Impossible de charger les données.</p>
-        </div>
-      `;
+      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2></div>';
     }
   }
 
@@ -1625,25 +1789,16 @@
     
     showLoading();
     
-    const updates = {
-      statut: 'CHARGÉE',
-      nb_emails: (cmd.nb_emails || 0) + 1
-    };
-    
+    const updates = { statut: 'CHARGÉE', nb_emails: (cmd.nb_emails || 0) + 1 };
     const ok = await updateCmdDB(cmd.ref, updates);
     
     if (ok) {
       const idx = cmds.findIndex(c => c.ref === cmd.ref);
-      if (idx !== -1) {
-        cmds[idx] = { ...cmds[idx], ...updates };
-        filterCommands();
-      }
+      if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
       hideLoading();
-      
       const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
       const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T`;
       window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-      
       showToast('✅ Commande chargée!');
     } else {
       hideLoading();
@@ -1661,45 +1816,27 @@
 
   function synchroniser() { loadCmds(); }
 
-  // ==================== DELIVERY CONFIRMATION WITH PHOTOS ====================
+  // ==================== DELIVERY CONFIRMATION ====================
   function showDeliveryConfirmation(cmd) {
     currentDeliveryCmd = cmd;
     uploadedPhotos = [];
     
     document.getElementById('deliveryModalContent').innerHTML = `
       <div class="text-center mb-6">
-        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4">
-          <span class="text-4xl">🎉</span>
-        </div>
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
         <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
         <p class="text-gray-500">Commande ${cmd.ref}</p>
       </div>
-      
       <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 mb-6">
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p class="text-gray-500">Client</p>
-            <p class="font-bold">${cmd.client}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Tonnes</p>
-            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Destination</p>
-            <p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p>
-          </div>
-          <div>
-            <p class="text-gray-500">Immatriculation</p>
-            <p class="font-bold">${cmd.immat || '-'}</p>
-          </div>
+          <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
+          <div><p class="text-gray-500">Tonnes</p><p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p></div>
+          <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p></div>
+          <div><p class="text-gray-500">Immatriculation</p><p class="font-bold">${cmd.immat || '-'}</p></div>
         </div>
       </div>
-      
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos de livraison</h4>
-        <p class="text-sm text-gray-500 mb-3">Ajoutez des photos de la livraison (optionnel)</p>
-        
         <div class="flex flex-wrap gap-3" id="photoPreviewContainer">
           <label class="photo-upload-btn cursor-pointer">
             <span class="text-3xl text-gray-400">+</span>
@@ -1708,11 +1845,8 @@
           </label>
         </div>
       </div>
-      
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR</h4>
-        <p class="text-sm text-gray-500 mb-3">Ajoutez les documents de transport (optionnel)</p>
-        
         <div class="flex flex-wrap gap-3" id="documentPreviewContainer">
           <label class="photo-upload-btn cursor-pointer">
             <span class="text-3xl text-gray-400">+</span>
@@ -1721,33 +1855,25 @@
           </label>
         </div>
       </div>
-      
       <div class="flex gap-3">
         <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
-        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer Livraison</button>
+        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer</button>
       </div>
     `;
-    
     document.getElementById('deliveryModal').classList.remove('hidden');
   }
 
   function handlePhotoUpload(event) {
     const files = event.target.files;
     const container = document.getElementById('photoPreviewContainer');
-    
     for (let file of files) {
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result;
         uploadedPhotos.push({ type: 'photo', data: base64 });
-        
         const previewDiv = document.createElement('div');
         previewDiv.className = 'relative';
-        previewDiv.innerHTML = `
-          <img src="${base64}" class="photo-preview">
-          <button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" 
-            class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600">✕</button>
-        `;
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
         container.insertBefore(previewDiv, container.lastElementChild);
       };
       reader.readAsDataURL(file);
@@ -1757,20 +1883,14 @@
   function handleDocumentUpload(event) {
     const files = event.target.files;
     const container = document.getElementById('documentPreviewContainer');
-    
     for (let file of files) {
       const reader = new FileReader();
       reader.onload = function(e) {
         const base64 = e.target.result;
         uploadedPhotos.push({ type: 'document', data: base64 });
-        
         const previewDiv = document.createElement('div');
         previewDiv.className = 'relative';
-        previewDiv.innerHTML = `
-          <img src="${base64}" class="photo-preview">
-          <button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" 
-            class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold hover:bg-red-600">✕</button>
-        `;
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
         container.insertBefore(previewDiv, container.lastElementChild);
       };
       reader.readAsDataURL(file);
@@ -1778,43 +1898,24 @@
   }
 
   async function confirmDeliveryFinal() {
-    if (!currentDeliveryCmd) {
-      showToast('❌ Erreur', 'error');
-      return;
-    }
-    
+    if (!currentDeliveryCmd) { showToast('❌ Erreur', 'error'); return; }
     showLoading();
     
     const today = new Date().toISOString().split('T')[0];
-    
     const photos = uploadedPhotos.filter(p => p.type === 'photo').map(p => p.data);
     const documents = uploadedPhotos.filter(p => p.type === 'document').map(p => p.data);
     
-    const updates = {
-      statut: 'LIVRÉE',
-      date_livraison: today,
-      photos: photos.length > 0 ? JSON.stringify(photos) : null,
-      documents_cmr: documents.length > 0 ? documents : null
-    };
-    
+    const updates = { statut: 'LIVRÉE', date_livraison: today, photos: photos.length > 0 ? JSON.stringify(photos) : null, documents_cmr: documents.length > 0 ? documents : null };
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
     if (ok) {
       const idx = cmds.findIndex(c => c.ref === currentDeliveryCmd.ref);
-      if (idx !== -1) {
-        cmds[idx] = { ...cmds[idx], ...updates };
-        filterCommands();
-      }
-      
+      if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
       hideLoading();
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
-      
       const updatedCmd = { ...currentDeliveryCmd, ...updates };
-      setTimeout(() => {
-        showQRModal(updatedCmd);
-      }, 300);
-      
+      setTimeout(() => { showQRModal(updatedCmd); }, 300);
     } else {
       hideLoading();
       showToast('❌ Erreur', 'error');
@@ -1827,151 +1928,70 @@
     uploadedPhotos = [];
   }
 
-  // ==================== QR CODE WITH LINK ====================
+  // ==================== QR CODE ====================
   function showQRModal(cmd) {
     const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
     
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="text-center">
-          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block">
-            <div id="qrCodeContainer" class="flex justify-center"></div>
-          </div>
-          <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails de livraison</p>
-          <p class="text-xs text-gray-400 mt-1 break-all">${viewUrl}</p>
-          <div class="mt-4 flex gap-2 justify-center flex-wrap">
-            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger QR</button>
-            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
+          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block"><div id="qrCodeContainer" class="flex justify-center"></div></div>
+          <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails</p>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger</button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
           </div>
         </div>
-        
         <div class="space-y-4">
           <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
-            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails</h4>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
-              <div class="flex justify-between"><span class="text-gray-500">Date:</span><span class="font-semibold">${cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR')}</span></div>
             </div>
           </div>
-          
-          ${cmd.photos ? `
-          <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-3">
-            <p class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">📸 Photos incluses</p>
-            <div class="flex gap-2 overflow-x-auto">
-              ${(typeof cmd.photos === 'string' ? JSON.parse(cmd.photos) : cmd.photos).slice(0, 3).map(p => `
-                <img src="${p}" class="w-16 h-16 object-cover rounded-lg">
-              `).join('')}
-            </div>
-          </div>
-          ` : ''}
-          
-          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2">
-            📧 Envoyer email au client
-          </button>
-          
-          <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-4 text-sm">
-            <p class="font-bold text-yellow-800 dark:text-yellow-200">💡 Astuce</p>
-            <p class="text-yellow-700 dark:text-yellow-300 mt-1">Le QR Code contient un lien vers une page publique. Quand on le scanne, on voit les détails de livraison avec les photos!</p>
-          </div>
-          
-          <div class="text-center">
-            <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">🎉 LIVRÉE</span>
-          </div>
+          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold">📧 Envoyer email</button>
+          <div class="text-center"><span class="px-6 py-3 gradient-delivered text-white rounded-full font-bold">🎉 LIVRÉE</span></div>
         </div>
       </div>
     `;
-    
     document.getElementById('qrModal').classList.remove('hidden');
-    
-    setTimeout(() => {
-      generateQRCode(viewUrl);
-    }, 100);
+    setTimeout(() => { generateQRCode(viewUrl); }, 100);
   }
 
   function generateQRCode(text) {
     const container = document.getElementById('qrCodeContainer');
     if (!container) return;
-    
     container.innerHTML = '';
-    
-    currentQRInstance = new QRCode(container, {
-      text: text,
-      width: 220,
-      height: 220,
-      colorDark: '#0077b6',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    currentQRInstance = new QRCode(container, { text: text, width: 220, height: 220, colorDark: '#0077b6', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
   }
 
   function closeQRModal() {
     document.getElementById('qrModal').classList.add('hidden');
-    if (currentQRInstance) {
-      currentQRInstance = null;
-    }
+    if (currentQRInstance) currentQRInstance = null;
   }
 
   function downloadQRCode(ref) {
     const container = document.getElementById('qrCodeContainer');
     const canvas = container ? container.querySelector('canvas') : null;
-    
     if (canvas) {
       const link = document.createElement('a');
       link.download = `QR_Livraison_${ref}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
       showToast('📥 QR Code téléchargé!');
-    } else {
-      showToast('❌ Erreur téléchargement', 'error');
     }
   }
 
   function printQRCode(ref) {
     const container = document.getElementById('qrCodeContainer');
     const canvas = container ? container.querySelector('canvas') : null;
-    
     if (canvas) {
       const imgData = canvas.toDataURL('image/png');
-      const today = new Date().toLocaleDateString('fr-FR');
-      const viewUrl = `${BASE_URL}?view=delivery&ref=${ref}`;
-      
       const printWindow = window.open('', '_blank');
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Confirmation Livraison - ${ref}</title>
-          <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 30px; }
-            h1 { color: #0077b6; margin-bottom: 5px; }
-            .qr { margin: 20px auto; padding: 20px; background: white; display: inline-block; border-radius: 10px; }
-            .info { text-align: left; margin: 20px auto; max-width: 300px; }
-            .info p { margin: 5px 0; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
-            .footer { margin-top: 30px; color: #666; font-size: 12px; }
-            .url { word-break: break-all; color: #0077b6; font-size: 10px; }
-          </style>
-        </head>
-        <body>
-          <h1>🚚 Solana Logistique</h1>
-          <h2>Confirmation de Livraison</h2>
-          <div class="qr">
-            <img src="${imgData}" style="width: 200px; height: 200px;">
-          </div>
-          <div class="info">
-            <p><strong>Référence:</strong> ${ref}</p>
-            <p><strong>Date:</strong> ${today}</p>
-          </div>
-          <p style="color: #0077b6; font-weight: bold;">Scannez ce QR code pour voir les détails</p>
-          <p class="url">${viewUrl}</p>
-          <div class="footer">
-            <p>Solana Logistique - Projet Fin d'Études</p>
-          </div>
-        </body>
-        </html>
-      `);
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Livraison ${ref}</title><style>body{font-family:Arial;text-align:center;padding:30px;}.qr{margin:20px auto;padding:20px;background:white;display:inline-block;border-radius:10px;}</style></head><body><h1>🚚 Solana Logistique</h1><h2>Confirmation de Livraison</h2><div class="qr"><img src="${imgData}" style="width:200px;height:200px;"></div><p><strong>Réf:</strong> ${ref}</p><p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p></body></html>`);
       printWindow.document.close();
       setTimeout(() => printWindow.print(), 500);
     }
@@ -1980,34 +2000,9 @@
   function sendDeliveryEmail(ref) {
     const cmd = cmds.find(c => c.ref === ref);
     if (!cmd) return;
-    
-    const today = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
     const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(ref)}`;
-    
     const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref}`;
-    const message = `Bonjour ${cmd.client},
-
-═══════════════════════════════
-🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!
-═══════════════════════════════
-
-Référence: ${cmd.ref}
-Client: ${cmd.client}
-Tonnes: ${cmd.tonnes.toFixed(2)} T
-Destination: ${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}
-Date de livraison: ${today}
-
-═══════════════════════════════
-📱 VOIR LES DÉTAILS EN LIGNE
-═══════════════════════════════
-
-Cliquez sur ce lien pour voir les détails de livraison avec les photos:
-${viewUrl}
-
-Merci de votre confiance!
-
-🚚 Solana Logistique`;
-    
+    const message = `Bonjour ${cmd.client},\n\n🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!\n\nRéférence: ${cmd.ref}\nTonnes: ${cmd.tonnes.toFixed(2)} T\nDestination: ${paysNoms[cmd.pays]}\n\nVoir détails: ${viewUrl}\n\n🚚 Solana Logistique`;
     window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
     showToast('📧 Email préparé!');
   }
@@ -2027,7 +2022,6 @@ Merci de votre confiance!
       const matchStatus = currentStatusFilter === 'all' || c.statut === currentStatusFilter;
       return matchSearch && matchDateFrom && matchDateTo && matchCountry && matchStatus;
     });
-    
     maj();
   }
 
@@ -2064,7 +2058,6 @@ Merci de votre confiance!
       document.getElementById(`tab-${v}`).classList.toggle('border-transparent', v !== view);
       document.getElementById(`tab-${v}`).classList.toggle('text-gray-500', v !== view);
     });
-    
     if (view === 'calendar') renderCalendar();
     if (view === 'map') setTimeout(() => { if (!map) initMap(); else map.invalidateSize(); }, 100);
   }
@@ -2090,7 +2083,6 @@ Merci de votre confiance!
     renderTable();
     renderCards();
     updateCharts();
-    
     if (!document.getElementById('view-calendar').classList.contains('hidden')) renderCalendar();
     if (map && !document.getElementById('view-map').classList.contains('hidden')) updateMapMarkers();
   }
@@ -2103,19 +2095,10 @@ Merci de votre confiance!
 
   function getActionButtons(cmd) {
     let buttons = '';
-    
-    if (cmd.statut === 'EN ATTENTE') {
-      buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
-    } else if (cmd.statut === 'CHARGÉE') {
-      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
-    }
-    
-    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') {
-      buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
-    }
-    
+    if (cmd.statut === 'EN ATTENTE') buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
+    else if (cmd.statut === 'CHARGÉE') buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
+    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
     buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>`;
-    
     return buttons;
   }
 
@@ -2124,7 +2107,6 @@ Merci de votre confiance!
       document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
       return;
     }
-    
     document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
       <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}">
         <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
@@ -2145,22 +2127,11 @@ Merci de votre confiance!
       document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">Aucun résultat</div>`;
       return;
     }
-    
     document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
       <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'LIVRÉE' ? 'border-emerald-400' : c.statut === 'CHARGÉE' ? 'border-blue-400' : 'border-amber-400'} shadow-lg p-4">
-        <div class="flex justify-between items-center mb-2">
-          <span class="font-bold">${c.client}</span>
-          ${getStatusBadge(c.statut)}
-        </div>
-        <div class="text-sm text-gray-500 space-y-1">
-          <p>📄 ${c.ref}</p>
-          <p>📅 ${c.date}</p>
-          <p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p>
-          <p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p>
-        </div>
-        <div class="flex gap-1 mt-3 justify-end">
-          ${getActionButtons(c)}
-        </div>
+        <div class="flex justify-between items-center mb-2"><span class="font-bold">${c.client}</span>${getStatusBadge(c.statut)}</div>
+        <div class="text-sm text-gray-500 space-y-1"><p>📄 ${c.ref}</p><p>📅 ${c.date}</p><p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p><p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p></div>
+        <div class="flex gap-1 mt-3 justify-end">${getActionButtons(c)}</div>
       </div>
     `).join('');
   }
@@ -2169,60 +2140,32 @@ Merci de votre confiance!
   function renderCalendar() {
     const year = currentCalendarDate.getFullYear();
     const month = currentCalendarDate.getMonth();
-    
     document.getElementById('calendarTitle').textContent = new Date(year, month).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
-    
     let html = '';
-    
-    for (let i = 0; i < firstDay; i++) {
-      html += '<div class="calendar-day bg-gray-50 dark:bg-slate-800"></div>';
-    }
-    
+    for (let i = 0; i < firstDay; i++) html += '<div class="calendar-day bg-gray-50 dark:bg-slate-800"></div>';
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayCmds = cmds.filter(c => c.date === dateStr);
       const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
-      
-      html += `
-        <div class="calendar-day ${dayCmds.length > 0 ? 'has-orders' : ''} ${isToday ? 'today' : ''} p-2 cursor-pointer" onclick="showDayOrders('${dateStr}')">
-          <div class="font-bold text-sm ${isToday ? 'text-blue-600' : ''}">${day}</div>
-          ${dayCmds.length > 0 ? `<div class="mt-1"><span class="text-xs bg-blue-500 text-white px-1 rounded">${dayCmds.length}</span></div>` : ''}
-        </div>
-      `;
+      html += `<div class="calendar-day ${dayCmds.length > 0 ? 'has-orders' : ''} ${isToday ? 'today' : ''} p-2 cursor-pointer" onclick="showDayOrders('${dateStr}')"><div class="font-bold text-sm ${isToday ? 'text-blue-600' : ''}">${day}</div>${dayCmds.length > 0 ? `<div class="mt-1"><span class="text-xs bg-blue-500 text-white px-1 rounded">${dayCmds.length}</span></div>` : ''}</div>`;
     }
-    
     document.getElementById('calendarGrid').innerHTML = html;
   }
 
-  function changeMonth(delta) {
-    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
-    renderCalendar();
-  }
+  function changeMonth(delta) { currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta); renderCalendar(); }
 
   function showDayOrders(date) {
     const dayCmds = cmds.filter(c => c.date === date);
     if (dayCmds.length === 0) return;
-    
     document.getElementById('calendarModalTitle').textContent = `📅 ${new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`;
-    document.getElementById('calendarModalContent').innerHTML = dayCmds.map(c => `
-      <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl mb-2">
-        <div>
-          <p class="font-bold">${c.client}</p>
-          <p class="text-sm text-gray-500">${c.ref} - ${c.tonnes.toFixed(2)}T → ${paysNoms[c.pays]}</p>
-        </div>
-        ${getStatusBadge(c.statut)}
-      </div>
-    `).join('');
+    document.getElementById('calendarModalContent').innerHTML = dayCmds.map(c => `<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl mb-2"><div><p class="font-bold">${c.client}</p><p class="text-sm text-gray-500">${c.ref} - ${c.tonnes.toFixed(2)}T → ${paysNoms[c.pays]}</p></div>${getStatusBadge(c.statut)}</div>`).join('');
     document.getElementById('calendarModal').classList.remove('hidden');
   }
 
-  function closeCalendarModal() {
-    document.getElementById('calendarModal').classList.add('hidden');
-  }
+  function closeCalendarModal() { document.getElementById('calendarModal').classList.add('hidden'); }
 
   // ==================== MAP ====================
   function initMap() {
@@ -2236,19 +2179,11 @@ Merci de votre confiance!
   function updateMapMarkers() {
     if (!markersLayer) return;
     markersLayer.clearLayers();
-    
     filteredCmds.forEach(c => {
       if (paysCoords[c.pays]) {
         const color = c.statut === 'LIVRÉE' ? '#10b981' : c.statut === 'CHARGÉE' ? '#0077b6' : '#f59e0b';
-        const icon = L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${paysEmojis[c.pays] || '📦'}</div>`,
-          iconSize: [30, 30]
-        });
-        
-        L.marker(paysCoords[c.pays], { icon })
-          .bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T<br>${getStatusBadge(c.statut)}`)
-          .addTo(markersLayer);
+        const icon = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${paysEmojis[c.pays] || '📦'}</div>`, iconSize: [30, 30] });
+        L.marker(paysCoords[c.pays], { icon }).bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T`).addTo(markersLayer);
       }
     });
   }
@@ -2264,33 +2199,16 @@ Merci de votre confiance!
     const clientData = {};
     cmds.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
     const topClients = Object.entries(clientData).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    
     if (clientsChart) clientsChart.destroy();
-    clientsChart = new Chart(document.getElementById('clientsChart'), {
-      type: 'bar',
-      data: {
-        labels: topClients.map(c => c[0]),
-        datasets: [{ label: 'Tonnes', data: topClients.map(c => c[1]), backgroundColor: ['#0077b6', '#00b4d8', '#90e0ef', '#10b981', '#34d399'], borderRadius: 10 }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-    
+    clientsChart = new Chart(document.getElementById('clientsChart'), { type: 'bar', data: { labels: topClients.map(c => c[0]), datasets: [{ label: 'Tonnes', data: topClients.map(c => c[1]), backgroundColor: ['#0077b6', '#00b4d8', '#90e0ef', '#10b981', '#34d399'], borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     const statusData = [cmds.filter(c => c.statut === 'EN ATTENTE').length, cmds.filter(c => c.statut === 'CHARGÉE').length, cmds.filter(c => c.statut === 'LIVRÉE').length];
-    
     if (statusChart) statusChart.destroy();
-    statusChart = new Chart(document.getElementById('statusChart'), {
-      type: 'doughnut',
-      data: {
-        labels: ['En Attente', 'Chargées', 'Livrées'],
-        datasets: [{ data: statusData, backgroundColor: ['#f59e0b', '#0077b6', '#10b981'], borderWidth: 0 }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-    });
+    statusChart = new Chart(document.getElementById('statusChart'), { type: 'doughnut', data: { labels: ['En Attente', 'Chargées', 'Livrées'], datasets: [{ data: statusData, backgroundColor: ['#f59e0b', '#0077b6', '#10b981'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } });
   }
 
   // ==================== EXPORT ====================
   function exportExcel() {
-    const data = filteredCmds.map(c => ({ Client: c.client, Référence: c.ref, Date: c.date, Départ: c.point_depart, Pays: c.pays, Destination: paysNoms[c.pays], Tonnes: c.tonnes, Statut: c.statut, Email: c.email }));
+    const data = filteredCmds.map(c => ({ Client: c.client, Référence: c.ref, Date: c.date, Départ: c.point_depart, Pays: paysNoms[c.pays], Tonnes: c.tonnes, Statut: c.statut, Email: c.email }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
@@ -2307,61 +2225,38 @@ Merci de votre confiance!
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Exporté le ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
-    
-    doc.autoTable({
-      head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']],
-      body: filteredCmds.map(c => [c.client, c.ref, c.date, paysNoms[c.pays], c.tonnes.toFixed(2) + ' T', c.statut]),
-      startY: 35,
-      headStyles: { fillColor: [0, 119, 182] },
-      alternateRowStyles: { fillColor: [240, 249, 255] }
-    });
-    
+    doc.autoTable({ head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']], body: filteredCmds.map(c => [c.client, c.ref, c.date, paysNoms[c.pays], c.tonnes.toFixed(2) + ' T', c.statut]), startY: 35, headStyles: { fillColor: [0, 119, 182] }, alternateRowStyles: { fillColor: [240, 249, 255] } });
     doc.save(`Solana_Commandes_${new Date().toISOString().split('T')[0]}.pdf`);
     showToast('📄 PDF exporté!');
   }
 
   // ==================== SELECTION ====================
-  function toggleSelect(ref) {
-    if (selectedCmds.has(ref)) selectedCmds.delete(ref);
-    else selectedCmds.add(ref);
-  }
-
-  function toggleSelectAll() {
-    const allRefs = filteredCmds.map(c => c.ref);
-    if (selectedCmds.size === allRefs.length) selectedCmds.clear();
-    else allRefs.forEach(r => selectedCmds.add(r));
-    maj();
-  }
+  function toggleSelect(ref) { if (selectedCmds.has(ref)) selectedCmds.delete(ref); else selectedCmds.add(ref); }
+  function toggleSelectAll() { const allRefs = filteredCmds.map(c => c.ref); if (selectedCmds.size === allRefs.length) selectedCmds.clear(); else allRefs.forEach(r => selectedCmds.add(r)); maj(); }
 
   // ==================== MODALS ====================
   function showAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('dateIn').value = new Date().toISOString().split('T')[0];
-    
     const select = document.getElementById('paysIn');
     select.innerHTML = '<option value="">Sélectionner...</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
   }
-
-  function closeAddModal() {
-    document.getElementById('addModal').classList.add('hidden');
-  }
+  function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
 
   // ==================== INIT ====================
   function initApp() {
     const countrySelect = document.getElementById('countryFilter');
     countrySelect.innerHTML = '<option value="">Tous les pays</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
-    
     loadCmds();
   }
 
   // ==================== START ====================
-  if (!checkPublicView()) {
-    document.getElementById('loginScreen').classList.remove('hidden');
-  }
+  if (!checkPublicView()) document.getElementById('loginScreen').classList.remove('hidden');
 </script>
 
 </body>
 </html>
+
 
 
 
