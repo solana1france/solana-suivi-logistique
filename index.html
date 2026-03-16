@@ -2342,6 +2342,22 @@
       }
     }
     
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
     const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
     const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
     const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
@@ -2354,30 +2370,38 @@
   <title>Livraison ${cmd.ref} - Solana Logistique</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+    body { font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
     .header { text-align: center; border-bottom: 3px solid #0077b6; padding-bottom: 20px; margin-bottom: 20px; }
-    .logo { font-size: 28px; font-weight: bold; color: #0077b6; }
-    .subtitle { color: #666; font-size: 14px; margin-top: 5px; }
-    .title { font-size: 22px; color: #10b981; margin-top: 10px; }
-    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-    .detail-box { background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #0077b6; }
-    .detail-label { font-size: 11px; color: #888; text-transform: uppercase; }
-    .detail-value { font-size: 16px; font-weight: bold; margin-top: 3px; }
-    .section { margin: 25px 0; }
-    .section-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-    .signature-box { background: #ecfdf5; padding: 20px; border-radius: 10px; border: 2px solid #10b981; text-align: center; }
-    .signature-img { max-width: 300px; max-height: 120px; margin: 10px auto; }
-    .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .photo-item { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-    .status-badge { display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 20px; font-weight: bold; }
-    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #888; font-size: 12px; }
-    @media print { body { padding: 0; } .no-print { display: none; } }
+    .logo { font-size: 32px; font-weight: bold; color: #0077b6; }
+    .subtitle { color: #666; font-size: 16px; margin-top: 5px; }
+    .title { font-size: 24px; color: #10b981; margin-top: 15px; font-weight: bold; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
+    .detail-box { background: #f8fafc; padding: 12px 15px; border-radius: 8px; border-left: 4px solid #0077b6; }
+    .detail-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+    .section { margin: 30px 0; page-break-inside: avoid; }
+    .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .signature-box { background: #ecfdf5; padding: 25px; border-radius: 12px; border: 2px solid #10b981; text-align: center; }
+    .signature-img { max-width: 100%; max-height: 150px; margin: 15px auto; }
+    .photos-container { display: flex; flex-direction: column; gap: 20px; }
+    .photo-wrapper { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e5e7eb; page-break-inside: avoid; }
+    .photo-wrapper img { width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px; }
+    .photo-label { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
+    .status-badge { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 25px; font-weight: bold; font-size: 16px; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 25px; border-top: 2px solid #e5e7eb; color: #888; font-size: 12px; }
+    .footer p { margin: 5px 0; }
+    @media print { 
+      body { padding: 15px; max-width: none; }
+      .section { page-break-inside: avoid; }
+      .photo-wrapper { page-break-inside: avoid; }
+    }
+    @page { margin: 1cm; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="logo">🚚 SOLANA LOGISTIQUE</div>
-    <div class="subtitle">Bon de Livraison</div>
+    <div class="subtitle">Bon de Livraison - Transport & Logistique</div>
     <div class="title">✅ LIVRAISON CONFIRMÉE</div>
   </div>
   
@@ -2407,7 +2431,7 @@
       <div class="detail-value">${deliveryDate}</div>
     </div>
     ${cmd.point_depart ? `
-    <div class="detail-box">
+    <div class="detail-box" style="grid-column: span 2;">
       <div class="detail-label">Point de départ</div>
       <div class="detail-value">${cmd.point_depart}</div>
     </div>
@@ -2419,28 +2443,47 @@
     <div class="section-title">✍️ Signature du Client</div>
     <div class="signature-box">
       <img src="${cmd.signature}" alt="Signature client" class="signature-img">
-      <p style="margin-top: 10px; color: #10b981; font-weight: bold;">✓ Signature validée</p>
+      <p style="margin-top: 10px; color: #10b981; font-weight: bold; font-size: 14px;">✓ Signature validée le ${new Date().toLocaleDateString('fr-FR')}</p>
     </div>
   </div>
   ` : ''}
   
   ${photos.length > 0 ? `
   <div class="section">
-    <div class="section-title">📸 Photos de livraison</div>
-    <div class="photos-grid">
-      ${photos.map(p => `<img src="${p}" class="photo-item">`).join('')}
+    <div class="section-title">📸 Photos de livraison (${photos.length} photo${photos.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${photos.map((p, i) => `
+      <div class="photo-wrapper">
+        <img src="${p}" alt="Photo ${i + 1}">
+        <div class="photo-label">Photo ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
     </div>
   </div>
   ` : ''}
   
-  <div style="text-align: center; margin: 30px 0;">
+  ${documents.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📄 Documents CMR (${documents.length} document${documents.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${documents.map((d, i) => `
+      <div class="photo-wrapper">
+        <img src="${d}" alt="Document CMR ${i + 1}">
+        <div class="photo-label">Document CMR ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  <div style="text-align: center; margin: 40px 0;">
     <span class="status-badge">✅ LIVRÉE ET SIGNÉE</span>
   </div>
   
   <div class="footer">
-    <p>🚚 Solana Logistique - Transport & Logistique</p>
+    <p><strong>🚚 Solana Logistique - Transport & Logistique</strong></p>
     <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-    <p style="margin-top: 5px;">Référence: ${cmd.ref}</p>
+    <p style="margin-top: 8px; font-weight: bold;">Référence: ${cmd.ref}</p>
   </div>
   
 </body>
@@ -2448,6 +2491,56 @@
     
     printWindow.document.write(html);
     printWindow.document.close();
+  }
+
+  // Télécharger une photo individuellement
+  function downloadPhoto(photoData, filename) {
+    const link = document.createElement('a');
+    link.href = photoData;
+    link.download = filename || 'photo.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 Photo téléchargée!');
+  }
+
+  // Télécharger toutes les photos en ZIP (si disponibles)
+  function downloadAllPhotos(cmd) {
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) photos = cmd.photos;
+        else if (typeof cmd.photos === 'string') photos = JSON.parse(cmd.photos);
+      } catch (e) {
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) photos = [cmd.photos];
+      }
+    }
+    
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) documents = cmd.documents_cmr;
+        else if (typeof cmd.documents_cmr === 'string') documents = JSON.parse(cmd.documents_cmr);
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) documents = [cmd.documents_cmr];
+      }
+    }
+    
+    const allImages = [...photos, ...documents];
+    
+    if (allImages.length === 0) {
+      showToast('⚠️ Aucune photo à télécharger', 'warning');
+      return;
+    }
+    
+    // Télécharger une par une
+    allImages.forEach((img, i) => {
+      setTimeout(() => {
+        const type = i < photos.length ? 'photo' : 'document';
+        const num = i < photos.length ? i + 1 : (i - photos.length + 1);
+        downloadPhoto(img, `${cmd.ref}_${type}_${num}.png`);
+      }, i * 500);
+    });
   }
 
   function openPhotoViewer(src) {
@@ -3111,6 +3204,24 @@
       }
     }
     
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
+    const totalImages = photos.length + documents.length;
+    
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="text-center">
@@ -3124,6 +3235,13 @@
           <div class="mt-4">
             <button onclick='downloadAdminDeliveryPDF(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-report text-white rounded-xl font-semibold text-sm w-full">
               📄 Télécharger PDF Livraison
+            </button>
+          </div>
+          ` : ''}
+          ${totalImages > 0 ? `
+          <div class="mt-4">
+            <button onclick='downloadAllPhotos(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-purple text-white rounded-xl font-semibold text-sm w-full">
+              📥 Télécharger toutes les photos (${totalImages})
             </button>
           </div>
           ` : ''}
@@ -3156,8 +3274,16 @@
           <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl p-4">
             <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos (${photos.length})</h4>
             <div class="grid grid-cols-3 gap-2">
-              ${photos.slice(0, 3).map((p, i) => `<img src="${p}" class="w-full h-16 object-cover rounded-lg cursor-pointer" onclick="window.open('${p}', '_blank')">`).join('')}
-              ${photos.length > 3 ? `<div class="w-full h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-sm">+${photos.length - 3}</div>` : ''}
+              ${photos.map((p, i) => `<div class="relative group"><img src="${p}" class="w-full h-16 object-cover rounded-lg cursor-pointer" onclick="window.open('${p}', '_blank')"><button onclick="event.stopPropagation(); downloadPhoto('${p}', '${cmd.ref}_photo_${i+1}.png')" class="absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">📥</button></div>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+          
+          ${documents.length > 0 ? `
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR (${documents.length})</h4>
+            <div class="grid grid-cols-3 gap-2">
+              ${documents.map((d, i) => `<div class="relative group"><img src="${d}" class="w-full h-16 object-cover rounded-lg cursor-pointer" onclick="window.open('${d}', '_blank')"><button onclick="event.stopPropagation(); downloadPhoto('${d}', '${cmd.ref}_cmr_${i+1}.png')" class="absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">📥</button></div>`).join('')}
             </div>
           </div>
           ` : ''}
@@ -3188,6 +3314,22 @@
       }
     }
     
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
     const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
     const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
     const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
@@ -3201,30 +3343,38 @@
   <title>Livraison ${cmd.ref} - Solana Logistique</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+    body { font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
     .header { text-align: center; border-bottom: 3px solid #0077b6; padding-bottom: 20px; margin-bottom: 20px; }
-    .logo { font-size: 28px; font-weight: bold; color: #0077b6; }
-    .subtitle { color: #666; font-size: 14px; margin-top: 5px; }
-    .title { font-size: 22px; color: #10b981; margin-top: 10px; }
-    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-    .detail-box { background: #f8fafc; padding: 15px; border-radius: 10px; border-left: 4px solid #0077b6; }
-    .detail-label { font-size: 11px; color: #888; text-transform: uppercase; }
-    .detail-value { font-size: 16px; font-weight: bold; margin-top: 3px; }
-    .section { margin: 25px 0; page-break-inside: avoid; }
-    .section-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #eee; }
-    .signature-box { background: #ecfdf5; padding: 20px; border-radius: 10px; border: 2px solid #10b981; text-align: center; }
-    .signature-img { max-width: 300px; max-height: 120px; margin: 10px auto; }
-    .photos-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .photo-item { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; }
-    .status-badge { display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 20px; font-weight: bold; }
-    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #888; font-size: 12px; }
-    @media print { body { padding: 0; } .no-print { display: none; } }
+    .logo { font-size: 32px; font-weight: bold; color: #0077b6; }
+    .subtitle { color: #666; font-size: 16px; margin-top: 5px; }
+    .title { font-size: 24px; color: #10b981; margin-top: 15px; font-weight: bold; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
+    .detail-box { background: #f8fafc; padding: 12px 15px; border-radius: 8px; border-left: 4px solid #0077b6; }
+    .detail-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+    .section { margin: 30px 0; page-break-inside: avoid; }
+    .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .signature-box { background: #ecfdf5; padding: 25px; border-radius: 12px; border: 2px solid #10b981; text-align: center; }
+    .signature-img { max-width: 100%; max-height: 150px; margin: 15px auto; }
+    .photos-container { display: flex; flex-direction: column; gap: 20px; }
+    .photo-wrapper { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e5e7eb; page-break-inside: avoid; }
+    .photo-wrapper img { width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px; }
+    .photo-label { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
+    .status-badge { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 25px; font-weight: bold; font-size: 16px; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 25px; border-top: 2px solid #e5e7eb; color: #888; font-size: 12px; }
+    .footer p { margin: 5px 0; }
+    @media print { 
+      body { padding: 15px; max-width: none; }
+      .section { page-break-inside: avoid; }
+      .photo-wrapper { page-break-inside: avoid; }
+    }
+    @page { margin: 1cm; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="logo">🚚 SOLANA LOGISTIQUE</div>
-    <div class="subtitle">Bon de Livraison</div>
+    <div class="subtitle">Bon de Livraison - Transport & Logistique</div>
     <div class="title">✅ LIVRAISON CONFIRMÉE</div>
   </div>
   
@@ -3254,7 +3404,7 @@
       <div class="detail-value">${deliveryDate}</div>
     </div>
     ${cmd.point_depart ? `
-    <div class="detail-box">
+    <div class="detail-box" style="grid-column: span 2;">
       <div class="detail-label">Point de départ</div>
       <div class="detail-value">${cmd.point_depart}</div>
     </div>
@@ -3266,31 +3416,51 @@
     <div class="section-title">✍️ Signature du Client</div>
     <div class="signature-box">
       <img src="${cmd.signature}" alt="Signature client" class="signature-img">
-      <p style="margin-top: 10px; color: #10b981; font-weight: bold;">✓ Signature validée</p>
+      <p style="margin-top: 10px; color: #10b981; font-weight: bold; font-size: 14px;">✓ Signature validée le ${new Date().toLocaleDateString('fr-FR')}</p>
     </div>
   </div>
   ` : ''}
   
   ${photos.length > 0 ? `
   <div class="section">
-    <div class="section-title">📸 Photos de livraison</div>
-    <div class="photos-grid">
-      ${photos.map(p => `<img src="${p}" class="photo-item">`).join('')}
+    <div class="section-title">📸 Photos de livraison (${photos.length} photo${photos.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${photos.map((p, i) => `
+      <div class="photo-wrapper">
+        <img src="${p}" alt="Photo ${i + 1}">
+        <div class="photo-label">Photo ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
     </div>
   </div>
   ` : ''}
   
-  <div style="text-align: center; margin: 30px 0;">
+  ${documents.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📄 Documents CMR (${documents.length} document${documents.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${documents.map((d, i) => `
+      <div class="photo-wrapper">
+        <img src="${d}" alt="Document CMR ${i + 1}">
+        <div class="photo-label">Document CMR ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  <div style="text-align: center; margin: 40px 0;">
     <span class="status-badge">✅ LIVRÉE ET SIGNÉE</span>
   </div>
   
   <div class="footer">
-    <p>🚚 Solana Logistique - Transport & Logistique</p>
+    <p><strong>🚚 Solana Logistique - Transport & Logistique</strong></p>
     <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-    <p style="margin-top: 5px;">Référence: ${cmd.ref}</p>
+    <p style="margin-top: 8px; font-weight: bold;">Référence: ${cmd.ref}</p>
   </div>
   
-`;
+</body>
+</html>`;
     printWindow.document.write(html);
     printWindow.document.close();
   }
