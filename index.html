@@ -1763,16 +1763,25 @@
   let publicUploadedDocs = [];
   
   async function loadPublicDeliveryView(ref) {
+    console.log('loadPublicDeliveryView called with ref:', ref);
     const container = document.getElementById('publicViewContent');
     container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Chargement...</p></div>';
     
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${ref}&select=*`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(ref)}&select=*`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       
-      if (!res.ok) throw new Error();
+      console.log('Fetch response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Server error:', errorText);
+        throw new Error(`Server error: ${res.status}`);
+      }
+      
       const data = await res.json();
+      console.log('Data received:', data.length, 'records');
       
       if (data.length === 0) {
         container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Commande non trouvée</h2></div>';
@@ -1780,23 +1789,28 @@
       }
       
       const cmd = data[0];
+      console.log('Command loaded:', cmd.ref, cmd.statut);
       currentPublicCmd = cmd;
       const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+      console.log('Has signature:', hasSignature);
       
       // Si LIVRÉE avec signature, afficher la confirmation finale
       if (cmd.statut === 'LIVRÉE' && hasSignature) {
+        console.log('Showing delivery confirmation page (already signed)');
         showDeliveryConfirmationPage(cmd);
         return;
       }
       
       // Si LIVRÉE sans signature, afficher le formulaire pour que le client signe
       if (cmd.statut === 'LIVRÉE' && !hasSignature) {
+        console.log('Showing client signature form');
         showClientSignatureForm(cmd);
         return;
       }
       
       // Si CHARGÉE, afficher que la livraison est en route
       if (cmd.statut === 'CHARGÉE') {
+        console.log('Showing CHARGÉE status');
         container.innerHTML = `
         <div class="text-center mb-6">
           <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
@@ -1820,6 +1834,7 @@
       }
       
       // Autres statuts (EN ATTENTE, etc.)
+      console.log('Showing other status:', cmd.statut);
       container.innerHTML = `
         <div class="text-center mb-6">
           <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
@@ -1840,16 +1855,29 @@
         </div>
       `;
     } catch (error) {
-      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de chargement</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
+      console.error('Error loading delivery view:', error);
+      container.innerHTML = `<div class="text-center py-10">
+        <div class="text-6xl mb-4">❌</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de chargement</h2>
+        <p class="text-gray-500 mb-4">${error.message || 'Veuillez réessayer'}</p>
+        <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+      </div>`;
     }
   }
   
   // Afficher le formulaire de signature pour le client (APRÈS livraison confirmée)
   function showClientSignatureForm(cmd) {
+    console.log('showClientSignatureForm called for cmd:', cmd.ref);
     const container = document.getElementById('publicViewContent');
+    
+    // Reset les variables
     publicUploadedPhotos = [];
     publicUploadedDocs = [];
     publicHasSignature = false;
+    publicSignatureCanvas = null;
+    publicSignatureCtx = null;
+    
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
     
     container.innerHTML = `
       <div class="text-center mb-6">
@@ -1864,10 +1892,10 @@
           <span class="font-bold text-emerald-700">Votre commande a été livrée</span>
         </div>
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
-          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client || '-'}</p></div>
           <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
-          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${destination}</p></div>
           <div class="col-span-2"><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
         </div>
       </div>
@@ -1947,16 +1975,23 @@
   
   // Initialiser la signature publique
   function initPublicSignature() {
+    console.log('initPublicSignature called');
     publicSignatureCanvas = document.getElementById('publicSignatureCanvas');
-    if (!publicSignatureCanvas) return;
+    if (!publicSignatureCanvas) {
+      console.error('publicSignatureCanvas not found');
+      return;
+    }
+    console.log('Canvas found, initializing...');
     
     publicSignatureCtx = publicSignatureCanvas.getContext('2d');
     
     // Ajuster la taille
     const container = document.getElementById('publicSignatureContainer');
     if (container) {
-      publicSignatureCanvas.width = container.offsetWidth;
+      const width = container.offsetWidth || 350;
+      publicSignatureCanvas.width = width;
       publicSignatureCanvas.height = 150;
+      console.log('Canvas size set to:', width, 'x', 150);
     }
     
     // Style
@@ -1964,6 +1999,9 @@
     publicSignatureCtx.lineWidth = 3;
     publicSignatureCtx.lineCap = 'round';
     publicSignatureCtx.lineJoin = 'round';
+    
+    // Reset le flag de signature
+    publicHasSignature = false;
     
     // Events souris
     publicSignatureCanvas.addEventListener('mousedown', startPublicDrawing);
@@ -1975,6 +2013,8 @@
     publicSignatureCanvas.addEventListener('touchstart', handlePublicTouchStart, { passive: false });
     publicSignatureCanvas.addEventListener('touchmove', handlePublicTouchMove, { passive: false });
     publicSignatureCanvas.addEventListener('touchend', stopPublicDrawing);
+    
+    console.log('Signature canvas initialized successfully');
   }
   
   function startPublicDrawing(e) {
@@ -2038,8 +2078,28 @@
   }
   
   function getPublicSignatureImage() {
-    if (!publicSignatureCanvas || !publicHasSignature) return null;
-    return publicSignatureCanvas.toDataURL('image/png');
+    console.log('getPublicSignatureImage called');
+    console.log('publicSignatureCanvas:', !!publicSignatureCanvas);
+    console.log('publicHasSignature:', publicHasSignature);
+    
+    if (!publicSignatureCanvas) {
+      console.error('Canvas not available');
+      return null;
+    }
+    
+    if (!publicHasSignature) {
+      console.log('No signature drawn yet');
+      return null;
+    }
+    
+    try {
+      const dataUrl = publicSignatureCanvas.toDataURL('image/png');
+      console.log('Signature image generated, length:', dataUrl.length);
+      return dataUrl;
+    } catch (e) {
+      console.error('Error generating signature image:', e);
+      return null;
+    }
   }
   
   function handlePublicPhotoUpload(event) {
@@ -2078,9 +2138,17 @@
   
   // Sauvegarder la signature du client
   async function saveClientSignature() {
-    if (!currentPublicCmd) return;
+    console.log('saveClientSignature called');
+    console.log('currentPublicCmd:', currentPublicCmd);
+    
+    if (!currentPublicCmd) {
+      alert('❌ Erreur: Commande non trouvée. Veuillez rafraîchir la page.');
+      return;
+    }
     
     const signatureImage = getPublicSignatureImage();
+    console.log('signatureImage exists:', !!signatureImage);
+    
     if (!signatureImage) {
       alert('⚠️ Veuillez signer avant de confirmer');
       return;
@@ -2089,15 +2157,34 @@
     const container = document.getElementById('publicViewContent');
     container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Enregistrement en cours...</p></div>';
     
+    // Préparer les données à mettre à jour
     const updates = { 
       signature: signatureImage,
-      photos: publicUploadedPhotos.length > 0 ? JSON.stringify(publicUploadedPhotos) : null,
-      documents_cmr: publicUploadedDocs.length > 0 ? JSON.stringify(publicUploadedDocs) : null,
       date_signature_client: new Date().toISOString()
     };
     
+    // Ajouter les photos seulement si elles existent
+    if (publicUploadedPhotos && publicUploadedPhotos.length > 0) {
+      try {
+        updates.photos = JSON.stringify(publicUploadedPhotos);
+      } catch (e) {
+        console.error('Error stringifying photos:', e);
+      }
+    }
+    
+    // Ajouter les documents seulement s'ils existent
+    if (publicUploadedDocs && publicUploadedDocs.length > 0) {
+      try {
+        updates.documents_cmr = JSON.stringify(publicUploadedDocs);
+      } catch (e) {
+        console.error('Error stringifying docs:', e);
+      }
+    }
+    
+    console.log('Updates to send:', { ...updates, signature: '[signature data]' });
+    
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${currentPublicCmd.ref}`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(currentPublicCmd.ref)}`, {
         method: 'PATCH',
         headers: { 
           'apikey': SUPABASE_KEY, 
@@ -2108,28 +2195,59 @@
         body: JSON.stringify(updates)
       });
       
+      console.log('Response status:', res.status);
+      
       if (res.ok) {
+        console.log('Signature saved successfully');
         showDeliveryConfirmationPage({ ...currentPublicCmd, ...updates });
       } else {
-        container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
+        const errorText = await res.text();
+        console.error('Server error:', errorText);
+        container.innerHTML = `<div class="text-center py-10">
+          <div class="text-6xl mb-4">❌</div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2>
+          <p class="text-gray-500 mb-4">Erreur serveur (${res.status})</p>
+          <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+        </div>`;
       }
     } catch (error) {
-      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
+      console.error('Network error:', error);
+      container.innerHTML = `<div class="text-center py-10">
+        <div class="text-6xl mb-4">❌</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de connexion</h2>
+        <p class="text-gray-500 mb-4">${error.message || 'Vérifiez votre connexion internet'}</p>
+        <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+      </div>`;
     }
   }
   
   // Afficher la page de confirmation finale
   function showDeliveryConfirmationPage(cmd) {
+    console.log('showDeliveryConfirmationPage called with:', cmd);
+    
     const container = document.getElementById('publicViewContent');
     const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'En attente';
     
+    // Gérer les photos - peut être un tableau ou une chaîne JSON
     let photos = [];
     if (cmd.photos) {
-      try { photos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) photos = [cmd.photos]; }
+      try {
+        if (Array.isArray(cmd.photos)) {
+          photos = cmd.photos;
+        } else if (typeof cmd.photos === 'string') {
+          photos = JSON.parse(cmd.photos);
+        }
+      } catch (e) {
+        // Si le parsing échoue, vérifier si c'est une image base64
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) {
+          photos = [cmd.photos];
+        }
+      }
     }
     
     const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
     const isDelivered = cmd.statut === 'LIVRÉE';
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
     
     container.innerHTML = `
       <div class="text-center mb-6 animate__animated animate__fadeInDown">
@@ -2140,10 +2258,10 @@
       
       <div class="bg-gradient-to-r ${isDelivered ? 'from-emerald-50 to-teal-50' : 'from-blue-50 to-cyan-50'} rounded-2xl p-5 mb-6 animate__animated animate__fadeIn">
         <div class="grid grid-cols-2 gap-4 text-sm">
-          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
-          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client || '-'}</p></div>
           <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold ${isDelivered ? 'text-emerald-600' : 'text-cyan-600'} text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
-          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${destination}</p></div>
           <div><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
           <div><p class="text-gray-500 text-xs uppercase">Date</p><p class="font-bold">${deliveryDate}</p></div>
         </div>
