@@ -1296,143 +1296,152 @@
   // ==================== PROFESSIONAL PDF EXPORT ====================
   async function exportReportPDF() {
     showLoading();
-    showToast('📄 Génération du rapport PDF...');
+    showToast('Generation du rapport PDF...');
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     
-    // Colors
-    const primaryColor = [0, 119, 182];
-    const accentColor = [99, 102, 241];
-    const successColor = [16, 185, 129];
+    // Colors (no emojis - clean text only)
+    const primaryBlue = [0, 119, 182];
+    const accentPurple = [99, 102, 241];
+    const successGreen = [16, 185, 129];
+    const warningOrange = [245, 158, 11];
     
-    // Header
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 40, 'F');
+    // ========== PAGE 1: HEADER ==========
+    doc.setFillColor(...primaryBlue);
+    doc.rect(0, 0, pageWidth, 35, 'F');
     
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');
-    doc.text('SOLANA LOGISTIQUE', pageWidth/2, 20, { align: 'center' });
-    doc.setFontSize(12);
+    doc.text('SOLANA LOGISTIQUE', pageWidth/2, 15, { align: 'center' });
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text('Rapport Analytique', pageWidth/2, 32, { align: 'center' });
+    doc.text('Rapport Analytique - Dashboard Logistique', pageWidth/2, 27, { align: 'center' });
     
     // Date
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(10);
-    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 14, 50);
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(9);
+    doc.text('Date du rapport: ' + new Date().toLocaleDateString('fr-FR'), 14, 45);
     
-    // KPI Section
-    doc.setFontSize(14);
-    doc.setTextColor(...primaryColor);
-    doc.setFont('helvetica', 'bold');
-    doc.text('📊 Indicateurs Clés', 14, 65);
-    
+    // ========== KPI SECTION ==========
     const filtered = getFilteredCmdsForReport();
     const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
     const totalCmds = filtered.length;
     const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const charged = filtered.filter(c => c.statut === 'CHARGÉE').length;
     const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
     
-    // KPI Boxes
-    let yPos = 75;
-    const boxWidth = 42;
-    const boxHeight = 25;
-    const gap = 8;
+    doc.setFontSize(13);
+    doc.setTextColor(...primaryBlue);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INDICATEURS CLES', 14, 58);
+    
+    // KPI boxes - 4 boxes side by side
+    const boxWidth = 44;
+    const boxHeight = 22;
+    const boxGap = 5;
+    const boxY = 65;
     
     const kpis = [
-      { label: 'Tonnes', value: totalTonnes.toFixed(1) + ' T', color: [99, 102, 241] },
-      { label: 'Commandes', value: totalCmds.toString(), color: [0, 119, 182] },
-      { label: 'Livrées', value: delivered.toString(), color: [16, 185, 129] },
-      { label: 'Taux', value: rate + '%', color: [139, 92, 246] }
+      { label: 'Total Tonnes', value: totalTonnes.toFixed(1) + ' T', color: accentPurple },
+      { label: 'Commandes', value: totalCmds.toString(), color: primaryBlue },
+      { label: 'Livrees', value: delivered.toString(), color: successGreen },
+      { label: 'Taux Livraison', value: rate + '%', color: [139, 92, 246] }
     ];
     
     kpis.forEach((kpi, i) => {
-      const x = 14 + i * (boxWidth + gap);
+      const x = 14 + i * (boxWidth + boxGap);
+      // Box background
       doc.setFillColor(...kpi.color);
-      doc.roundedRect(x, yPos, boxWidth, boxHeight, 3, 3, 'F');
+      doc.roundedRect(x, boxY, boxWidth, boxHeight, 2, 2, 'F');
+      // Label
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(9);
-      doc.text(kpi.label, x + boxWidth/2, yPos + 8, { align: 'center' });
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(kpi.value, x + boxWidth/2, yPos + 18, { align: 'center' });
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
+      doc.text(kpi.label, x + boxWidth/2, boxY + 7, { align: 'center' });
+      // Value
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + boxWidth/2, boxY + 17, { align: 'center' });
     });
     
-    // Capture charts as images
-    yPos = 110;
+    // ========== CHARTS SECTION ==========
+    let chartY = 95;
     
-    // Monthly Chart
-    doc.setFontSize(12);
-    doc.setTextColor(...primaryColor);
+    // Row 1: Monthly and Weekly charts
+    doc.setFontSize(11);
+    doc.setTextColor(...primaryBlue);
     doc.setFont('helvetica', 'bold');
-    doc.text('📈 Tonnes par Mois', 14, yPos);
+    doc.text('Tonnes par Mois', 14, chartY);
+    doc.text('Tonnes par Semaine', 107, chartY);
+    
+    chartY += 5;
     
     try {
       const monthlyCanvas = document.getElementById('monthlyTonnesChart');
       if (monthlyCanvas) {
         const monthlyImg = monthlyCanvas.toDataURL('image/png', 1.0);
-        doc.addImage(monthlyImg, 'PNG', 14, yPos + 5, 85, 50);
+        doc.addImage(monthlyImg, 'PNG', 14, chartY, 88, 55);
       }
-    } catch (e) {}
+    } catch (e) { console.log('Monthly chart error', e); }
     
-    // Weekly Chart
-    doc.text('📅 Tonnes par Semaine', 110, yPos);
     try {
       const weeklyCanvas = document.getElementById('weeklyTonnesChart');
       if (weeklyCanvas) {
         const weeklyImg = weeklyCanvas.toDataURL('image/png', 1.0);
-        doc.addImage(weeklyImg, 'PNG', 110, yPos + 5, 85, 50);
+        doc.addImage(weeklyImg, 'PNG', 107, chartY, 88, 55);
       }
-    } catch (e) {}
+    } catch (e) { console.log('Weekly chart error', e); }
     
-    // Status Chart
-    yPos = 175;
-    doc.text('📋 Répartition des Statuts', 14, yPos);
+    // Row 2: 3 charts
+    chartY = 160;
+    doc.setFontSize(10);
+    doc.text('Statuts', 14, chartY);
+    doc.text('Top Clients', 75, chartY);
+    doc.text('Destinations', 140, chartY);
+    
+    chartY += 5;
+    
     try {
       const statusCanvas = document.getElementById('statusDistChart');
       if (statusCanvas) {
         const statusImg = statusCanvas.toDataURL('image/png', 1.0);
-        doc.addImage(statusImg, 'PNG', 14, yPos + 5, 55, 45);
+        doc.addImage(statusImg, 'PNG', 14, chartY, 55, 45);
       }
     } catch (e) {}
     
-    // Top Clients Chart
-    doc.text('👑 Top Clients', 80, yPos);
     try {
       const clientsCanvas = document.getElementById('topClientsChart');
       if (clientsCanvas) {
         const clientsImg = clientsCanvas.toDataURL('image/png', 1.0);
-        doc.addImage(clientsImg, 'PNG', 75, yPos + 5, 55, 45);
+        doc.addImage(clientsImg, 'PNG', 72, chartY, 60, 45);
       }
     } catch (e) {}
     
-    // Top Destinations
-    doc.text('🌍 Top Destinations', 140, yPos);
     try {
       const destCanvas = document.getElementById('topDestinationsChart');
       if (destCanvas) {
         const destImg = destCanvas.toDataURL('image/png', 1.0);
-        doc.addImage(destImg, 'PNG', 135, yPos + 5, 55, 45);
+        doc.addImage(destImg, 'PNG', 138, chartY, 55, 45);
       }
     } catch (e) {}
     
-    // New page for table
+    // ========== PAGE 2: TABLE ==========
     doc.addPage();
     
-    // Table Header
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, pageWidth, 25, 'F');
+    // Page 2 Header
+    doc.setFillColor(...primaryBlue);
+    doc.rect(0, 0, pageWidth, 22, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('📋 Statistiques par Pays', pageWidth/2, 16, { align: 'center' });
+    doc.text('STATISTIQUES PAR PAYS', pageWidth/2, 14, { align: 'center' });
     
-    // Table
+    // Build country data
     const countryData = {};
     filtered.forEach(c => {
       if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
@@ -1440,65 +1449,95 @@
       countryData[c.pays].tonnes += c.tonnes;
     });
     
-    const tableData = Object.entries(countryData)
+    const tableRows = Object.entries(countryData)
       .map(([pays, data]) => [
-        `${paysEmojis[pays] || ''} ${paysNoms[pays] || pays}`,
+        paysNoms[pays] || pays,
         data.count.toString(),
         data.tonnes.toFixed(2) + ' T',
-        ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%'
+        totalTonnes > 0 ? ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%' : '0%'
       ])
       .sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
     
+    // Add summary row at top
+    tableRows.unshift(['TOTAL', totalCmds.toString(), totalTonnes.toFixed(2) + ' T', '100%']);
+    
     doc.autoTable({
-      startY: 35,
+      startY: 30,
       head: [['Pays', 'Commandes', 'Tonnes', '% Total']],
-      body: tableData,
+      body: tableRows,
       theme: 'grid',
-      headStyles: { fillColor: primaryColor, textColor: [255,255,255], fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [240, 249, 255] },
-      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { 
+        fillColor: primaryBlue, 
+        textColor: [255,255,255], 
+        fontStyle: 'bold',
+        fontSize: 10,
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 10
+      },
+      alternateRowStyles: { 
+        fillColor: [248, 250, 252] 
+      },
+      styles: { 
+        cellPadding: 5,
+        lineColor: [200, 200, 200]
+      },
       columnStyles: {
-        0: { cellWidth: 60 },
-        1: { cellWidth: 35, halign: 'center' },
-        2: { cellWidth: 40, halign: 'right' },
-        3: { cellWidth: 30, halign: 'center' }
+        0: { cellWidth: 60, fontStyle: 'bold' },
+        1: { cellWidth: 40, halign: 'center' },
+        2: { cellWidth: 45, halign: 'right' },
+        3: { cellWidth: 35, halign: 'center' }
+      },
+      willDrawCell: function(data) {
+        // Highlight first row (TOTAL)
+        if (data.row.index === 0) {
+          doc.setFillColor(240, 249, 255);
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+        }
       }
     });
     
-    // Footer
-    const finalY = doc.lastAutoTable.finalY + 15;
+    // ========== RECORDS SECTION ==========
+    const finalY = doc.lastAutoTable.finalY + 12;
     
-    // Records section
-    doc.setFillColor(245, 245, 245);
-    doc.roundedRect(14, finalY, pageWidth - 28, 40, 5, 5, 'F');
+    // Records box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, finalY, pageWidth - 28, 35, 3, 3, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.roundedRect(14, finalY, pageWidth - 28, 35, 3, 3, 'S');
     
-    doc.setFontSize(12);
-    doc.setTextColor(...primaryColor);
+    doc.setFontSize(11);
+    doc.setTextColor(...primaryBlue);
     doc.setFont('helvetica', 'bold');
-    doc.text('🏆 Records', 20, finalY + 10);
+    doc.text('RECORDS', 20, finalY + 8);
     
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
+    // Calculate records
+    const clientStats = {};
+    cmds.forEach(c => { clientStats[c.client] = (clientStats[c.client] || 0) + c.tonnes; });
+    const topClient = Object.entries(clientStats).sort((a, b) => b[1] - a[1])[0];
+    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0, ref: '' });
+    const destStats = {};
+    cmds.forEach(c => { destStats[c.pays] = (destStats[c.pays] || 0) + c.tonnes; });
+    const topDest = Object.entries(destStats).sort((a, b) => b[1] - a[1])[0];
+    
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
     doc.setFont('helvetica', 'normal');
     
-    const clientData2 = {};
-    cmds.forEach(c => { clientData2[c.client] = (clientData2[c.client] || 0) + c.tonnes; });
-    const topClient = Object.entries(clientData2).sort((a, b) => b[1] - a[1])[0];
-    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0 });
+    doc.text('Meilleur client: ' + (topClient ? topClient[0] + ' (' + topClient[1].toFixed(1) + ' T)' : '-'), 20, finalY + 18);
+    doc.text('Plus grosse livraison: ' + biggest.tonnes.toFixed(2) + ' T' + (biggest.ref ? ' (' + biggest.ref + ')' : ''), 20, finalY + 28);
+    doc.text('Destination principale: ' + (topDest ? (paysNoms[topDest[0]] || topDest[0]) : '-'), 115, finalY + 18);
+    doc.text('Total commandes: ' + cmds.length + ' | Total tonnes: ' + cmds.reduce((s,c) => s + c.tonnes, 0).toFixed(2) + ' T', 115, finalY + 28);
     
-    doc.text(`🥇 Meilleur client: ${topClient ? topClient[0] : '-'}`, 20, finalY + 22);
-    doc.text(`📦 Plus grosse livraison: ${biggest.tonnes.toFixed(2)} T`, 20, finalY + 32);
-    doc.text(`📊 Total commandes: ${cmds.length}`, 110, finalY + 22);
-    doc.text(`⚖️ Total tonnes: ${cmds.reduce((s,c) => s + c.tonnes, 0).toFixed(2)} T`, 110, finalY + 32);
-    
-    // Footer
+    // ========== FOOTER ==========
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text('🚚 Solana Logistique PRO - Rapport généré automatiquement', pageWidth/2, pageHeight - 10, { align: 'center' });
+    doc.text('Solana Logistique PRO - Dashboard Logistique', pageWidth/2, pageHeight - 10, { align: 'center' });
     
     hideLoading();
-    doc.save(`Solana_Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
-    showToast('📥 Rapport PDF exporté avec graphiques!');
+    doc.save('Solana_Rapport_' + new Date().toISOString().split('T')[0] + '.pdf');
+    showToast('Rapport PDF exporte!');
   }
 
   function exportReportExcel() {
@@ -2256,6 +2295,7 @@
 
 </body>
 </html>
+
 
 
 
