@@ -2157,33 +2157,26 @@
     const container = document.getElementById('publicViewContent');
     container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Enregistrement en cours...</p></div>';
     
-    // Préparer les données à mettre à jour
-    const updates = { 
-      signature: signatureImage,
-      date_signature_client: new Date().toISOString()
-    };
-    
-    // Ajouter les photos seulement si elles existent
-    if (publicUploadedPhotos && publicUploadedPhotos.length > 0) {
-      try {
-        updates.photos = JSON.stringify(publicUploadedPhotos);
-      } catch (e) {
-        console.error('Error stringifying photos:', e);
-      }
-    }
-    
-    // Ajouter les documents seulement s'ils existent
-    if (publicUploadedDocs && publicUploadedDocs.length > 0) {
-      try {
-        updates.documents_cmr = JSON.stringify(publicUploadedDocs);
-      } catch (e) {
-        console.error('Error stringifying docs:', e);
-      }
-    }
-    
-    console.log('Updates to send:', { ...updates, signature: '[signature data]' });
-    
     try {
+      // Construire le body - seulement les données nécessaires
+      const bodyData = {
+        signature: signatureImage
+      };
+      
+      // Ajouter les photos si présentes (pas de null)
+      if (publicUploadedPhotos && publicUploadedPhotos.length > 0) {
+        bodyData.photos = JSON.stringify(publicUploadedPhotos);
+      }
+      
+      // Ajouter les documents si présents (pas de null)
+      if (publicUploadedDocs && publicUploadedDocs.length > 0) {
+        bodyData.documents_cmr = JSON.stringify(publicUploadedDocs);
+      }
+      
+      console.log('Body data keys:', Object.keys(bodyData));
+      console.log('Signature length:', signatureImage.length);
+      console.log('Ref:', currentPublicCmd.ref);
+      
       const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(currentPublicCmd.ref)}`, {
         method: 'PATCH',
         headers: { 
@@ -2192,21 +2185,34 @@
           'Content-Type': 'application/json', 
           'Prefer': 'return=minimal' 
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify(bodyData)
       });
       
       console.log('Response status:', res.status);
       
       if (res.ok) {
         console.log('Signature saved successfully');
-        showDeliveryConfirmationPage({ ...currentPublicCmd, ...updates });
+        showDeliveryConfirmationPage({ ...currentPublicCmd, signature: signatureImage });
       } else {
         const errorText = await res.text();
-        console.error('Server error:', errorText);
+        console.error('Server error FULL:', errorText);
+        let errorMsg = `Erreur serveur (${res.status})`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('Error JSON:', errorJson);
+          if (errorJson.message) errorMsg = errorJson.message;
+          if (errorJson.details) errorMsg += ' - ' + errorJson.details;
+          if (errorJson.hint) errorMsg += ' (Hint: ' + errorJson.hint + ')';
+        } catch(e) {
+          errorMsg = errorText || errorMsg;
+        }
+        
+        // Afficher l'erreur avec plus de détails
         container.innerHTML = `<div class="text-center py-10">
           <div class="text-6xl mb-4">❌</div>
           <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2>
-          <p class="text-gray-500 mb-4">Erreur serveur (${res.status})</p>
+          <p class="text-gray-600 mb-2 text-sm font-mono bg-gray-100 p-2 rounded">${errorMsg}</p>
+          <p class="text-gray-400 text-xs mb-4">Ref: ${currentPublicCmd.ref}</p>
           <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
         </div>`;
       }
@@ -3304,3 +3310,4 @@
 
 </body>
 </html>
+
