@@ -185,6 +185,99 @@
     }
     .photo-upload-btn:hover { border-color: #0077b6; background: #f0f9ff; }
     
+    /* Signature Canvas Styles */
+    .signature-container {
+      position: relative;
+      background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+      border: 3px dashed #0077b6;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .signature-container.signing {
+      border-color: #10b981;
+      animation: signature-pulse 1.5s ease-in-out infinite;
+    }
+    
+    .signature-container.signed {
+      border-color: #10b981;
+      border-style: solid;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+    
+    @keyframes signature-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 182, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(0, 119, 182, 0); }
+    }
+    
+    @keyframes signature-success {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    
+    .signature-success-anim {
+      animation: signature-success 0.5s ease-out;
+    }
+    
+    .signature-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+    
+    .signature-container.signing .signature-placeholder,
+    .signature-container.signed .signature-placeholder {
+      opacity: 0;
+    }
+    
+    .signature-line {
+      position: absolute;
+      bottom: 40px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #0077b6, transparent);
+      opacity: 0.3;
+    }
+    
+    #signatureCanvas {
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+    
+    .signature-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .signature-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .signature-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .signature-btn:active {
+      transform: translateY(0);
+    }
+    
     #qrCodeContainer canvas, #qrCodeContainer img {
       border-radius: 10px;
     }
@@ -1684,6 +1777,9 @@
         try { photos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) photos = [cmd.photos]; }
       }
       
+      // Signature
+      const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+      
       container.innerHTML = `
         <div class="text-center mb-6">
           <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
@@ -1696,11 +1792,37 @@
             <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
             <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
             <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
-            <div><p class="text-gray-500 text-xs uppercase">Date de livraison</p><p class="font-bold">${deliveryDate}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Date</p><p class="font-bold">${deliveryDate}</p></div>
           </div>
         </div>
-        ${photos.length > 0 ? `<div class="mb-6"><h3 class="font-bold text-gray-800 mb-3">📸 Photos</h3><div class="grid grid-cols-2 gap-3">${photos.map((p, i) => `<img src="${p}" class="delivery-photo">`).join('')}</div></div>` : ''}
-        <div class="text-center pt-4 border-t"><span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span></div>
+        
+        ${hasSignature ? `
+        <div class="mb-6">
+          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">✍️ Signature du client</h3>
+          <div class="bg-gray-50 rounded-xl p-4 border-2 border-emerald-200">
+            <img src="${cmd.signature}" alt="Signature" class="max-w-full mx-auto" style="max-height: 150px;">
+          </div>
+        </div>
+        ` : ''}
+        
+        ${photos.length > 0 ? `
+        <div class="mb-6">
+          <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
+          <div class="grid grid-cols-2 gap-3">
+            ${photos.map((p, i) => `<img src="${p}" class="delivery-photo cursor-pointer" onclick="openPhotoViewer('${p}')">`).join('')}
+          </div>
+        </div>
+        ` : ''}
+        
+        <div class="text-center pt-4 border-t">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span>
+        </div>
+        
+        <div class="text-center mt-6 text-xs text-gray-400">
+          <p>🚚 Solana Logistique</p>
+          <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+        </div>
       `;
     } catch (error) {
       container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2></div>';
@@ -1948,10 +2070,49 @@
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
           <div><p class="text-gray-500">Tonnes</p><p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p></div>
-          <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays]} ${paysNoms[cmd.pays]}</p></div>
-          <div><p class="text-gray-500">Immatriculation</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+          <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          <div><p class="text-gray-500">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
         </div>
       </div>
+      
+      <!-- Signature Electronique -->
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
+          <span class="text-xl">✍️</span> Signature du client
+          <span class="text-xs font-normal text-gray-400">(Signez avec doigt/souris)</span>
+        </h4>
+        <div class="signature-container" id="signatureContainer">
+          <canvas id="signatureCanvas" width="350" height="150"></canvas>
+          <div class="signature-placeholder" id="signaturePlaceholder">
+            <svg class="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            </svg>
+            <p class="text-sm">Signez ici</p>
+          </div>
+          <div class="signature-line"></div>
+        </div>
+        <div class="signature-actions">
+          <button type="button" onclick="clearSignature()" class="signature-btn bg-gray-100 hover:bg-gray-200 text-gray-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Effacer
+          </button>
+          <button type="button" onclick="undoSignature()" class="signature-btn bg-blue-50 hover:bg-blue-100 text-blue-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+            </svg>
+            Annuler
+          </button>
+          <div id="signatureStatus" class="hidden ml-auto flex items-center gap-2 text-emerald-600 font-semibold">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Signé!
+          </div>
+        </div>
+      </div>
+      
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos de livraison</h4>
         <div class="flex flex-wrap gap-3" id="photoPreviewContainer">
@@ -1962,6 +2123,7 @@
           </label>
         </div>
       </div>
+      
       <div class="mb-6">
         <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR</h4>
         <div class="flex flex-wrap gap-3" id="documentPreviewContainer">
@@ -1972,12 +2134,183 @@
           </label>
         </div>
       </div>
+      
       <div class="flex gap-3">
         <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
-        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer</button>
+        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer Livraison</button>
       </div>
     `;
     document.getElementById('deliveryModal').classList.remove('hidden');
+    
+    // Initialiser la signature apres que le modal soit visible
+    setTimeout(() => {
+      initSignature();
+    }, 100);
+  }
+  
+  // ==================== SIGNATURE ELECTRONIQUE ====================
+  let signatureCanvas = null;
+  let signatureCtx = null;
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  let hasSignature = false;
+  let signatureHistory = [];
+  
+  function initSignature() {
+    signatureCanvas = document.getElementById('signatureCanvas');
+    if (!signatureCanvas) return;
+    
+    signatureCtx = signatureCanvas.getContext('2d');
+    
+    // Ajuster la taille du canvas
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      signatureCanvas.width = container.offsetWidth;
+      signatureCanvas.height = 150;
+    }
+    
+    // Configuration du style
+    signatureCtx.strokeStyle = '#1e3a5f';
+    signatureCtx.lineWidth = 3;
+    signatureCtx.lineCap = 'round';
+    signatureCtx.lineJoin = 'round';
+    
+    hasSignature = false;
+    signatureHistory = [];
+    
+    // Events souris
+    signatureCanvas.addEventListener('mousedown', startDrawing);
+    signatureCanvas.addEventListener('mousemove', draw);
+    signatureCanvas.addEventListener('mouseup', stopDrawing);
+    signatureCanvas.addEventListener('mouseout', stopDrawing);
+    
+    // Events tactile
+    signatureCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    signatureCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    signatureCanvas.addEventListener('touchend', stopDrawing);
+  }
+  
+  function startDrawing(e) {
+    isDrawing = true;
+    [lastX, lastY] = getPosition(e);
+    
+    // Sauvegarder l'etat pour undo
+    saveSignatureState();
+    
+    // Animation du container
+    const container = document.getElementById('signatureContainer');
+    if (container) container.classList.add('signing');
+  }
+  
+  function draw(e) {
+    if (!isDrawing) return;
+    
+    const [x, y] = getPosition(e);
+    
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(lastX, lastY);
+    signatureCtx.lineTo(x, y);
+    signatureCtx.stroke();
+    
+    [lastX, lastY] = [x, y];
+    hasSignature = true;
+    
+    // Mettre a jour le statut
+    const status = document.getElementById('signatureStatus');
+    if (status && hasSignature) {
+      status.classList.remove('hidden');
+    }
+  }
+  
+  function stopDrawing() {
+    isDrawing = false;
+    
+    // Mettre a jour le container
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      container.classList.remove('signing');
+      if (hasSignature) {
+        container.classList.add('signed');
+      }
+    }
+  }
+  
+  function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    startDrawing(mouseEvent);
+  }
+  
+  function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    draw(mouseEvent);
+  }
+  
+  function getPosition(e) {
+    const rect = signatureCanvas.getBoundingClientRect();
+    return [
+      e.clientX - rect.left,
+      e.clientY - rect.top
+    ];
+  }
+  
+  function saveSignatureState() {
+    if (signatureCanvas) {
+      signatureHistory.push(signatureCanvas.toDataURL());
+    }
+  }
+  
+  function clearSignature() {
+    if (!signatureCtx || !signatureCanvas) return;
+    
+    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    hasSignature = false;
+    signatureHistory = [];
+    
+    // Reset visuel
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      container.classList.remove('signing', 'signed');
+    }
+    
+    const status = document.getElementById('signatureStatus');
+    if (status) status.classList.add('hidden');
+    
+    // Reinitialiser le style
+    signatureCtx.strokeStyle = '#1e3a5f';
+    signatureCtx.lineWidth = 3;
+    signatureCtx.lineCap = 'round';
+    signatureCtx.lineJoin = 'round';
+  }
+  
+  function undoSignature() {
+    if (signatureHistory.length === 0) {
+      clearSignature();
+      return;
+    }
+    
+    const previousState = signatureHistory.pop();
+    const img = new Image();
+    img.onload = function() {
+      signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+      signatureCtx.drawImage(img, 0, 0);
+    };
+    img.src = previousState;
+  }
+  
+  function getSignatureImage() {
+    if (!signatureCanvas || !hasSignature) return null;
+    return signatureCanvas.toDataURL('image/png');
   }
 
   function handlePhotoUpload(event) {
@@ -2016,13 +2349,24 @@
 
   async function confirmDeliveryFinal() {
     if (!currentDeliveryCmd) { showToast('❌ Erreur', 'error'); return; }
+    
+    // Verifier si la signature est presente
+    const signatureImage = getSignatureImage();
+    
     showLoading();
     
     const today = new Date().toISOString().split('T')[0];
     const photos = uploadedPhotos.filter(p => p.type === 'photo').map(p => p.data);
     const documents = uploadedPhotos.filter(p => p.type === 'document').map(p => p.data);
     
-    const updates = { statut: 'LIVRÉE', date_livraison: today, photos: photos.length > 0 ? JSON.stringify(photos) : null, documents_cmr: documents.length > 0 ? documents : null };
+    const updates = { 
+      statut: 'LIVRÉE', 
+      date_livraison: today, 
+      photos: photos.length > 0 ? JSON.stringify(photos) : null, 
+      documents_cmr: documents.length > 0 ? documents : null,
+      signature: signatureImage  // Ajouter la signature
+    };
+    
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
     if (ok) {
@@ -2030,7 +2374,7 @@
       if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
       hideLoading();
       closeDeliveryModal();
-      showToast('🎉 Livraison confirmée!');
+      showToast('🎉 Livraison confirmée avec signature!');
       const updatedCmd = { ...currentDeliveryCmd, ...updates };
       setTimeout(() => { showQRModal(updatedCmd); }, 300);
     } else {
@@ -2043,6 +2387,11 @@
     document.getElementById('deliveryModal').classList.add('hidden');
     currentDeliveryCmd = null;
     uploadedPhotos = [];
+    // Reset signature
+    signatureCanvas = null;
+    signatureCtx = null;
+    hasSignature = false;
+    signatureHistory = [];
   }
 
   // ==================== QR CODE ====================
@@ -2373,5 +2722,4 @@
 
 </body>
 </html>
-
 
