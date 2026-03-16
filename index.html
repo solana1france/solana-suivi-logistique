@@ -787,6 +787,7 @@
         <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <form onsubmit="ajouterCmd(event)" class="p-5 space-y-3">
+        <p class="text-xs text-gray-500 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">💡 L'immatriculation sera demandée lors de la confirmation du chargement.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 Client</label>
@@ -814,11 +815,7 @@
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ Tonnes</label>
             <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🚛 Immat</label>
-            <input type="text" id="immatIn" placeholder="AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
-          </div>
-          <div>
+          <div class="md:col-span-2">
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">📧 Email</label>
             <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
@@ -828,6 +825,27 @@
           <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold">✨ Ajouter & Sync</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- LOADING CONFIRMATION MODAL (with Immatriculation) -->
+  <div id="loadingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">✅ Confirmer le Chargement</h3>
+        <button onclick="closeLoadingModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div class="p-5">
+        <div id="loadingModalCmdInfo" class="mb-4"></div>
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation du camion</label>
+          <input type="text" id="loadingImmat" placeholder="Ex: AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none text-lg font-mono">
+        </div>
+        <div class="flex gap-3">
+          <button type="button" onclick="closeLoadingModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
+          <button type="button" onclick="confirmLoadingFinal()" class="flex-1 py-3 gradient-success text-white rounded-xl font-bold">✅ Confirmer</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1799,7 +1817,7 @@
       point_depart: document.getElementById('pointDepart').value.trim(),
       pays: document.getElementById('paysIn').value,
       tonnes: parseFloat(document.getElementById('tonnesIn').value),
-      immat: document.getElementById('immatIn').value.trim(),
+      immat: '', // Vide à la création, sera rempli au chargement
       email: document.getElementById('emailIn').value.trim(),
       statut: 'EN ATTENTE',
       nb_emails: 0
@@ -1823,22 +1841,82 @@
     }
   }
 
-  async function confirmerEmail(cmd) {
-    if (!confirm(`${cmd.client}\n${cmd.ref} - ${cmd.tonnes.toFixed(2)}T\n\nConfirmer le chargement?`)) return;
+  // Variables pour le modal de chargement
+  let currentLoadingCmd = null;
+  
+  function confirmerEmail(cmd) {
+    // Ouvrir le modal pour demander l'immatriculation
+    currentLoadingCmd = cmd;
+    
+    document.getElementById('loadingModalCmdInfo').innerHTML = `
+      <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 space-y-2">
+        <div class="flex justify-between">
+          <span class="text-gray-500">Client:</span>
+          <span class="font-bold">${cmd.client}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Référence:</span>
+          <span class="font-bold">${cmd.ref}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Tonnes:</span>
+          <span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-gray-500">Destination:</span>
+          <span class="font-bold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span>
+        </div>
+      </div>
+    `;
+    
+    // Pré-remplir si déjà une immatriculation
+    document.getElementById('loadingImmat').value = cmd.immat || '';
+    
+    document.getElementById('loadingModal').classList.remove('hidden');
+  }
+  
+  function closeLoadingModal() {
+    document.getElementById('loadingModal').classList.add('hidden');
+    currentLoadingCmd = null;
+  }
+  
+  async function confirmLoadingFinal() {
+    if (!currentLoadingCmd) return;
+    
+    const immat = document.getElementById('loadingImmat').value.trim();
+    
+    if (!immat) {
+      showToast('⚠️ Veuillez saisir l\'immatriculation', 'error');
+      return;
+    }
     
     showLoading();
+    closeLoadingModal();
     
-    const updates = { statut: 'CHARGÉE', nb_emails: (cmd.nb_emails || 0) + 1 };
-    const ok = await updateCmdDB(cmd.ref, updates);
+    const updates = { 
+      statut: 'CHARGÉE', 
+      immat: immat,
+      nb_emails: (currentLoadingCmd.nb_emails || 0) + 1,
+      date_chargement: new Date().toISOString().split('T')[0]
+    };
+    
+    const ok = await updateCmdDB(currentLoadingCmd.ref, updates);
     
     if (ok) {
-      const idx = cmds.findIndex(c => c.ref === cmd.ref);
-      if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
+      const idx = cmds.findIndex(c => c.ref === currentLoadingCmd.ref);
+      if (idx !== -1) { 
+        cmds[idx] = { ...cmds[idx], ...updates }; 
+        filterCommands(); 
+      }
       hideLoading();
-      const sujet = `✅ CHARGÉE - ${cmd.ref} - ${cmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmd.ref}\nDépart: ${cmd.point_depart}\nDestination: ${cmd.pays}\nTonnes: ${cmd.tonnes.toFixed(2)}T`;
-      window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
-      showToast('✅ Commande chargée!');
+      
+      // Ouvrir email
+      const sujet = `✅ CHARGÉE - ${currentLoadingCmd.ref} - ${currentLoadingCmd.tonnes.toFixed(2)}T`;
+      const message = `Bonjour ${currentLoadingCmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${currentLoadingCmd.ref}\nDépart: ${currentLoadingCmd.point_depart}\nDestination: ${currentLoadingCmd.pays}\nTonnes: ${currentLoadingCmd.tonnes.toFixed(2)}T\nCamion: ${immat}`;
+      window.open(`mailto:${currentLoadingCmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
+      
+      showToast('✅ Commande chargée avec immat: ' + immat);
+      currentLoadingCmd = null;
     } else {
       hideLoading();
       showToast('❌ Erreur', 'error');
@@ -2295,8 +2373,5 @@
 
 </body>
 </html>
-
-
-
 
 
