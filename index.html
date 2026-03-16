@@ -608,7 +608,7 @@
   </div>
 
   <!-- LOGIN SCREEN -->
-  <div id="loginScreen" class="fixed inset-0 gradient-ocean flex items-center justify-center z-50 overflow-hidden">
+  <div id="loginScreen" class="fixed inset-0 gradient-ocean flex items-center justify-center z-50 overflow-hidden hidden">
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <div class="absolute w-40 h-40 bg-white/10 rounded-full -top-20 -left-20 animate-float"></div>
       <div class="absolute w-32 h-32 bg-white/10 rounded-full top-1/4 right-10 animate-float" style="animation-delay: 1s;"></div>
@@ -2443,9 +2443,6 @@
     <p style="margin-top: 5px;">Référence: ${cmd.ref}</p>
   </div>
   
-  <script>
-    setTimeout(() => { window.print(); }, 500);
-  </script>
 </body>
 </html>`;
     
@@ -3293,11 +3290,7 @@
     <p style="margin-top: 5px;">Référence: ${cmd.ref}</p>
   </div>
   
-  <script>
-    setTimeout(() => { window.print(); }, 500);
-  </script>
-</body>
-</html>`;
+`;
     printWindow.document.write(html);
     printWindow.document.close();
   }
@@ -3614,7 +3607,24 @@
   }
 
   // ==================== START ====================
-  if (!checkPublicView()) document.getElementById('loginScreen').classList.remove('hidden');
+  // Initialize on page load - ensure login screen is shown correctly
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('Page loaded, checking view mode...');
+    const isPublicView = checkPublicView();
+    console.log('Is public view:', isPublicView);
+    
+    if (!isPublicView) {
+      console.log('Showing login screen...');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+  });
+  
+  // Fallback if DOMContentLoaded already fired
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    if (!checkPublicView()) {
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+  }
 </script>
 
 </body>
