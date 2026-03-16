@@ -2012,20 +2012,25 @@
       return;
     }
     
+    // Sauvegarder la commande avant de fermer le modal
+    const cmdToConfirm = currentLoadingCmd;
+    
+    // Fermer le modal d'abord
+    document.getElementById('loadingModal').classList.add('hidden');
+    
     showLoading();
-    closeLoadingModal();
     
     const updates = { 
       statut: 'CHARGÉE', 
       immat: immat,
-      nb_emails: (currentLoadingCmd.nb_emails || 0) + 1,
+      nb_emails: (cmdToConfirm.nb_emails || 0) + 1,
       date_chargement: new Date().toISOString().split('T')[0]
     };
     
-    const ok = await updateCmdDB(currentLoadingCmd.ref, updates);
+    const ok = await updateCmdDB(cmdToConfirm.ref, updates);
     
     if (ok) {
-      const idx = cmds.findIndex(c => c.ref === currentLoadingCmd.ref);
+      const idx = cmds.findIndex(c => c.ref === cmdToConfirm.ref);
       if (idx !== -1) { 
         cmds[idx] = { ...cmds[idx], ...updates }; 
         filterCommands(); 
@@ -2033,15 +2038,15 @@
       hideLoading();
       
       // Ouvrir email
-      const sujet = `✅ CHARGÉE - ${currentLoadingCmd.ref} - ${currentLoadingCmd.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${currentLoadingCmd.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${currentLoadingCmd.ref}\nDépart: ${currentLoadingCmd.point_depart}\nDestination: ${currentLoadingCmd.pays}\nTonnes: ${currentLoadingCmd.tonnes.toFixed(2)}T\nCamion: ${immat}`;
-      window.open(`mailto:${currentLoadingCmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
+      const sujet = `✅ CHARGÉE - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`;
+      const message = `Bonjour ${cmdToConfirm.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmdToConfirm.ref}\nDépart: ${cmdToConfirm.point_depart}\nDestination: ${cmdToConfirm.pays}\nTonnes: ${cmdToConfirm.tonnes.toFixed(2)}T\nCamion: ${immat}`;
+      window.open(`mailto:${cmdToConfirm.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
       
       showToast('✅ Commande chargée avec immat: ' + immat);
       currentLoadingCmd = null;
     } else {
       hideLoading();
-      showToast('❌ Erreur', 'error');
+      showToast('❌ Erreur lors de la mise à jour', 'error');
     }
   }
 
@@ -2722,4 +2727,3 @@
 
 </body>
 </html>
-
