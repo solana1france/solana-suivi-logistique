@@ -1752,6 +1752,16 @@
     return false;
   }
 
+  let currentPublicCmd = null;
+  let publicSignatureCanvas = null;
+  let publicSignatureCtx = null;
+  let publicIsDrawing = false;
+  let publicLastX = 0;
+  let publicLastY = 0;
+  let publicHasSignature = false;
+  let publicUploadedPhotos = [];
+  let publicUploadedDocs = [];
+  
   async function loadPublicDeliveryView(ref) {
     const container = document.getElementById('publicViewContent');
     container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Chargement...</p></div>';
@@ -1770,63 +1780,406 @@
       }
       
       const cmd = data[0];
-      const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'Non spécifiée';
-      
-      let photos = [];
-      if (cmd.photos) {
-        try { photos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) photos = [cmd.photos]; }
-      }
-      
-      // Signature
+      currentPublicCmd = cmd;
       const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
       
-      container.innerHTML = `
+      // Si LIVRÉE avec signature, afficher la confirmation finale
+      if (cmd.statut === 'LIVRÉE' && hasSignature) {
+        showDeliveryConfirmationPage(cmd);
+        return;
+      }
+      
+      // Si LIVRÉE sans signature, afficher le formulaire pour que le client signe
+      if (cmd.statut === 'LIVRÉE' && !hasSignature) {
+        showClientSignatureForm(cmd);
+        return;
+      }
+      
+      // Si CHARGÉE, afficher que la livraison est en route
+      if (cmd.statut === 'CHARGÉE') {
+        container.innerHTML = `
         <div class="text-center mb-6">
-          <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
-          <h1 class="text-2xl font-black text-gray-800 mb-1">Confirmation de Livraison</h1>
+          <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
+          <h1 class="text-2xl font-black text-gray-800 mb-1">Commande en cours</h1>
           <p class="text-gray-500">Solana Logistique</p>
         </div>
-        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 mb-6">
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
             <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
-            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-amber-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
             <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
-            <div><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
-            <div><p class="text-gray-500 text-xs uppercase">Date</p><p class="font-bold">${deliveryDate}</p></div>
           </div>
         </div>
-        
-        ${hasSignature ? `
-        <div class="mb-6">
-          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">✍️ Signature du client</h3>
-          <div class="bg-gray-50 rounded-xl p-4 border-2 border-emerald-200">
-            <img src="${cmd.signature}" alt="Signature" class="max-w-full mx-auto" style="max-height: 150px;">
+        <div class="text-center pt-4">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-warning text-white rounded-full font-bold text-lg">⏳ ${cmd.statut}</span>
+          <p class="text-sm text-gray-500 mt-4">Votre commande est en cours de livraison.</p>
+        </div>
+      `;
+        return;
+      }
+      
+      // Autres statuts (EN ATTENTE, etc.)
+      container.innerHTML = `
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
+          <h1 class="text-2xl font-black text-gray-800 mb-1">Commande en attente</h1>
+          <p class="text-gray-500">Solana Logistique</p>
+        </div>
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 mb-6">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-amber-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
           </div>
         </div>
-        ` : ''}
-        
-        ${photos.length > 0 ? `
-        <div class="mb-6">
-          <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
-          <div class="grid grid-cols-2 gap-3">
-            ${photos.map((p, i) => `<img src="${p}" class="delivery-photo cursor-pointer" onclick="openPhotoViewer('${p}')">`).join('')}
-          </div>
-        </div>
-        ` : ''}
-        
-        <div class="text-center pt-4 border-t">
-          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-delivered text-white rounded-full font-bold text-lg">✅ LIVRÉE</span>
-        </div>
-        
-        <div class="text-center mt-6 text-xs text-gray-400">
-          <p>🚚 Solana Logistique</p>
-          <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+        <div class="text-center pt-4">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-warning text-white rounded-full font-bold text-lg">⏳ ${cmd.statut}</span>
+          <p class="text-sm text-gray-500 mt-4">Votre commande est en cours de traitement.</p>
         </div>
       `;
     } catch (error) {
-      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2></div>';
+      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de chargement</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
     }
+  }
+  
+  // Afficher le formulaire de signature pour le client (APRÈS livraison confirmée)
+  function showClientSignatureForm(cmd) {
+    const container = document.getElementById('publicViewContent');
+    publicUploadedPhotos = [];
+    publicUploadedDocs = [];
+    publicHasSignature = false;
+    
+    container.innerHTML = `
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4 animate__animated animate__pulse"><span class="text-4xl">📦</span></div>
+        <h1 class="text-2xl font-black text-gray-800 mb-1">Livraison Effectuée!</h1>
+        <p class="text-gray-500">Veuillez signer pour confirmer la réception</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-5 mb-6 animate__animated animate__fadeIn border-2 border-emerald-200">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm">✓</span>
+          <span class="font-bold text-emerald-700">Votre commande a été livrée</span>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          <div class="col-span-2"><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+        </div>
+      </div>
+      
+      <!-- Signature Electronique Client -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <span class="text-xl">✍️</span> Votre signature
+          <span class="text-xs font-normal text-gray-400">(Signez avec votre doigt/souris)</span>
+        </h4>
+        <div class="signature-container" id="publicSignatureContainer">
+          <canvas id="publicSignatureCanvas" width="350" height="150"></canvas>
+          <div class="signature-placeholder" id="publicSignaturePlaceholder">
+            <svg class="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            </svg>
+            <p class="text-sm">Signez ici</p>
+          </div>
+          <div class="signature-line"></div>
+        </div>
+        <div class="signature-actions">
+          <button type="button" onclick="clearPublicSignature()" class="signature-btn bg-gray-100 hover:bg-gray-200 text-gray-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Effacer
+          </button>
+          <div id="publicSignatureStatus" class="hidden ml-auto flex items-center gap-2 text-emerald-600 font-semibold">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Signé!
+          </div>
+        </div>
+      </div>
+      
+      <!-- Photos de livraison -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.3s">
+        <h4 class="font-bold text-gray-800 mb-3">📸 Photos de réception (optionnel)</h4>
+        <div class="flex flex-wrap gap-3" id="publicPhotoContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">Photo</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePublicPhotoUpload(event)">
+          </label>
+        </div>
+      </div>
+      
+      <!-- Documents CMR -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.4s">
+        <h4 class="font-bold text-gray-800 mb-3">📄 Documents CMR (optionnel)</h4>
+        <div class="flex flex-wrap gap-3" id="publicDocContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">CMR</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePublicDocUpload(event)">
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 animate__animated animate__fadeIn" style="animation-delay: 0.5s">
+        <button type="button" onclick="saveClientSignature()" class="flex-1 py-4 gradient-delivered text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+          ✅ Confirmer la réception
+        </button>
+      </div>
+      
+      <div class="text-center mt-6 text-xs text-gray-400">
+        <p>🚚 Solana Logistique</p>
+      </div>
+    `;
+    
+    // Initialiser le canvas de signature après le rendu
+    setTimeout(() => {
+      initPublicSignature();
+    }, 100);
+  }
+  
+  // Initialiser la signature publique
+  function initPublicSignature() {
+    publicSignatureCanvas = document.getElementById('publicSignatureCanvas');
+    if (!publicSignatureCanvas) return;
+    
+    publicSignatureCtx = publicSignatureCanvas.getContext('2d');
+    
+    // Ajuster la taille
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) {
+      publicSignatureCanvas.width = container.offsetWidth;
+      publicSignatureCanvas.height = 150;
+    }
+    
+    // Style
+    publicSignatureCtx.strokeStyle = '#1e3a5f';
+    publicSignatureCtx.lineWidth = 3;
+    publicSignatureCtx.lineCap = 'round';
+    publicSignatureCtx.lineJoin = 'round';
+    
+    // Events souris
+    publicSignatureCanvas.addEventListener('mousedown', startPublicDrawing);
+    publicSignatureCanvas.addEventListener('mousemove', publicDraw);
+    publicSignatureCanvas.addEventListener('mouseup', stopPublicDrawing);
+    publicSignatureCanvas.addEventListener('mouseout', stopPublicDrawing);
+    
+    // Events tactile
+    publicSignatureCanvas.addEventListener('touchstart', handlePublicTouchStart, { passive: false });
+    publicSignatureCanvas.addEventListener('touchmove', handlePublicTouchMove, { passive: false });
+    publicSignatureCanvas.addEventListener('touchend', stopPublicDrawing);
+  }
+  
+  function startPublicDrawing(e) {
+    publicIsDrawing = true;
+    [publicLastX, publicLastY] = getPublicPosition(e);
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) container.classList.add('signing');
+  }
+  
+  function publicDraw(e) {
+    if (!publicIsDrawing) return;
+    const [x, y] = getPublicPosition(e);
+    publicSignatureCtx.beginPath();
+    publicSignatureCtx.moveTo(publicLastX, publicLastY);
+    publicSignatureCtx.lineTo(x, y);
+    publicSignatureCtx.stroke();
+    [publicLastX, publicLastY] = [x, y];
+    publicHasSignature = true;
+    const status = document.getElementById('publicSignatureStatus');
+    if (status) status.classList.remove('hidden');
+  }
+  
+  function stopPublicDrawing() {
+    publicIsDrawing = false;
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) {
+      container.classList.remove('signing');
+      if (publicHasSignature) container.classList.add('signed');
+    }
+  }
+  
+  function handlePublicTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    startPublicDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+  }
+  
+  function handlePublicTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    publicDraw({ clientX: touch.clientX, clientY: touch.clientY });
+  }
+  
+  function getPublicPosition(e) {
+    const rect = publicSignatureCanvas.getBoundingClientRect();
+    return [e.clientX - rect.left, e.clientY - rect.top];
+  }
+  
+  function clearPublicSignature() {
+    if (!publicSignatureCtx || !publicSignatureCanvas) return;
+    publicSignatureCtx.clearRect(0, 0, publicSignatureCanvas.width, publicSignatureCanvas.height);
+    publicHasSignature = false;
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) container.classList.remove('signing', 'signed');
+    const status = document.getElementById('publicSignatureStatus');
+    if (status) status.classList.add('hidden');
+    publicSignatureCtx.strokeStyle = '#1e3a5f';
+    publicSignatureCtx.lineWidth = 3;
+    publicSignatureCtx.lineCap = 'round';
+    publicSignatureCtx.lineJoin = 'round';
+  }
+  
+  function getPublicSignatureImage() {
+    if (!publicSignatureCanvas || !publicHasSignature) return null;
+    return publicSignatureCanvas.toDataURL('image/png');
+  }
+  
+  function handlePublicPhotoUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('publicPhotoContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        publicUploadedPhotos.push(base64);
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); publicUploadedPhotos = publicUploadedPhotos.filter(p => p !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  
+  function handlePublicDocUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('publicDocContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        publicUploadedDocs.push(base64);
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); publicUploadedDocs = publicUploadedDocs.filter(p => p !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  
+  // Sauvegarder la signature du client
+  async function saveClientSignature() {
+    if (!currentPublicCmd) return;
+    
+    const signatureImage = getPublicSignatureImage();
+    if (!signatureImage) {
+      alert('⚠️ Veuillez signer avant de confirmer');
+      return;
+    }
+    
+    const container = document.getElementById('publicViewContent');
+    container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Enregistrement en cours...</p></div>';
+    
+    const updates = { 
+      signature: signatureImage,
+      photos: publicUploadedPhotos.length > 0 ? JSON.stringify(publicUploadedPhotos) : null,
+      documents_cmr: publicUploadedDocs.length > 0 ? JSON.stringify(publicUploadedDocs) : null,
+      date_signature_client: new Date().toISOString()
+    };
+    
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${currentPublicCmd.ref}`, {
+        method: 'PATCH',
+        headers: { 
+          'apikey': SUPABASE_KEY, 
+          'Authorization': `Bearer ${SUPABASE_KEY}`, 
+          'Content-Type': 'application/json', 
+          'Prefer': 'return=minimal' 
+        },
+        body: JSON.stringify(updates)
+      });
+      
+      if (res.ok) {
+        showDeliveryConfirmationPage({ ...currentPublicCmd, ...updates });
+      } else {
+        container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
+      }
+    } catch (error) {
+      container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2><p class="text-gray-500">Veuillez réessayer</p></div>';
+    }
+  }
+  
+  // Afficher la page de confirmation finale
+  function showDeliveryConfirmationPage(cmd) {
+    const container = document.getElementById('publicViewContent');
+    const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'En attente';
+    
+    let photos = [];
+    if (cmd.photos) {
+      try { photos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) photos = [cmd.photos]; }
+    }
+    
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    const isDelivered = cmd.statut === 'LIVRÉE';
+    
+    container.innerHTML = `
+      <div class="text-center mb-6 animate__animated animate__fadeInDown">
+        <div class="w-20 h-20 ${isDelivered ? 'gradient-delivered' : 'gradient-ocean'} rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">${isDelivered ? '🎉' : '✅'}</span></div>
+        <h1 class="text-2xl font-black text-gray-800 mb-1">${isDelivered ? 'Livraison Confirmée' : 'Signature Enregistrée'}</h1>
+        <p class="text-gray-500">Solana Logistique</p>
+      </div>
+      
+      <div class="bg-gradient-to-r ${isDelivered ? 'from-emerald-50 to-teal-50' : 'from-blue-50 to-cyan-50'} rounded-2xl p-5 mb-6 animate__animated animate__fadeIn">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold ${isDelivered ? 'text-emerald-600' : 'text-cyan-600'} text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Date</p><p class="font-bold">${deliveryDate}</p></div>
+        </div>
+      </div>
+      
+      ${hasSignature ? `
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">✍️ Signature du client</h3>
+        <div class="bg-gray-50 rounded-xl p-4 border-2 border-emerald-200">
+          <img src="${cmd.signature}" alt="Signature" class="max-w-full mx-auto" style="max-height: 150px;">
+        </div>
+        ${!isDelivered ? '<p class="text-sm text-center text-gray-500 mt-2">✅ Votre signature a été enregistrée. L\'administrateur confirmera la livraison prochainement.</p>' : ''}
+      </div>
+      ` : ''}
+      
+      ${photos.length > 0 ? `
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.3s">
+        <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
+        <div class="grid grid-cols-2 gap-3">
+          ${photos.map((p, i) => `<img src="${p}" class="delivery-photo cursor-pointer" onclick="window.open('${p}', '_blank')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div class="text-center pt-4 border-t animate__animated animate__fadeIn" style="animation-delay: 0.4s">
+        <span class="inline-flex items-center gap-2 px-6 py-3 ${isDelivered ? 'gradient-delivered' : 'gradient-ocean'} text-white rounded-full font-bold text-lg">
+          ${isDelivered ? '✅ LIVRÉE' : '✅ SIGNÉE'}
+        </span>
+        ${!isDelivered ? '<p class="text-sm text-gray-500 mt-3">En attente de confirmation finale par l\'administrateur</p>' : ''}
+      </div>
+      
+      <div class="text-center mt-6 text-xs text-gray-400">
+        <p>🚚 Solana Logistique</p>
+        <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+      </div>
+    `;
   }
 
   function openPhotoViewer(src) {
@@ -2065,12 +2418,25 @@
     currentDeliveryCmd = cmd;
     uploadedPhotos = [];
     
+    const hasClientSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    let clientPhotos = [];
+    if (cmd.photos) {
+      try { clientPhotos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) clientPhotos = [cmd.photos]; }
+    }
+    
+    let clientDocs = [];
+    if (cmd.documents_cmr) {
+      try { clientDocs = JSON.parse(cmd.documents_cmr); } catch (e) { if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) clientDocs = [cmd.documents_cmr]; }
+    }
+    
     document.getElementById('deliveryModalContent').innerHTML = `
       <div class="text-center mb-6">
         <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
         <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
         <p class="text-gray-500">Commande ${cmd.ref}</p>
       </div>
+      
       <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 mb-6">
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
@@ -2080,46 +2446,55 @@
         </div>
       </div>
       
-      <!-- Signature Electronique -->
-      <div class="mb-6">
-        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-          <span class="text-xl">✍️</span> Signature du client
-          <span class="text-xs font-normal text-gray-400">(Signez avec doigt/souris)</span>
-        </h4>
-        <div class="signature-container" id="signatureContainer">
-          <canvas id="signatureCanvas" width="350" height="150"></canvas>
-          <div class="signature-placeholder" id="signaturePlaceholder">
-            <svg class="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-            </svg>
-            <p class="text-sm">Signez ici</p>
-          </div>
-          <div class="signature-line"></div>
-        </div>
-        <div class="signature-actions">
-          <button type="button" onclick="clearSignature()" class="signature-btn bg-gray-100 hover:bg-gray-200 text-gray-700">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-            Effacer
-          </button>
-          <button type="button" onclick="undoSignature()" class="signature-btn bg-blue-50 hover:bg-blue-100 text-blue-600">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
-            </svg>
-            Annuler
-          </button>
-          <div id="signatureStatus" class="hidden ml-auto flex items-center gap-2 text-emerald-600 font-semibold">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            Signé!
+      <!-- Info workflow -->
+      <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4 mb-6 border-2 border-blue-200">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">📋</span>
+          <div>
+            <h4 class="font-bold text-blue-700 dark:text-blue-300">Workflow de livraison</h4>
+            <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              <b>1.</b> Vous confirmez la livraison → statut = LIVRÉE<br>
+              <b>2.</b> Un QR Code est généré pour le client<br>
+              <b>3.</b> Le client signe pour confirmer la réception
+            </p>
           </div>
         </div>
       </div>
       
+      ${hasClientSignature ? `
       <div class="mb-6">
-        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos de livraison</h4>
+        <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-5 border-2 border-emerald-200">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg">✓</span>
+            <h4 class="font-bold text-emerald-700 dark:text-emerald-300">✅ Signature client reçue!</h4>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200">
+            <img src="${cmd.signature}" alt="Signature client" class="max-w-full mx-auto" style="max-height: 120px;">
+          </div>
+        </div>
+      </div>
+      ` : ''}
+      
+      ${clientPhotos.length > 0 ? `
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">📸 Photos du client</h4>
+        <div class="grid grid-cols-4 gap-3">
+          ${clientPhotos.map(p => `<img src="${p}" class="photo-preview cursor-pointer" onclick="openPhotoViewer('${p}')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      ${clientDocs.length > 0 ? `
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">📄 Documents CMR du client</h4>
+        <div class="grid grid-cols-4 gap-3">
+          ${clientDocs.map(d => `<img src="${d}" class="photo-preview cursor-pointer" onclick="openPhotoViewer('${d}')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Ajouter des documents (optionnel)</h4>
         <div class="flex flex-wrap gap-3" id="photoPreviewContainer">
           <label class="photo-upload-btn cursor-pointer">
             <span class="text-3xl text-gray-400">+</span>
@@ -2129,28 +2504,14 @@
         </div>
       </div>
       
-      <div class="mb-6">
-        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR</h4>
-        <div class="flex flex-wrap gap-3" id="documentPreviewContainer">
-          <label class="photo-upload-btn cursor-pointer">
-            <span class="text-3xl text-gray-400">+</span>
-            <span class="text-xs text-gray-400">CMR</span>
-            <input type="file" accept="image/*" multiple class="hidden" onchange="handleDocumentUpload(event)">
-          </label>
-        </div>
-      </div>
-      
       <div class="flex gap-3">
         <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
-        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">✅ Confirmer Livraison</button>
+        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
+          ✅ Confirmer Livraison
+        </button>
       </div>
     `;
     document.getElementById('deliveryModal').classList.remove('hidden');
-    
-    // Initialiser la signature apres que le modal soit visible
-    setTimeout(() => {
-      initSignature();
-    }, 100);
   }
   
   // ==================== SIGNATURE ELECTRONIQUE ====================
@@ -2355,9 +2716,6 @@
   async function confirmDeliveryFinal() {
     if (!currentDeliveryCmd) { showToast('❌ Erreur', 'error'); return; }
     
-    // Verifier si la signature est presente
-    const signatureImage = getSignatureImage();
-    
     showLoading();
     
     const today = new Date().toISOString().split('T')[0];
@@ -2366,25 +2724,37 @@
     
     const updates = { 
       statut: 'LIVRÉE', 
-      date_livraison: today, 
-      photos: photos.length > 0 ? JSON.stringify(photos) : null, 
-      documents_cmr: documents.length > 0 ? documents : null,
-      signature: signatureImage  // Ajouter la signature
+      date_livraison: today
     };
+    
+    // Ajouter les nouvelles photos/documents si fournis
+    if (photos.length > 0) {
+      updates.photos = JSON.stringify(photos);
+    }
+    if (documents.length > 0) {
+      updates.documents_cmr = JSON.stringify(documents);
+    }
     
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
     if (ok) {
       const idx = cmds.findIndex(c => c.ref === currentDeliveryCmd.ref);
-      if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
+      if (idx !== -1) { 
+        cmds[idx] = { ...cmds[idx], ...updates }; 
+        filterCommands(); 
+      }
       hideLoading();
       closeDeliveryModal();
-      showToast('🎉 Livraison confirmée avec signature!');
+      showToast('🎉 Livraison confirmée!');
+      
+      // Afficher le QR pour envoyer au client
       const updatedCmd = { ...currentDeliveryCmd, ...updates };
-      setTimeout(() => { showQRModal(updatedCmd); }, 300);
+      setTimeout(() => { 
+        showQRModalAfterDelivery(updatedCmd); 
+      }, 300);
     } else {
       hideLoading();
-      showToast('❌ Erreur', 'error');
+      showToast('❌ Erreur lors de la confirmation', 'error');
     }
   }
 
@@ -2392,22 +2762,76 @@
     document.getElementById('deliveryModal').classList.add('hidden');
     currentDeliveryCmd = null;
     uploadedPhotos = [];
-    // Reset signature
-    signatureCanvas = null;
-    signatureCtx = null;
-    hasSignature = false;
-    signatureHistory = [];
   }
 
   // ==================== QR CODE ====================
+  // Modal QR affiché APRÈS confirmation de livraison - pour envoyer au client
+  function showQRModalAfterDelivery(cmd) {
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-3xl">🎉</span></div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Livraison Confirmée!</h3>
+        <p class="text-gray-500">Envoyez ce lien au client pour signature</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="text-center">
+          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block"><div id="qrCodeContainer" class="flex justify-center"></div></div>
+          <p class="mt-4 text-sm text-gray-500">Le client scanne pour signer</p>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger</button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Camion:</span><span class="font-semibold">${cmd.immat || '-'}</span></div>
+            </div>
+          </div>
+          
+          <!-- Lien à copier -->
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-4 border-2 border-amber-200">
+            <h4 class="font-bold text-amber-700 dark:text-amber-300 mb-2">📋 Lien pour le client</h4>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-2 border border-gray-200 mb-3">
+              <code class="text-xs text-blue-600 break-all">${viewUrl}</code>
+            </div>
+            <button onclick="navigator.clipboard.writeText('${viewUrl}').then(() => showToast('📋 Lien copié!'))" class="w-full py-2 bg-amber-500 text-white rounded-xl font-semibold text-sm">
+              📋 Copier le lien
+            </button>
+          </div>
+          
+          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-3 gradient-ocean text-white rounded-xl font-bold text-sm">
+            📧 Envoyer par email au client
+          </button>
+          
+          <div class="text-center"><span class="px-6 py-3 gradient-delivered text-white rounded-full font-bold">✅ LIVRÉE</span></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('qrModal').classList.remove('hidden');
+    setTimeout(() => { generateQRCode(viewUrl); }, 100);
+  }
+  
+  // Modal QR standard pour voir les détails
   function showQRModal(cmd) {
     const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
+    const isDelivered = cmd.statut === 'LIVRÉE';
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
     
     document.getElementById('qrModalContent').innerHTML = `
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="text-center">
           <div class="bg-white p-6 rounded-2xl shadow-lg inline-block"><div id="qrCodeContainer" class="flex justify-center"></div></div>
-          <p class="mt-4 text-sm text-gray-500">Scannez pour voir les détails</p>
+          <p class="mt-4 text-sm text-gray-500">${isDelivered ? 'Preuve de livraison' : 'Lien de suivi'}</p>
           <div class="mt-4 flex gap-2 justify-center">
             <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger</button>
             <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
@@ -2421,10 +2845,23 @@
               <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
               <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Camion:</span><span class="font-semibold">${cmd.immat || '-'}</span></div>
             </div>
           </div>
-          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-4 gradient-delivered text-white rounded-xl font-bold">📧 Envoyer email</button>
-          <div class="text-center"><span class="px-6 py-3 gradient-delivered text-white rounded-full font-bold">🎉 LIVRÉE</span></div>
+          
+          ${hasSignature ? `
+          <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-4 border-2 border-emerald-200">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm">✓</span>
+              <span class="font-bold text-emerald-700">Client a signé!</span>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-200">
+              <img src="${cmd.signature}" alt="Signature client" class="max-w-full mx-auto" style="max-height: 80px;">
+            </div>
+          </div>
+          ` : ''}
+          
+          <div class="text-center"><span class="px-6 py-3 ${isDelivered ? 'gradient-delivered' : 'gradient-success'} text-white rounded-full font-bold">${isDelivered ? '🎉 LIVRÉE' : '✅ CHARGÉE'}</span></div>
         </div>
       </div>
     `;
@@ -2558,18 +2995,36 @@
     if (map && !document.getElementById('view-map').classList.contains('hidden')) updateMapMarkers();
   }
 
-  function getStatusBadge(statut) {
+  function getStatusBadge(statut, hasSignature = false) {
     if (statut === 'LIVRÉE') return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
-    if (statut === 'CHARGÉE') return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
+    if (statut === 'CHARGÉE') {
+      const signatureIndicator = hasSignature ? ' ✍️' : '';
+      return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE${signatureIndicator}</span>`;
+    }
     return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
+  }
+
+  function getSignatureIndicator(cmd) {
+    if (cmd.signature && cmd.signature.startsWith('data:image')) {
+      return '<span class="ml-1 text-emerald-500" title="Client a signé">✍️</span>';
+    }
+    if (cmd.statut === 'CHARGÉE') {
+      return '<span class="ml-1 text-amber-500 animate-pulse" title="En attente de signature">⏳</span>';
+    }
+    return '';
   }
 
   function getActionButtons(cmd) {
     let buttons = '';
-    if (cmd.statut === 'EN ATTENTE') buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg">✅</button>`;
-    else if (cmd.statut === 'CHARGÉE') buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg">🎉</button>`;
-    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg">📱</button>`;
-    buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg">🗑️</button>`;
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    if (cmd.statut === 'EN ATTENTE') buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg" title="Confirmer le chargement">✅</button>`;
+    else if (cmd.statut === 'CHARGÉE') {
+      const btnClass = hasSignature ? 'gradient-delivered' : 'bg-gray-400 cursor-not-allowed';
+      const btnTitle = hasSignature ? 'Confirmer la livraison' : 'Client doit signer d\'abord';
+      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 ${btnClass} text-white text-xs rounded-lg" title="${btnTitle}">🎉</button>`;
+    }
+    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg" title="QR Code">📱</button>`;
+    buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg" title="Supprimer">🗑️</button>`;
     return buttons;
   }
 
@@ -2578,7 +3033,9 @@
       document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
       return;
     }
-    document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
+    document.getElementById('tableBody').innerHTML = filteredCmds.map(c => {
+      const hasSignature = c.signature && c.signature.startsWith('data:image');
+      return `
       <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}">
         <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
         <td class="px-4 py-3 font-bold">${c.client}</td>
@@ -2587,10 +3044,10 @@
         <td class="px-4 py-3">${c.point_depart}</td>
         <td class="px-4 py-3">${paysEmojis[c.pays]} ${c.pays}</td>
         <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
-        <td class="px-4 py-3">${getStatusBadge(c.statut)}</td>
+        <td class="px-4 py-3">${getStatusBadge(c.statut, hasSignature)}${getSignatureIndicator(c)}</td>
         <td class="px-4 py-3"><div class="flex justify-center gap-1">${getActionButtons(c)}</div></td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   }
 
   function renderCards() {
@@ -2598,13 +3055,15 @@
       document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">Aucun résultat</div>`;
       return;
     }
-    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
+    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => {
+      const hasSignature = c.signature && c.signature.startsWith('data:image');
+      return `
       <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'LIVRÉE' ? 'border-emerald-400' : c.statut === 'CHARGÉE' ? 'border-blue-400' : 'border-amber-400'} shadow-lg p-4">
-        <div class="flex justify-between items-center mb-2"><span class="font-bold">${c.client}</span>${getStatusBadge(c.statut)}</div>
-        <div class="text-sm text-gray-500 space-y-1"><p>📄 ${c.ref}</p><p>📅 ${c.date}</p><p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p><p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p></div>
+        <div class="flex justify-between items-center mb-2"><span class="font-bold">${c.client}</span>${getStatusBadge(c.statut, hasSignature)}</div>
+        <div class="text-sm text-gray-500 space-y-1"><p>📄 ${c.ref}</p><p>📅 ${c.date}</p><p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p><p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p>${getSignatureIndicator(c) ? `<p class="text-xs">Signature: ${getSignatureIndicator(c)}</p>` : ''}</div>
         <div class="flex gap-1 mt-3 justify-end">${getActionButtons(c)}</div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   // ==================== CALENDAR ====================
