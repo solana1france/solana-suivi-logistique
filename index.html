@@ -658,11 +658,14 @@
               <h3 class="font-bold text-white flex items-center gap-2">
                 <span class="text-xl">📋</span> Rapport Exécutif - Résumé Direction
               </h3>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <label class="text-white text-sm font-medium">📅 Période:</label>
                 <select id="execMonthSelector" onchange="updateExecutiveReportFromSelector()" class="px-3 py-1.5 rounded-lg bg-white/20 text-white border border-white/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
                   <!-- Options générées dynamiquement -->
                 </select>
+                <button onclick="exportExecutivePDF()" class="px-3 py-1.5 rounded-lg bg-white/20 text-white border border-white/30 text-sm font-medium hover:bg-white/30 transition-all flex items-center gap-1">
+                  📄 Export PDF
+                </button>
               </div>
             </div>
           </div>
@@ -689,6 +692,16 @@
                 <p class="text-sm opacity-80 mb-1">Tonnes ce mois</p>
                 <p class="text-4xl font-black" id="execTonnesMois">0 T</p>
                 <p class="text-xs opacity-70">transportées</p>
+              </div>
+            </div>
+            
+            <!-- Graphique Évolution Mensuelle -->
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 mb-6">
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                📈 Évolution Mensuelle - Année en cours
+              </h4>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="evolutionChart"></canvas>
               </div>
             </div>
             
@@ -1829,6 +1842,7 @@
   // ==================== TRANSPORTEURS ANALYTICS ====================
   let transporteursChart = null;
   let transporteursComparatifChart = null;
+  let evolutionChart = null;
   
   // Variables globales pour le rapport exécutif
   let execDataCache = {
@@ -2246,6 +2260,429 @@
     document.getElementById('execEnCours').textContent = cmdPeriode.filter(c => c.statut === 'CHARGÉE').length;
     document.getElementById('execEnAttente').textContent = cmdPeriode.filter(c => c.statut === 'EN ATTENTE').length;
     document.getElementById('execTransporteursActifs').textContent = sortedTransPeriode.length;
+    
+    // Mettre à jour le graphique d'évolution
+    updateEvolutionChart(filtered);
+  }
+  
+  // ==================== GRAPHIQUE ÉVOLUTION MENSUELLE ====================
+  function updateEvolutionChart(data) {
+    const canvas = document.getElementById('evolutionChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const currentYear = new Date().getFullYear();
+    
+    // Noms des mois courts
+    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    
+    // Initialiser les données pour chaque mois
+    const monthlyData = {};
+    for (let i = 1; i <= 12; i++) {
+      const key = `${currentYear}-${String(i).padStart(2, '0')}`;
+      monthlyData[key] = { commandes: 0, tonnes: 0, livrees: 0 };
+    }
+    
+    // Remplir avec les données réelles
+    data.forEach(c => {
+      if (c.date) {
+        const d = new Date(c.date);
+        if (d.getFullYear() === currentYear) {
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          if (monthlyData[key]) {
+            monthlyData[key].commandes++;
+            monthlyData[key].tonnes += c.tonnes;
+            if (c.statut === 'LIVRÉE') monthlyData[key].livrees++;
+          }
+        }
+      }
+    });
+    
+    // Préparer les données pour Chart.js
+    const labels = Object.keys(monthlyData).sort().map(k => {
+      const month = parseInt(k.split('-')[1]) - 1;
+      return monthLabels[month];
+    });
+    
+    const tonnesData = Object.keys(monthlyData).sort().map(k => monthlyData[k].tonnes.toFixed(2));
+    const commandesData = Object.keys(monthlyData).sort().map(k => monthlyData[k].commandes);
+    
+    // Détruire le graphique existant
+    if (evolutionChart) {
+      evolutionChart.destroy();
+    }
+    
+    // Créer le nouveau graphique
+    evolutionChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Tonnes',
+            data: tonnesData,
+            backgroundColor: 'rgba(6, 182, 212, 0.7)',
+            borderColor: 'rgba(6, 182, 212, 1)',
+            borderWidth: 2,
+            yAxisID: 'y',
+            order: 2
+          },
+          {
+            label: 'Commandes',
+            data: commandesData,
+            type: 'line',
+            borderColor: 'rgba(139, 92, 246, 1)',
+            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            yAxisID: 'y1',
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              padding: 15
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgba(6, 182, 212, 1)',
+            borderWidth: 1,
+            padding: 12,
+            displayColors: true
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Tonnes'
+            },
+            grid: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Commandes'
+            },
+            grid: {
+              drawOnChartArea: false
+            }
+          }
+        }
+      }
+    });
+  }
+  
+  // ==================== EXPORT PDF RAPPORT EXÉCUTIF ====================
+  async function exportExecutivePDF() {
+    showLoading();
+    showToast('📄 Génération du rapport exécutif...');
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    const filtered = execDataCache.filtered || [];
+    const selectedMonth = document.getElementById('execMonthSelector')?.value || 'all';
+    
+    // Calculer la période
+    let cmdPeriode = filtered;
+    let periodeLabel = 'Mois en cours';
+    
+    if (selectedMonth !== 'all') {
+      const [year, month] = selectedMonth.split('-');
+      const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+      periodeLabel = `${monthNames[parseInt(month) - 1]} ${year}`;
+      cmdPeriode = filtered.filter(c => {
+        if (!c.date) return false;
+        const d = new Date(c.date);
+        return d.getFullYear() === parseInt(year) && (d.getMonth() + 1) === parseInt(month);
+      });
+    } else {
+      const now = new Date();
+      const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+      periodeLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+      cmdPeriode = filtered.filter(c => {
+        if (!c.date) return false;
+        const d = new Date(c.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    }
+    
+    // Couleurs
+    const primaryOrange = [245, 158, 11];
+    const primaryBlue = [0, 119, 182];
+    const successGreen = [16, 185, 129];
+    const warningBlue = [59, 130, 246];
+    
+    // ===== PAGE DE GARDE =====
+    doc.setFillColor(...primaryOrange);
+    doc.rect(0, 0, pageWidth, 80, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', pageWidth/2, 35, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Rapport Exécutif - Résumé Direction', pageWidth/2, 50, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`Période: ${periodeLabel}`, pageWidth/2, 65, { align: 'center' });
+    
+    // Date du rapport
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}`, pageWidth/2, 95, { align: 'center' });
+    
+    // ===== KPI PRINCIPAUX =====
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...primaryBlue);
+    doc.text('INDICATEURS CLÉS DE PERFORMANCE', 14, 115);
+    
+    // Calcul des KPI
+    const totalTonnes = cmdPeriode.reduce((s, c) => s + c.tonnes, 0);
+    const totalCmd = cmdPeriode.length;
+    const livrees = cmdPeriode.filter(c => c.statut === 'LIVRÉE').length;
+    const chargees = cmdPeriode.filter(c => c.statut === 'CHARGÉE').length;
+    const enAttente = cmdPeriode.filter(c => c.statut === 'EN ATTENTE').length;
+    const tauxLivraison = totalCmd > 0 ? Math.round((livrees / totalCmd) * 100) : 0;
+    const tauxChargement = totalCmd > 0 ? Math.round(((livrees + chargees) / totalCmd) * 100) : 0;
+    const scoreGlobal = Math.round((tauxLivraison + tauxChargement) / 2);
+    
+    // Boîtes KPI
+    const kpiY = 125;
+    const kpiWidth = 42;
+    const kpiHeight = 30;
+    const kpiGap = 5;
+    
+    // KPI 1 - Score Global
+    doc.setFillColor(16, 185, 129);
+    doc.roundedRect(14, kpiY, kpiWidth, kpiHeight, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Score Global', 14 + kpiWidth/2, kpiY + 8, { align: 'center' });
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(scoreGlobal.toString(), 14 + kpiWidth/2, kpiY + 22, { align: 'center' });
+    
+    // KPI 2 - Taux Livraison
+    doc.setFillColor(0, 119, 182);
+    doc.roundedRect(14 + kpiWidth + kpiGap, kpiY, kpiWidth, kpiHeight, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Taux Livraison', 14 + kpiWidth + kpiGap + kpiWidth/2, kpiY + 8, { align: 'center' });
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(tauxLivraison + '%', 14 + kpiWidth + kpiGap + kpiWidth/2, kpiY + 22, { align: 'center' });
+    
+    // KPI 3 - Commandes
+    doc.setFillColor(139, 92, 246);
+    doc.roundedRect(14 + (kpiWidth + kpiGap) * 2, kpiY, kpiWidth, kpiHeight, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Commandes', 14 + (kpiWidth + kpiGap) * 2 + kpiWidth/2, kpiY + 8, { align: 'center' });
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text(totalCmd.toString(), 14 + (kpiWidth + kpiGap) * 2 + kpiWidth/2, kpiY + 22, { align: 'center' });
+    
+    // KPI 4 - Tonnes
+    doc.setFillColor(245, 158, 11);
+    doc.roundedRect(14 + (kpiWidth + kpiGap) * 3, kpiY, kpiWidth, kpiHeight, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Tonnes', 14 + (kpiWidth + kpiGap) * 3 + kpiWidth/2, kpiY + 8, { align: 'center' });
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(totalTonnes.toFixed(1) + ' T', 14 + (kpiWidth + kpiGap) * 3 + kpiWidth/2, kpiY + 21, { align: 'center' });
+    
+    // ===== CLASSEMENTS =====
+    doc.setTextColor(...primaryBlue);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLASSEMENTS', 14, 170);
+    
+    // Top Client
+    const clientPeriode = {};
+    cmdPeriode.forEach(c => { clientPeriode[c.client] = (clientPeriode[c.client] || 0) + c.tonnes; });
+    const topClients = Object.entries(clientPeriode).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    // Top Transporteur
+    const transporteurPeriode = {};
+    cmdPeriode.forEach(c => {
+      if (c.transporteur) {
+        transporteurPeriode[c.transporteur] = (transporteurPeriode[c.transporteur] || 0) + c.tonnes;
+      }
+    });
+    const topTransporteurs = Object.entries(transporteurPeriode).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    // Top Destination
+    const destPeriode = {};
+    cmdPeriode.forEach(c => { destPeriode[c.pays] = (destPeriode[c.pays] || 0) + c.tonnes; });
+    const topDests = Object.entries(destPeriode).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    
+    // Tableaux
+    let tableY = 180;
+    
+    // Top Clients
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(60, 60, 60);
+    doc.text('Top Clients', 14, tableY);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    topClients.forEach((entry, i) => {
+      doc.text(`${i + 1}. ${entry[0]} - ${entry[1].toFixed(1)} T`, 14, tableY + 6 + (i * 5));
+    });
+    
+    // Top Transporteurs
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Top Transporteurs', 75, tableY);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    topTransporteurs.forEach((entry, i) => {
+      doc.text(`${i + 1}. ${entry[0]} - ${entry[1].toFixed(1)} T`, 75, tableY + 6 + (i * 5));
+    });
+    
+    // Top Destinations
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Top Destinations', 140, tableY);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    topDests.forEach((entry, i) => {
+      const paysName = paysNoms[entry[0]] || entry[0];
+      doc.text(`${i + 1}. ${paysName} - ${entry[1].toFixed(1)} T`, 140, tableY + 6 + (i * 5));
+    });
+    
+    // ===== ÉVOLUTION MENSUELLE =====
+    doc.setTextColor(...primaryBlue);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ÉVOLUTION MENSUELLE', 14, 220);
+    
+    // Données mensuelles
+    const currentYear = new Date().getFullYear();
+    const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const monthlyData = {};
+    
+    for (let i = 1; i <= 12; i++) {
+      monthlyData[i] = { commandes: 0, tonnes: 0 };
+    }
+    
+    filtered.forEach(c => {
+      if (c.date) {
+        const d = new Date(c.date);
+        if (d.getFullYear() === currentYear) {
+          monthlyData[d.getMonth() + 1].commandes++;
+          monthlyData[d.getMonth() + 1].tonnes += c.tonnes;
+        }
+      }
+    });
+    
+    // Graphique simplifié en texte
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    
+    const chartStartY = 230;
+    const barMaxWidth = 25;
+    const maxTonnes = Math.max(...Object.values(monthlyData).map(d => d.tonnes), 1);
+    
+    Object.entries(monthlyData).forEach(([month, data], i) => {
+      const x = 14 + (i * 15);
+      const barHeight = (data.tonnes / maxTonnes) * barMaxWidth;
+      
+      // Barre
+      if (data.tonnes > 0) {
+        doc.setFillColor(6, 182, 212);
+        doc.rect(x, chartStartY + barMaxWidth - barHeight, 10, barHeight, 'F');
+      }
+      
+      // Label mois
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(6);
+      doc.text(monthLabels[i], x + 5, chartStartY + barMaxWidth + 4, { align: 'center' });
+      
+      // Valeur
+      if (data.tonnes > 0) {
+        doc.setTextColor(60, 60, 60);
+        doc.setFontSize(5);
+        doc.text(data.tonnes.toFixed(0) + 'T', x + 5, chartStartY + barMaxWidth - barHeight - 2, { align: 'center' });
+      }
+    });
+    
+    // ===== RÉPARTITION STATUTS =====
+    doc.setTextColor(...primaryBlue);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RÉPARTITION DES STATUTS', 14, 275);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    
+    doc.setFillColor(16, 185, 129);
+    doc.rect(14, 280, 4, 4, 'F');
+    doc.text(`Livrées: ${livrees} (${totalCmd > 0 ? Math.round(livrees/totalCmd*100) : 0}%)`, 20, 284);
+    
+    doc.setFillColor(59, 130, 246);
+    doc.rect(75, 280, 4, 4, 'F');
+    doc.text(`Chargées: ${chargees} (${totalCmd > 0 ? Math.round(chargees/totalCmd*100) : 0}%)`, 81, 284);
+    
+    doc.setFillColor(245, 158, 11);
+    doc.rect(140, 280, 4, 4, 'F');
+    doc.text(`En attente: ${enAttente} (${totalCmd > 0 ? Math.round(enAttente/totalCmd*100) : 0}%)`, 146, 284);
+    
+    // ===== PIED DE PAGE =====
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Solana Logistique PRO - Rapport confidentiel', pageWidth/2, 290, { align: 'center' });
+    
+    // Télécharger
+    doc.save(`Rapport_Executif_${periodeLabel.replace(' ', '_')}.pdf`);
+    
+    hideLoading();
+    showToast('✅ Rapport PDF généré!');
   }
 
   // ==================== PROFESSIONAL PDF EXPORT ====================
