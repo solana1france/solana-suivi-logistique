@@ -2083,19 +2083,6 @@
     const selector = document.getElementById('execMonthSelector');
     if (!selector) return;
     
-    // Trouver tous les mois disponibles dans les données
-    const months = new Set();
-    filtered.forEach(c => {
-      if (c.date) {
-        const d = new Date(c.date);
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        months.add(monthKey);
-      }
-    });
-    
-    // Trier les mois du plus récent au plus ancien
-    const sortedMonths = Array.from(months).sort().reverse();
-    
     // Noms des mois en français
     const monthNames = {
       '01': 'Janvier', '02': 'Février', '03': 'Mars', '04': 'Avril',
@@ -2103,12 +2090,36 @@
       '09': 'Septembre', '10': 'Octobre', '11': 'Novembre', '12': 'Décembre'
     };
     
+    // Trouver tous les mois disponibles dans les données
+    const dataMonths = new Set();
+    filtered.forEach(c => {
+      if (c.date) {
+        const d = new Date(c.date);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        dataMonths.add(monthKey);
+      }
+    });
+    
+    // Générer les 12 derniers mois + les mois avec données
+    const allMonths = new Set(dataMonths);
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      allMonths.add(monthKey);
+    }
+    
+    // Trier les mois du plus récent au plus ancien
+    const sortedMonths = Array.from(allMonths).sort().reverse();
+    
     // Construire les options
-    let optionsHTML = '<option value="all">📅 Toute la période</option>';
+    let optionsHTML = '<option value="all">📅 Mois actuel</option>';
     sortedMonths.forEach(m => {
       const [year, month] = m.split('-');
+      const hasData = dataMonths.has(m);
       const label = `${monthNames[month]} ${year}`;
-      optionsHTML += `<option value="${m}">${label}</option>`;
+      const indicator = hasData ? ' 📊' : '';
+      optionsHTML += `<option value="${m}">${label}${indicator}</option>`;
     });
     
     selector.innerHTML = optionsHTML;
