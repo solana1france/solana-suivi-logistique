@@ -17,6 +17,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
   
@@ -32,7 +35,6 @@
     .gradient-report { background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); }
     .gradient-teal { background: linear-gradient(135deg, #14b8a6, #2dd4bf, #5eead4); }
     .gradient-rose { background: linear-gradient(135deg, #f43f5e, #fb7185, #fda4af); }
-    .gradient-supply { background: linear-gradient(135deg, #0ea5e9, #38bdf8, #7dd3fc); }
     
     .glass { 
       background: rgba(255, 255, 255, 0.85);
@@ -157,6 +159,142 @@
     .filter-chip:not(.active) { background: #f3f4f6; border-color: #e5e7eb; }
     .filter-chip:not(.active):hover { border-color: #0077b6; }
     
+    .photo-preview { 
+      width: 100px; 
+      height: 100px; 
+      object-fit: cover; 
+      border-radius: 12px; 
+      border: 2px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .photo-preview:hover { transform: scale(1.05); border-color: #0077b6; }
+    
+    .photo-upload-btn {
+      width: 100px;
+      height: 100px;
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .photo-upload-btn:hover { border-color: #0077b6; background: #f0f9ff; }
+    
+    /* Signature Canvas Styles */
+    .signature-container {
+      position: relative;
+      background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+      border: 3px dashed #0077b6;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .signature-container.signing {
+      border-color: #10b981;
+      animation: signature-pulse 1.5s ease-in-out infinite;
+    }
+    
+    .signature-container.signed {
+      border-color: #10b981;
+      border-style: solid;
+      background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+    
+    @keyframes signature-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 182, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(0, 119, 182, 0); }
+    }
+    
+    @keyframes signature-success {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+    
+    .signature-success-anim {
+      animation: signature-success 0.5s ease-out;
+    }
+    
+    .signature-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+    
+    .signature-container.signing .signature-placeholder,
+    .signature-container.signed .signature-placeholder {
+      opacity: 0;
+    }
+    
+    .signature-line {
+      position: absolute;
+      bottom: 40px;
+      left: 20px;
+      right: 20px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #0077b6, transparent);
+      opacity: 0.3;
+    }
+    
+    #signatureCanvas {
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+    
+    .signature-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .signature-btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .signature-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .signature-btn:active {
+      transform: translateY(0);
+    }
+    
+    #qrCodeContainer canvas, #qrCodeContainer img {
+      border-radius: 10px;
+    }
+    
+    .delivery-photo {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    .public-view {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0077b6, #00b4d8);
+    }
+    
     .reports-page {
       position: fixed;
       inset: 0;
@@ -168,29 +306,25 @@
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     }
     
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .stat-badge.up { background: #dcfce7; color: #166534; }
+    .stat-badge.down { background: #fee2e2; color: #991b1b; }
+    .stat-badge.neutral { background: #fef3c7; color: #92400e; }
+    
     .chart-container {
       position: relative;
       height: 300px;
     }
     
-    .tab-btn {
-      padding: 10px 20px;
-      border-radius: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .tab-btn.active { 
-      background: linear-gradient(135deg, #0077b6, #00b4d8); 
-      color: white; 
-    }
-    .tab-btn:not(.active) { 
-      background: #f3f4f6; 
-      color: #6b7280; 
-    }
-    .tab-btn:not(.active):hover { 
-      background: #e5e7eb; 
-    }
-    
+    /* Print styles for reports */
     @media print {
       .reports-page { position: static; }
       button { display: none !important; }
@@ -206,6 +340,14 @@
 
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="toast hidden"></div>
+
+  <!-- PUBLIC DELIVERY VIEW -->
+  <div id="publicView" class="hidden">
+    <div class="public-view flex items-center justify-center p-4 min-h-screen">
+      <div id="publicViewContent" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 animate__animated animate__fadeInUp">
+      </div>
+    </div>
+  </div>
 
   <!-- REPORTS PAGE -->
   <div id="reportsPage" class="reports-page hidden">
@@ -233,14 +375,6 @@
         </div>
       </div>
 
-      <!-- Report Tabs -->
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg mb-6">
-        <div class="flex gap-2 flex-wrap">
-          <button onclick="showReportTab('general')" class="tab-btn active" id="tab-general">📈 Général</button>
-          <button onclick="showReportTab('supply')" class="tab-btn" id="tab-supply">🚛 Supply Chain</button>
-        </div>
-      </div>
-
       <!-- Report Period Selector -->
       <div class="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg mb-6">
         <div class="flex flex-wrap items-center gap-4">
@@ -255,61 +389,61 @@
         </div>
       </div>
 
-      <!-- GENERAL REPORT CONTENT -->
-      <div id="report-general">
-        <!-- KPI Summary -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">📦</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">Total Tonnes</p>
-            <p class="text-2xl font-black text-indigo-600" id="reportKpiTonnes">0 T</p>
+      <!-- KPI Summary -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">📦</span>
           </div>
-          
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">🚚</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">Commandes</p>
-            <p class="text-2xl font-black text-blue-600" id="reportKpiCmds">0</p>
-          </div>
-          
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">🌍</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">Pays livrés</p>
-            <p class="text-2xl font-black text-teal-600" id="reportKpiCountries">0</p>
-          </div>
-          
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">✅</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">Livrées</p>
-            <p class="text-2xl font-black text-emerald-600" id="reportKpiDelivered">0</p>
-          </div>
-          
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">⏳</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">En attente</p>
-            <p class="text-2xl font-black text-amber-600" id="reportKpiPending">0</p>
-          </div>
-          
-          <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-2xl">📈</span>
-            </div>
-            <p class="text-xs text-gray-500 uppercase">Taux livraison</p>
-            <p class="text-2xl font-black text-purple-600" id="reportKpiRate">0%</p>
-          </div>
+          <p class="text-xs text-gray-500 uppercase">Total Tonnes</p>
+          <p class="text-2xl font-black text-indigo-600" id="reportKpiTonnes">0 T</p>
         </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">🚚</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Commandes</p>
+          <p class="text-2xl font-black text-blue-600" id="reportKpiCmds">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">🌍</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Pays livrés</p>
+          <p class="text-2xl font-black text-teal-600" id="reportKpiCountries">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">✅</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Livrées</p>
+          <p class="text-2xl font-black text-emerald-600" id="reportKpiDelivered">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">⏳</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">En attente</p>
+          <p class="text-2xl font-black text-amber-600" id="reportKpiPending">0</p>
+        </div>
+        
+        <div class="report-card bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-2xl">📈</span>
+          </div>
+          <p class="text-xs text-gray-500 uppercase">Taux livraison</p>
+          <p class="text-2xl font-black text-purple-600" id="reportKpiRate">0%</p>
+        </div>
+      </div>
 
-        <!-- Charts Row 1 -->
+      <!-- Charts Row 1 -->
+      <div id="reportContent">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <!-- Monthly Tonnes Chart -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
             <div class="flex items-center justify-between mb-4">
               <h3 class="font-bold text-gray-800 dark:text-white">📊 Tonnes par Mois</h3>
@@ -321,6 +455,7 @@
             </div>
           </div>
           
+          <!-- Weekly Tonnes Chart -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
             <h3 class="font-bold text-gray-800 dark:text-white mb-4">📅 Tonnes par Semaine</h3>
             <div class="chart-container">
@@ -331,6 +466,7 @@
 
         <!-- Charts Row 2 -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <!-- Status Distribution -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
             <h3 class="font-bold text-gray-800 dark:text-white mb-4">📋 Répartition Statuts</h3>
             <div class="chart-container" style="height: 250px;">
@@ -338,6 +474,7 @@
             </div>
           </div>
           
+          <!-- Top Clients -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
             <h3 class="font-bold text-gray-800 dark:text-white mb-4">👑 Top 5 Clients</h3>
             <div class="chart-container" style="height: 250px;">
@@ -345,6 +482,7 @@
             </div>
           </div>
           
+          <!-- Top Destinations -->
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
             <h3 class="font-bold text-gray-800 dark:text-white mb-4">🌍 Top Destinations</h3>
             <div class="chart-container" style="height: 250px;">
@@ -353,7 +491,30 @@
           </div>
         </div>
 
-        <!-- Country Stats Table -->
+        <!-- Recent Activity Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg mb-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 gradient-ocean rounded-xl flex items-center justify-center">
+              <span class="text-xl">🕐</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 dark:text-white">Activité Récente</h3>
+              <p class="text-xs text-gray-500">Dernières opérations</p>
+            </div>
+          </div>
+          
+          <div id="recentActivityList" class="space-y-3">
+          </div>
+          
+          <div class="mt-4 pt-4 border-t dark:border-gray-700">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-gray-500">📊 Total aujourd'hui</span>
+              <span class="font-bold text-indigo-600" id="todayTotal">0 T</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Stats Table -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
           <div class="p-4 border-b dark:border-gray-700">
             <h3 class="font-bold text-gray-800 dark:text-white">📋 Statistiques Détaillées par Pays</h3>
@@ -366,6 +527,7 @@
                   <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
                   <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
                   <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">% Total</th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Progression</th>
                 </tr>
               </thead>
               <tbody id="countryStatsTable">
@@ -373,119 +535,67 @@
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- SUPPLY CHAIN REPORT CONTENT -->
-      <div id="report-supply" class="hidden">
-        <!-- Supply Chain KPIs -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div class="report-card bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl p-5 shadow-lg text-white">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-3xl">🚛</span>
-            </div>
-            <p class="text-xs uppercase opacity-80">Transporteurs</p>
-            <p class="text-3xl font-black" id="supplyKpiTransporters">0</p>
-          </div>
-          
-          <div class="report-card bg-gradient-to-br from-cyan-500 to-teal-600 rounded-2xl p-5 shadow-lg text-white">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-3xl">📦</span>
-            </div>
-            <p class="text-xs uppercase opacity-80">Tonnes Transportées</p>
-            <p class="text-3xl font-black" id="supplyKpiTonnes">0 T</p>
-          </div>
-          
-          <div class="report-card bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-5 shadow-lg text-white">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-3xl">🗺️</span>
-            </div>
-            <p class="text-xs uppercase opacity-80">Destinations</p>
-            <p class="text-3xl font-black" id="supplyKpiDestinations">0</p>
-          </div>
-          
-          <div class="report-card bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl p-5 shadow-lg text-white">
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-3xl">📊</span>
-            </div>
-            <p class="text-xs uppercase opacity-80">Livraisons</p>
-            <p class="text-3xl font-black" id="supplyKpiDeliveries">0</p>
-          </div>
-        </div>
-
-        <!-- Supply Chain Charts -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <!-- Transporters Performance -->
+        <!-- Performance Indicators & Records -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 class="font-bold text-gray-800 dark:text-white mb-4">🚛 Top Transporteurs par Volume</h3>
-            <div class="chart-container">
-              <canvas id="transportersChart"></canvas>
-            </div>
-          </div>
-          
-          <!-- Transporters by Deliveries Count -->
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 class="font-bold text-gray-800 dark:text-white mb-4">📊 Nombre de Livraisons par Transporteur</h3>
-            <div class="chart-container">
-              <canvas id="transportersCountChart"></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Transporters Destinations Analysis -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 class="font-bold text-gray-800 dark:text-white mb-4">🌍 Destinations par Transporteur</h3>
-            <div class="chart-container" style="height: 350px;">
-              <canvas id="transportersDestChart"></canvas>
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">⚡ Indicateurs de Performance</h3>
+            <div class="space-y-4">
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Taux de livraison</span>
+                  <span class="text-sm font-bold text-emerald-600" id="perfDeliveryRate">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfDeliveryBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Taux de chargement</span>
+                  <span class="text-sm font-bold text-blue-600" id="perfLoadingRate">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfLoadingBar" class="h-full gradient-ocean rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">Efficacité</span>
+                  <span class="text-sm font-bold text-purple-600" id="perfEfficiency">0%</span>
+                </div>
+                <div class="h-3 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                  <div id="perfEfficiencyBar" class="h-full gradient-purple rounded-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+              </div>
             </div>
           </div>
           
           <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg">
-            <h3 class="font-bold text-gray-800 dark:text-white mb-4">📈 Évolution Mensuelle par Transporteur</h3>
-            <div class="chart-container" style="height: 350px;">
-              <canvas id="transportersMonthlyChart"></canvas>
+            <h3 class="font-bold text-gray-800 dark:text-white mb-4">🏆 Records & Achievements</h3>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-xl">
+                <span class="text-3xl">🥇</span>
+                <div>
+                  <p class="text-sm font-semibold">Meilleur client</p>
+                  <p class="text-lg font-bold text-amber-600" id="recordBestClient">-</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl">
+                <span class="text-3xl">📦</span>
+                <div>
+                  <p class="text-sm font-semibold">Plus grosse livraison</p>
+                  <p class="text-lg font-bold text-blue-600" id="recordBiggestDelivery">0 T</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl">
+                <span class="text-3xl">🌍</span>
+                <div>
+                  <p class="text-sm font-semibold">Destination favorite</p>
+                  <p class="text-lg font-bold text-emerald-600" id="recordTopDestination">-</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Transporters Detailed Table -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
-          <div class="p-4 border-b dark:border-gray-700">
-            <h3 class="font-bold text-gray-800 dark:text-white">📋 Détails par Transporteur</h3>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full">
-              <thead class="bg-gray-50 dark:bg-slate-700">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Transporteur</th>
-                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Livraisons</th>
-                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
-                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Moy. T/Livraison</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Destinations</th>
-                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Performance</th>
-                </tr>
-              </thead>
-              <tbody id="transportersStatsTable">
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Transporter Destination Matrix -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
-          <div class="p-4 border-b dark:border-gray-700">
-            <h3 class="font-bold text-gray-800 dark:text-white">🗺️ Matrice Transporteur × Destination</h3>
-          </div>
-          <div class="overflow-x-auto p-4">
-            <div id="transporterDestMatrix" class="min-w-max">
-            </div>
-          </div>
-        </div>
-
-        <!-- Recent Deliveries by Transporter -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-          <h3 class="font-bold text-gray-800 dark:text-white mb-4">🕐 Dernières Livraisons par Transporteur</h3>
-          <div id="recentSupplyActivity" class="space-y-3">
           </div>
         </div>
       </div>
@@ -621,9 +731,9 @@
         </div>
         
         <div class="kpi-card bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-lg border border-gray-100 dark:border-gray-700">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Transporteurs</p>
-          <p class="text-3xl font-black bg-gradient-to-r from-sky-500 to-blue-500 bg-clip-text text-transparent mt-1" id="kpiTransporteurs">0</p>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-supply rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 1.2s;">🚛</div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Emails</p>
+          <p class="text-3xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent mt-1" id="kpiEmails">0</p>
+          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-purple rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 1.2s;">📧</div>
         </div>
       </div>
 
@@ -643,7 +753,7 @@
         <div class="flex flex-wrap items-center gap-4">
           <div class="relative flex-1 min-w-[200px]">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays, transporteur..." 
+            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays..." 
               class="search-input w-full dark:bg-slate-700 dark:border-gray-600 dark:text-white" oninput="filterCommands()">
           </div>
           
@@ -703,13 +813,12 @@
                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Départ</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Pays</th>
                 <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
-                <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Transporteur</th>
                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Statut</th>
                 <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody id="tableBody">
-              <tr><td colspan="10" class="text-center py-12 text-gray-400">☁️ Chargement...</td></tr>
+              <tr><td colspan="9" class="text-center py-12 text-gray-400">☁️ Chargement...</td></tr>
             </tbody>
           </table>
         </div>
@@ -759,7 +868,7 @@
     </main>
 
     <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
-      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase
+      🚚 Solana Logistique PRO - Projet Fin d'Études | ☁️ Supabase | 📱 QR Code | 📊 Rapports
     </footer>
   </div>
 
@@ -771,6 +880,7 @@
         <button onclick="closeAddModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <form onsubmit="ajouterCmd(event)" class="p-5 space-y-3">
+        <p class="text-xs text-gray-500 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl">💡 L'immatriculation sera demandée lors de la confirmation du chargement.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">👤 Client</label>
@@ -811,51 +921,19 @@
     </div>
   </div>
 
-  <!-- LOADING CONFIRMATION MODAL (with Immatriculation, Transporteur, Language) -->
+  <!-- LOADING CONFIRMATION MODAL (with Immatriculation) -->
   <div id="loadingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-lg w-full animate__animated animate__zoomIn">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full animate__animated animate__zoomIn">
       <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between">
         <h3 class="text-xl font-bold text-gray-800 dark:text-white">✅ Confirmer le Chargement</h3>
         <button onclick="closeLoadingModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
       <div class="p-5">
         <div id="loadingModalCmdInfo" class="mb-4"></div>
-        
-        <!-- Transporteur -->
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Nom du Transporteur</label>
-          <input type="text" id="loadingTransporteur" placeholder="Ex: Transport ABC, SARL XYZ..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
-          <p class="text-xs text-gray-400 mt-1">💡 Entrez le nom du transporteur qui effectuera la livraison</p>
-        </div>
-        
-        <!-- Immatriculation -->
         <div class="mb-4">
           <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation du camion</label>
           <input type="text" id="loadingImmat" placeholder="Ex: AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none text-lg font-mono">
         </div>
-        
-        <!-- Date de chargement -->
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📅 Date de Chargement</label>
-          <input type="date" id="loadingDate" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
-        </div>
-        
-        <!-- Language Selection -->
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🌍 Langue du message</label>
-          <div class="flex gap-2">
-            <button type="button" onclick="setMsgLanguage('fr')" class="flex-1 py-3 rounded-xl border-2 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-semibold transition-all" id="msgLang-fr">🇫🇷 Français</button>
-            <button type="button" onclick="setMsgLanguage('en')" class="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-semibold transition-all" id="msgLang-en">🇬🇧 English</button>
-            <button type="button" onclick="setMsgLanguage('es')" class="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-semibold transition-all" id="msgLang-es">🇪🇸 Español</button>
-          </div>
-        </div>
-        
-        <!-- Message Preview -->
-        <div class="mb-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl p-4 border border-blue-200">
-          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📄 Aperçu du message:</h4>
-          <div id="messagePreview" class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line"></div>
-        </div>
-        
         <div class="flex gap-3">
           <button type="button" onclick="closeLoadingModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
           <button type="button" onclick="confirmLoadingFinal()" class="flex-1 py-3 gradient-success text-white rounded-xl font-bold">✅ Confirmer</button>
@@ -864,15 +942,32 @@
     </div>
   </div>
 
-  <!-- SIMPLE DELIVERY CONFIRMATION MODAL -->
+  <!-- DELIVERY CONFIRMATION MODAL -->
   <div id="deliveryModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full animate__animated animate__zoomIn">
-      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
         <h3 class="text-xl font-bold text-gray-800 dark:text-white">🎉 Confirmer Livraison</h3>
         <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
       </div>
-      <div id="deliveryModalContent" class="p-5"></div>
+      <div id="deliveryModalContent" class="p-6"></div>
     </div>
+  </div>
+
+  <!-- QR CODE MODAL -->
+  <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">📱 Confirmation de Livraison</h3>
+        <button onclick="closeQRModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      <div id="qrModalContent" class="p-6"></div>
+    </div>
+  </div>
+
+  <!-- PHOTO VIEWER MODAL -->
+  <div id="photoViewerModal" class="fixed inset-0 bg-black/90 z-50 hidden flex items-center justify-center p-4" onclick="closePhotoViewer()">
+    <button class="absolute top-4 right-4 text-white text-4xl hover:text-gray-300">✕</button>
+    <img id="photoViewerImage" src="" class="max-w-full max-h-full object-contain">
   </div>
 
   <!-- CALENDAR MODAL -->
@@ -890,6 +985,7 @@
   // ==================== CONFIGURATION ====================
   const SUPABASE_URL = 'https://sxmdaqcdlgxcykrbnvxg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
+  const BASE_URL = 'https://solana1france.github.io/solana-suivi-logistique';
 
   const paysEmojis = {
     SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
@@ -925,9 +1021,9 @@
   let markersLayer = null;
   let currentCalendarDate = new Date();
   let currentDeliveryCmd = null;
+  let currentQRInstance = null;
+  let uploadedPhotos = [];
   let currentReportPeriod = 'month';
-  let currentLoadingCmd = null;
-  let currentMsgLanguage = 'fr';
 
   // Report charts
   let monthlyChart = null;
@@ -935,12 +1031,6 @@
   let statusDistChart = null;
   let topClientsReportChart = null;
   let topDestChart = null;
-  
-  // Supply chain charts
-  let transportersChart = null;
-  let transportersCountChart = null;
-  let transportersDestChart = null;
-  let transportersMonthlyChart = null;
 
   // ==================== UTILITY FUNCTIONS ====================
   function showToast(message, type = 'success') {
@@ -954,107 +1044,6 @@
   function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
   function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-  // ==================== MESSAGE TEMPLATES ====================
-  function getMessageTemplate(cmd, immat, transporteur, loadingDate, lang) {
-    const destination = `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}`;
-    
-    const templates = {
-      fr: `Bonjour ${cmd.client},
-
-🎉 COMMANDE CHARGÉE!
-
-━━━━━━━━━━━━━━━━━━━━
-📋 RÉFÉRENCE: ${cmd.ref}
-━━━━━━━━━━━━━━━━━━━━
-
-📦 DÉTAILS DE LA COMMANDE:
-• Départ: ${cmd.point_depart}
-• Destination: ${destination}
-• Quantité: ${cmd.tonnes.toFixed(2)} Tonnes
-
-🚛 INFORMATIONS TRANSPORT:
-• Transporteur: ${transporteur || 'Non spécifié'}
-• Camion: ${immat}
-• Date de chargement: ${loadingDate}
-
-✅ Votre commande est en route!
-
-🚚 Solana Logistique`,
-      
-      en: `Hello ${cmd.client},
-
-🎉 ORDER LOADED!
-
-━━━━━━━━━━━━━━━━━━━━
-📋 REFERENCE: ${cmd.ref}
-━━━━━━━━━━━━━━━━━━━━
-
-📦 ORDER DETAILS:
-• Departure: ${cmd.point_depart}
-• Destination: ${destination}
-• Quantity: ${cmd.tonnes.toFixed(2)} Tons
-
-🚛 TRANSPORT INFORMATION:
-• Carrier: ${transporteur || 'Not specified'}
-• Truck: ${immat}
-• Loading date: ${loadingDate}
-
-✅ Your order is on the way!
-
-🚚 Solana Logistique`,
-      
-      es: `Hola ${cmd.client},
-
-¡🎉 PEDIDO CARGADO!
-
-━━━━━━━━━━━━━━━━━━━━
-📋 REFERENCIA: ${cmd.ref}
-━━━━━━━━━━━━━━━━━━━━
-
-📦 DETALLES DEL PEDIDO:
-• Salida: ${cmd.point_depart}
-• Destino: ${destination}
-• Cantidad: ${cmd.tonnes.toFixed(2)} Toneladas
-
-🚛 INFORMACIÓN DE TRANSPORTE:
-• Transportista: ${transporteur || 'No especificado'}
-• Camión: ${immat}
-• Fecha de carga: ${loadingDate}
-
-✅ ¡Su pedido está en camino!
-
-🚚 Solana Logística`
-    };
-    
-    return templates[lang] || templates.fr;
-  }
-
-  function setMsgLanguage(lang) {
-    currentMsgLanguage = lang;
-    ['fr', 'en', 'es'].forEach(l => {
-      const btn = document.getElementById(`msgLang-${l}`);
-      if (btn) {
-        if (l === lang) {
-          btn.className = 'flex-1 py-3 rounded-xl border-2 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 font-semibold transition-all';
-        } else {
-          btn.className = 'flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-semibold transition-all';
-        }
-      }
-    });
-    updateMessagePreview();
-  }
-
-  function updateMessagePreview() {
-    if (!currentLoadingCmd) return;
-    
-    const immat = document.getElementById('loadingImmat').value || '[Immatriculation]';
-    const transporteur = document.getElementById('loadingTransporteur').value || '[Transporteur]';
-    const loadingDate = document.getElementById('loadingDate').value || '[Date]';
-    
-    const preview = getMessageTemplate(currentLoadingCmd, immat, transporteur, loadingDate, currentMsgLanguage);
-    document.getElementById('messagePreview').textContent = preview;
-  }
-
   // ==================== REPORTS PAGE ====================
   function openReportsPage() {
     document.getElementById('reportsPage').classList.remove('hidden');
@@ -1065,17 +1054,6 @@
     document.getElementById('reportsPage').classList.add('hidden');
   }
 
-  function showReportTab(tab) {
-    ['general', 'supply'].forEach(t => {
-      document.getElementById(`report-${t}`).classList.toggle('hidden', t !== tab);
-      document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
-    });
-    
-    if (tab === 'supply') {
-      updateSupplyChainReports();
-    }
-  }
-
   function setReportPeriod(period) {
     currentReportPeriod = period;
     ['week', 'month', 'quarter', 'year', 'all'].forEach(p => {
@@ -1083,19 +1061,46 @@
       btn.className = `px-4 py-2 rounded-xl text-sm font-medium transition-all ${p === period ? 'gradient-purple text-white' : 'bg-gray-100 dark:bg-slate-700'}`;
     });
     updateReportCharts();
-    if (document.getElementById('report-supply').classList.contains('hidden') === false) {
-      updateSupplyChainReports();
-    }
   }
 
   function initReportsPage() {
     const yearSelect = document.getElementById('chartYearSelect');
     const years = [...new Set(cmds.map(c => new Date(c.date).getFullYear()))].sort((a, b) => b - a);
     const currentYear = new Date().getFullYear();
-    if (years.length === 0) years.push(currentYear);
     yearSelect.innerHTML = years.map(y => `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`).join('');
     
     updateReportCharts();
+  }
+
+  function updateReportCharts() {
+    updateReportKPIs();
+    updateMonthlyChart();
+    updateWeeklyChart();
+    updateStatusDistChart();
+    updateTopClientsChart();
+    updateTopDestinationsChart();
+    updateCountryStatsTable();
+    updateRecentActivity();
+    updatePerformanceIndicators();
+    updateRecords();
+  }
+
+  function updateReportKPIs() {
+    const filtered = getFilteredCmdsForReport();
+    
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const totalCmds = filtered.length;
+    const countries = [...new Set(filtered.map(c => c.pays))].length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
+
+    document.getElementById('reportKpiTonnes').textContent = totalTonnes.toFixed(1) + ' T';
+    document.getElementById('reportKpiCmds').textContent = totalCmds;
+    document.getElementById('reportKpiCountries').textContent = countries;
+    document.getElementById('reportKpiDelivered').textContent = delivered;
+    document.getElementById('reportKpiPending').textContent = pending;
+    document.getElementById('reportKpiRate').textContent = rate + '%';
   }
 
   function getFilteredCmdsForReport() {
@@ -1122,36 +1127,8 @@
     return cmds.filter(c => new Date(c.date) >= startDate);
   }
 
-  function updateReportCharts() {
-    updateReportKPIs();
-    updateMonthlyChart();
-    updateWeeklyChart();
-    updateStatusDistChart();
-    updateTopClientsChart();
-    updateTopDestinationsChart();
-    updateCountryStatsTable();
-  }
-
-  function updateReportKPIs() {
-    const filtered = getFilteredCmdsForReport();
-    
-    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
-    const totalCmds = filtered.length;
-    const countries = [...new Set(filtered.map(c => c.pays))].length;
-    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
-    const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
-    const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
-
-    document.getElementById('reportKpiTonnes').textContent = totalTonnes.toFixed(1) + ' T';
-    document.getElementById('reportKpiCmds').textContent = totalCmds;
-    document.getElementById('reportKpiCountries').textContent = countries;
-    document.getElementById('reportKpiDelivered').textContent = delivered;
-    document.getElementById('reportKpiPending').textContent = pending;
-    document.getElementById('reportKpiRate').textContent = rate + '%';
-  }
-
   function updateMonthlyChart() {
-    const year = parseInt(document.getElementById('chartYearSelect').value) || new Date().getFullYear();
+    const year = parseInt(document.getElementById('chartYearSelect').value);
     const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
     
     const monthlyData = Array(12).fill(0);
@@ -1187,6 +1164,7 @@
   }
 
   function updateWeeklyChart() {
+    // Get last 8 weeks
     const weeks = [];
     const weeklyData = [];
     const now = new Date();
@@ -1342,229 +1320,9 @@
           <td class="px-4 py-3 text-right">${data.count}</td>
           <td class="px-4 py-3 text-right font-bold text-emerald-600">${data.tonnes.toFixed(2)} T</td>
           <td class="px-4 py-3 text-right">${percent}%</td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  // ==================== SUPPLY CHAIN REPORTS ====================
-  function updateSupplyChainReports() {
-    const filtered = getFilteredCmdsForReport().filter(c => c.transporteur);
-    
-    // KPIs
-    const transporters = [...new Set(filtered.map(c => c.transporteur).filter(t => t))];
-    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
-    const destinations = [...new Set(filtered.map(c => c.pays))];
-    const deliveries = filtered.filter(c => c.statut === 'LIVRÉE').length;
-    
-    document.getElementById('supplyKpiTransporters').textContent = transporters.length;
-    document.getElementById('supplyKpiTonnes').textContent = totalTonnes.toFixed(1) + ' T';
-    document.getElementById('supplyKpiDestinations').textContent = destinations.length;
-    document.getElementById('supplyKpiDeliveries').textContent = deliveries;
-    
-    // Charts
-    updateTransportersChart(filtered);
-    updateTransportersCountChart(filtered);
-    updateTransportersDestChart(filtered);
-    updateTransportersMonthlyChart(filtered);
-    updateTransportersTable(filtered);
-    updateTransportersDestMatrix(filtered);
-    updateRecentSupplyActivity(filtered);
-  }
-
-  function updateTransportersChart(filtered) {
-    const transporterData = {};
-    filtered.forEach(c => {
-      if (c.transporteur) {
-        transporterData[c.transporteur] = (transporterData[c.transporteur] || 0) + c.tonnes;
-      }
-    });
-    
-    const sorted = Object.entries(transporterData).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    
-    if (transportersChart) transportersChart.destroy();
-    transportersChart = new Chart(document.getElementById('transportersChart'), {
-      type: 'bar',
-      data: {
-        labels: sorted.map(t => t[0].substring(0, 15)),
-        datasets: [{
-          label: 'Tonnes',
-          data: sorted.map(t => t[1]),
-          backgroundColor: [
-            '#0ea5e9', '#38bdf8', '#7dd3fc', '#0284c7', '#0369a1',
-            '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc'
-          ],
-          borderRadius: 8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  function updateTransportersCountChart(filtered) {
-    const transporterData = {};
-    filtered.forEach(c => {
-      if (c.transporteur) {
-        transporterData[c.transporteur] = (transporterData[c.transporteur] || 0) + 1;
-      }
-    });
-    
-    const sorted = Object.entries(transporterData).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    
-    if (transportersCountChart) transportersCountChart.destroy();
-    transportersCountChart = new Chart(document.getElementById('transportersCountChart'), {
-      type: 'doughnut',
-      data: {
-        labels: sorted.map(t => t[0].substring(0, 12)),
-        datasets: [{
-          data: sorted.map(t => t[1]),
-          backgroundColor: [
-            '#0ea5e9', '#38bdf8', '#7dd3fc', '#0284c7', '#0369a1',
-            '#0891b2', '#06b6d4', '#22d3ee', '#67e8f9', '#a5f3fc'
-          ],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'right' } }
-      }
-    });
-  }
-
-  function updateTransportersDestChart(filtered) {
-    const data = {};
-    const destinations = [...new Set(filtered.map(c => c.pays))];
-    const transporters = [...new Set(filtered.map(c => c.transporteur).filter(t => t))].slice(0, 6);
-    
-    transporters.forEach(t => {
-      data[t] = {};
-      destinations.forEach(d => {
-        data[t][d] = 0;
-      });
-    });
-    
-    filtered.forEach(c => {
-      if (c.transporteur && data[c.transporteur]) {
-        data[c.transporteur][c.pays] = (data[c.transporteur][c.pays] || 0) + c.tonnes;
-      }
-    });
-    
-    const colors = ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
-    
-    if (transportersDestChart) transportersDestChart.destroy();
-    transportersDestChart = new Chart(document.getElementById('transportersDestChart'), {
-      type: 'bar',
-      data: {
-        labels: destinations.slice(0, 8).map(d => paysNoms[d] || d),
-        datasets: transporters.map((t, i) => ({
-          label: t.substring(0, 12),
-          data: destinations.slice(0, 8).map(d => data[t][d] || 0),
-          backgroundColor: colors[i % colors.length],
-          borderRadius: 4
-        }))
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        scales: {
-          y: { beginAtZero: true, stacked: false },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  function updateTransportersMonthlyChart(filtered) {
-    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const year = new Date().getFullYear();
-    const transporters = [...new Set(filtered.map(c => c.transporteur).filter(t => t))].slice(0, 5);
-    
-    const data = {};
-    transporters.forEach(t => {
-      data[t] = Array(12).fill(0);
-    });
-    
-    filtered.forEach(c => {
-      if (c.transporteur && data[c.transporteur] && new Date(c.date).getFullYear() === year) {
-        const month = new Date(c.date).getMonth();
-        data[c.transporteur][month] += c.tonnes;
-      }
-    });
-    
-    const colors = ['#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
-    
-    if (transportersMonthlyChart) transportersMonthlyChart.destroy();
-    transportersMonthlyChart = new Chart(document.getElementById('transportersMonthlyChart'), {
-      type: 'line',
-      data: {
-        labels: months,
-        datasets: transporters.map((t, i) => ({
-          label: t.substring(0, 12),
-          data: data[t],
-          borderColor: colors[i % colors.length],
-          backgroundColor: colors[i % colors.length] + '20',
-          tension: 0.4,
-          pointRadius: 4
-        }))
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        scales: {
-          y: { beginAtZero: true },
-          x: { grid: { display: false } }
-        }
-      }
-    });
-  }
-
-  function updateTransportersTable(filtered) {
-    const transporterData = {};
-    filtered.forEach(c => {
-      if (c.transporteur) {
-        if (!transporterData[c.transporteur]) {
-          transporterData[c.transporteur] = { count: 0, tonnes: 0, destinations: new Set() };
-        }
-        transporterData[c.transporteur].count++;
-        transporterData[c.transporteur].tonnes += c.tonnes;
-        transporterData[c.transporteur].destinations.add(c.pays);
-      }
-    });
-    
-    const sorted = Object.entries(transporterData).sort((a, b) => b[1].tonnes - a[1].tonnes);
-    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
-    
-    document.getElementById('transportersStatsTable').innerHTML = sorted.map(([name, data]) => {
-      const avgT = data.count > 0 ? (data.tonnes / data.count).toFixed(2) : 0;
-      const percent = totalTonnes > 0 ? ((data.tonnes / totalTonnes) * 100).toFixed(1) : 0;
-      const dests = [...data.destinations].map(d => paysEmojis[d] || d).join(' ');
-      const perfWidth = Math.min(100, parseFloat(percent) * 2);
-      
-      return `
-        <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700">
-          <td class="px-4 py-3 font-bold">${name}</td>
-          <td class="px-4 py-3 text-right">${data.count}</td>
-          <td class="px-4 py-3 text-right font-bold text-emerald-600">${data.tonnes.toFixed(2)} T</td>
-          <td class="px-4 py-3 text-right">${avgT} T</td>
-          <td class="px-4 py-3 text-sm">${dests}</td>
           <td class="px-4 py-3">
-            <div class="flex items-center gap-2">
-              <div class="flex-1 bg-gray-100 dark:bg-slate-600 rounded-full h-2">
-                <div class="gradient-supply h-2 rounded-full" style="width: ${perfWidth}%"></div>
-              </div>
-              <span class="text-xs font-bold text-sky-600">${percent}%</span>
+            <div class="w-full bg-gray-100 dark:bg-slate-600 rounded-full h-2">
+              <div class="gradient-ocean h-2 rounded-full" style="width: ${percent}%"></div>
             </div>
           </td>
         </tr>
@@ -1572,125 +1330,324 @@
     }).join('');
   }
 
-  function updateTransportersDestMatrix(filtered) {
-    const transporters = [...new Set(filtered.map(c => c.transporteur).filter(t => t))].slice(0, 8);
-    const destinations = [...new Set(filtered.map(c => c.pays))].slice(0, 10);
+  function updateRecentActivity() {
+    const recent = [...cmds].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+    const container = document.getElementById('recentActivityList');
     
-    const matrix = {};
-    transporters.forEach(t => {
-      matrix[t] = {};
-      destinations.forEach(d => {
-        matrix[t][d] = 0;
-      });
-    });
-    
-    filtered.forEach(c => {
-      if (c.transporteur && matrix[c.transporteur] && matrix[c.transporteur][c.pays] !== undefined) {
-        matrix[c.transporteur][c.pays] += c.tonnes;
-      }
-    });
-    
-    const maxVal = Math.max(...Object.values(matrix).flatMap(t => Object.values(t)), 1);
-    
-    let html = '<table class="w-full text-sm"><thead><tr><th class="px-3 py-2"></th>';
-    destinations.forEach(d => {
-      html += `<th class="px-2 py-2 text-center font-bold">${paysEmojis[d] || ''}<br><span class="text-xs font-normal">${paysNoms[d] || d}</span></th>`;
-    });
-    html += '</tr></thead><tbody>';
-    
-    transporters.forEach(t => {
-      html += `<tr><td class="px-3 py-2 font-bold whitespace-nowrap">${t.substring(0, 15)}</td>`;
-      destinations.forEach(d => {
-        const val = matrix[t][d];
-        const intensity = val > 0 ? Math.min(100, (val / maxVal) * 100) : 0;
-        const bgColor = val > 0 ? `rgba(14, 165, 233, ${intensity / 100})` : 'transparent';
-        const textColor = intensity > 50 ? 'white' : '#374151';
-        html += `<td class="px-2 py-2 text-center" style="background: ${bgColor}; color: ${textColor}">${val > 0 ? val.toFixed(1) : '-'}</td>`;
-      });
-      html += '</tr>';
-    });
-    
-    html += '</tbody></table>';
-    document.getElementById('transporterDestMatrix').innerHTML = html;
-  }
-
-  function updateRecentSupplyActivity(filtered) {
-    const recent = filtered.filter(c => c.transporteur).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 10);
+    if (!container) return;
     
     if (recent.length === 0) {
-      document.getElementById('recentSupplyActivity').innerHTML = '<p class="text-center text-gray-400 py-4">Aucune activité récente</p>';
+      container.innerHTML = '<p class="text-center text-gray-400 py-4">Aucune activité récente</p>';
       return;
     }
     
-    document.getElementById('recentSupplyActivity').innerHTML = recent.map(c => {
-      const statusIcon = c.statut === 'LIVRÉE' ? '🎉' : c.statut === 'CHARGÉE' ? '✅' : '⏳';
+    container.innerHTML = recent.map(cmd => {
+      const statusIcon = cmd.statut === 'LIVRÉE' ? '🎉' : cmd.statut === 'CHARGÉE' ? '✅' : '⏳';
+      
       return `
-        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl">
+        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors">
           <div class="flex items-center gap-3">
             <span class="text-2xl">${statusIcon}</span>
             <div>
-              <p class="font-bold">${c.client}</p>
-              <p class="text-xs text-gray-500">${c.ref} • ${c.date}</p>
+              <p class="font-bold text-gray-800 dark:text-white">${cmd.client}</p>
+              <p class="text-xs text-gray-500">${cmd.ref} • ${cmd.date}</p>
             </div>
           </div>
           <div class="text-right">
-            <p class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</p>
-            <p class="text-xs text-sky-600 font-semibold">${c.transporteur}</p>
-            <p class="text-xs text-gray-500">${paysEmojis[c.pays] || ''} ${paysNoms[c.pays] || c.pays}</p>
+            <p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p>
+            <p class="text-xs text-gray-500">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p>
           </div>
         </div>
       `;
     }).join('');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const todayCmds = cmds.filter(c => c.date === today);
+    const todayTotal = todayCmds.reduce((s, c) => s + c.tonnes, 0);
+    const todayEl = document.getElementById('todayTotal');
+    if (todayEl) todayEl.textContent = todayTotal.toFixed(2) + ' T';
   }
 
-  // ==================== PDF/EXCEL EXPORT ====================
+  function updatePerformanceIndicators() {
+    const filtered = getFilteredCmdsForReport();
+    const total = filtered.length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const charged = filtered.filter(c => c.statut === 'CHARGÉE' || c.statut === 'LIVRÉE').length;
+    
+    const deliveryRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
+    const loadingRate = total > 0 ? Math.round((charged / total) * 100) : 0;
+    const efficiency = Math.round((deliveryRate + loadingRate) / 2);
+
+    document.getElementById('perfDeliveryRate').textContent = deliveryRate + '%';
+    document.getElementById('perfDeliveryBar').style.width = deliveryRate + '%';
+    
+    document.getElementById('perfLoadingRate').textContent = loadingRate + '%';
+    document.getElementById('perfLoadingBar').style.width = loadingRate + '%';
+    
+    document.getElementById('perfEfficiency').textContent = efficiency + '%';
+    document.getElementById('perfEfficiencyBar').style.width = efficiency + '%';
+  }
+
+  function updateRecords() {
+    const clientData = {};
+    cmds.forEach(c => { clientData[c.client] = (clientData[c.client] || 0) + c.tonnes; });
+    const topClient = Object.entries(clientData).sort((a, b) => b[1] - a[1])[0];
+    
+    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0 });
+    
+    const destData = {};
+    cmds.forEach(c => { destData[c.pays] = (destData[c.pays] || 0) + c.tonnes; });
+    const topDest = Object.entries(destData).sort((a, b) => b[1] - a[1])[0];
+
+    document.getElementById('recordBestClient').textContent = topClient ? topClient[0] : '-';
+    document.getElementById('recordBiggestDelivery').textContent = biggest.tonnes.toFixed(2) + ' T';
+    document.getElementById('recordTopDestination').textContent = topDest ? `${paysEmojis[topDest[0]] || ''} ${paysNoms[topDest[0]] || topDest[0]}` : '-';
+  }
+
+  // ==================== PROFESSIONAL PDF EXPORT ====================
   async function exportReportPDF() {
     showLoading();
-    showToast('Génération du rapport PDF...');
+    showToast('Generation du rapport PDF...');
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     
-    // Header
-    doc.setFillColor(0, 119, 182);
-    doc.rect(0, 0, pageWidth, 30, 'F');
+    // Colors (no emojis - clean text only)
+    const primaryBlue = [0, 119, 182];
+    const accentPurple = [99, 102, 241];
+    const successGreen = [16, 185, 129];
+    const warningOrange = [245, 158, 11];
+    
+    // ========== PAGE 1: HEADER ==========
+    doc.setFillColor(...primaryBlue);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text('SOLANA LOGISTIQUE - RAPPORT', pageWidth/2, 12, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text('Supply Chain & Analytics', pageWidth/2, 22, { align: 'center' });
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', pageWidth/2, 15, { align: 'center' });
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Rapport Analytique - Dashboard Logistique', pageWidth/2, 27, { align: 'center' });
     
+    // Date
     doc.setTextColor(80, 80, 80);
     doc.setFontSize(9);
-    doc.text('Date: ' + new Date().toLocaleDateString('fr-FR'), 14, 40);
+    doc.text('Date du rapport: ' + new Date().toLocaleDateString('fr-FR'), 14, 45);
     
-    // Summary
+    // ========== KPI SECTION ==========
     const filtered = getFilteredCmdsForReport();
-    doc.setFontSize(12);
-    doc.text('Resume General', 14, 50);
-    doc.setFontSize(10);
-    doc.text(`Total commandes: ${filtered.length}`, 14, 58);
-    doc.text(`Total tonnes: ${filtered.reduce((s, c) => s + c.tonnes, 0).toFixed(2)} T`, 14, 65);
-    doc.text(`Livreurs: ${filtered.filter(c => c.statut === 'LIVRÉE').length}`, 14, 72);
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const totalCmds = filtered.length;
+    const delivered = filtered.filter(c => c.statut === 'LIVRÉE').length;
+    const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const charged = filtered.filter(c => c.statut === 'CHARGÉE').length;
+    const rate = totalCmds > 0 ? Math.round((delivered / totalCmds) * 100) : 0;
     
-    // Transporters section
-    const transporters = [...new Set(filtered.map(c => c.transporteur).filter(t => t))];
-    doc.setFontSize(12);
-    doc.text('Section Supply Chain', 14, 85);
-    doc.setFontSize(10);
-    doc.text(`Nombre de transporteurs: ${transporters.length}`, 14, 93);
+    doc.setFontSize(13);
+    doc.setTextColor(...primaryBlue);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INDICATEURS CLES', 14, 58);
     
-    let y = 100;
-    transporters.slice(0, 10).forEach(t => {
-      const tCmds = filtered.filter(c => c.transporteur === t);
-      const tTonnes = tCmds.reduce((s, c) => s + c.tonnes, 0);
-      doc.text(`${t}: ${tCmds.length} livraisons, ${tTonnes.toFixed(2)} T`, 14, y);
-      y += 7;
+    // KPI boxes - 4 boxes side by side
+    const boxWidth = 44;
+    const boxHeight = 22;
+    const boxGap = 5;
+    const boxY = 65;
+    
+    const kpis = [
+      { label: 'Total Tonnes', value: totalTonnes.toFixed(1) + ' T', color: accentPurple },
+      { label: 'Commandes', value: totalCmds.toString(), color: primaryBlue },
+      { label: 'Livrees', value: delivered.toString(), color: successGreen },
+      { label: 'Taux Livraison', value: rate + '%', color: [139, 92, 246] }
+    ];
+    
+    kpis.forEach((kpi, i) => {
+      const x = 14 + i * (boxWidth + boxGap);
+      // Box background
+      doc.setFillColor(...kpi.color);
+      doc.roundedRect(x, boxY, boxWidth, boxHeight, 2, 2, 'F');
+      // Label
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(kpi.label, x + boxWidth/2, boxY + 7, { align: 'center' });
+      // Value
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + boxWidth/2, boxY + 17, { align: 'center' });
     });
     
+    // ========== CHARTS SECTION ==========
+    let chartY = 95;
+    
+    // Row 1: Monthly and Weekly charts
+    doc.setFontSize(11);
+    doc.setTextColor(...primaryBlue);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tonnes par Mois', 14, chartY);
+    doc.text('Tonnes par Semaine', 107, chartY);
+    
+    chartY += 5;
+    
+    try {
+      const monthlyCanvas = document.getElementById('monthlyTonnesChart');
+      if (monthlyCanvas) {
+        const monthlyImg = monthlyCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(monthlyImg, 'PNG', 14, chartY, 88, 55);
+      }
+    } catch (e) { console.log('Monthly chart error', e); }
+    
+    try {
+      const weeklyCanvas = document.getElementById('weeklyTonnesChart');
+      if (weeklyCanvas) {
+        const weeklyImg = weeklyCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(weeklyImg, 'PNG', 107, chartY, 88, 55);
+      }
+    } catch (e) { console.log('Weekly chart error', e); }
+    
+    // Row 2: 3 charts
+    chartY = 160;
+    doc.setFontSize(10);
+    doc.text('Statuts', 14, chartY);
+    doc.text('Top Clients', 75, chartY);
+    doc.text('Destinations', 140, chartY);
+    
+    chartY += 5;
+    
+    try {
+      const statusCanvas = document.getElementById('statusDistChart');
+      if (statusCanvas) {
+        const statusImg = statusCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(statusImg, 'PNG', 14, chartY, 55, 45);
+      }
+    } catch (e) {}
+    
+    try {
+      const clientsCanvas = document.getElementById('topClientsChart');
+      if (clientsCanvas) {
+        const clientsImg = clientsCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(clientsImg, 'PNG', 72, chartY, 60, 45);
+      }
+    } catch (e) {}
+    
+    try {
+      const destCanvas = document.getElementById('topDestinationsChart');
+      if (destCanvas) {
+        const destImg = destCanvas.toDataURL('image/png', 1.0);
+        doc.addImage(destImg, 'PNG', 138, chartY, 55, 45);
+      }
+    } catch (e) {}
+    
+    // ========== PAGE 2: TABLE ==========
+    doc.addPage();
+    
+    // Page 2 Header
+    doc.setFillColor(...primaryBlue);
+    doc.rect(0, 0, pageWidth, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('STATISTIQUES PAR PAYS', pageWidth/2, 14, { align: 'center' });
+    
+    // Build country data
+    const countryData = {};
+    filtered.forEach(c => {
+      if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
+      countryData[c.pays].count++;
+      countryData[c.pays].tonnes += c.tonnes;
+    });
+    
+    const tableRows = Object.entries(countryData)
+      .map(([pays, data]) => [
+        paysNoms[pays] || pays,
+        data.count.toString(),
+        data.tonnes.toFixed(2) + ' T',
+        totalTonnes > 0 ? ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%' : '0%'
+      ])
+      .sort((a, b) => parseFloat(b[2]) - parseFloat(a[2]));
+    
+    // Add summary row at top
+    tableRows.unshift(['TOTAL', totalCmds.toString(), totalTonnes.toFixed(2) + ' T', '100%']);
+    
+    doc.autoTable({
+      startY: 30,
+      head: [['Pays', 'Commandes', 'Tonnes', '% Total']],
+      body: tableRows,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: primaryBlue, 
+        textColor: [255,255,255], 
+        fontStyle: 'bold',
+        fontSize: 10,
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 10
+      },
+      alternateRowStyles: { 
+        fillColor: [248, 250, 252] 
+      },
+      styles: { 
+        cellPadding: 5,
+        lineColor: [200, 200, 200]
+      },
+      columnStyles: {
+        0: { cellWidth: 60, fontStyle: 'bold' },
+        1: { cellWidth: 40, halign: 'center' },
+        2: { cellWidth: 45, halign: 'right' },
+        3: { cellWidth: 35, halign: 'center' }
+      },
+      willDrawCell: function(data) {
+        // Highlight first row (TOTAL)
+        if (data.row.index === 0) {
+          doc.setFillColor(240, 249, 255);
+          doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F');
+        }
+      }
+    });
+    
+    // ========== RECORDS SECTION ==========
+    const finalY = doc.lastAutoTable.finalY + 12;
+    
+    // Records box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(14, finalY, pageWidth - 28, 35, 3, 3, 'F');
+    doc.setDrawColor(200, 200, 200);
+    doc.roundedRect(14, finalY, pageWidth - 28, 35, 3, 3, 'S');
+    
+    doc.setFontSize(11);
+    doc.setTextColor(...primaryBlue);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RECORDS', 20, finalY + 8);
+    
+    // Calculate records
+    const clientStats = {};
+    cmds.forEach(c => { clientStats[c.client] = (clientStats[c.client] || 0) + c.tonnes; });
+    const topClient = Object.entries(clientStats).sort((a, b) => b[1] - a[1])[0];
+    const biggest = cmds.reduce((max, c) => c.tonnes > max.tonnes ? c : max, { tonnes: 0, ref: '' });
+    const destStats = {};
+    cmds.forEach(c => { destStats[c.pays] = (destStats[c.pays] || 0) + c.tonnes; });
+    const topDest = Object.entries(destStats).sort((a, b) => b[1] - a[1])[0];
+    
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    doc.setFont('helvetica', 'normal');
+    
+    doc.text('Meilleur client: ' + (topClient ? topClient[0] + ' (' + topClient[1].toFixed(1) + ' T)' : '-'), 20, finalY + 18);
+    doc.text('Plus grosse livraison: ' + biggest.tonnes.toFixed(2) + ' T' + (biggest.ref ? ' (' + biggest.ref + ')' : ''), 20, finalY + 28);
+    doc.text('Destination principale: ' + (topDest ? (paysNoms[topDest[0]] || topDest[0]) : '-'), 115, finalY + 18);
+    doc.text('Total commandes: ' + cmds.length + ' | Total tonnes: ' + cmds.reduce((s,c) => s + c.tonnes, 0).toFixed(2) + ' T', 115, finalY + 28);
+    
+    // ========== FOOTER ==========
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Solana Logistique PRO - Dashboard Logistique', pageWidth/2, pageHeight - 10, { align: 'center' });
+    
     hideLoading();
-    doc.save('Solana_Rapport_SupplyChain_' + new Date().toISOString().split('T')[0] + '.pdf');
+    doc.save('Solana_Rapport_' + new Date().toISOString().split('T')[0] + '.pdf');
     showToast('Rapport PDF exporte!');
   }
 
@@ -1698,62 +1655,901 @@
     showLoading();
     
     const wb = XLSX.utils.book_new();
-    const filtered = getFilteredCmdsForReport();
     
-    // Sheet 1: General Summary
+    // Sheet 1: Summary
+    const filtered = getFilteredCmdsForReport();
     const summaryData = [
-      ['SOLANA LOGISTIQUE - RAPPORT SUPPLY CHAIN'],
+      ['SOLANA LOGISTIQUE - RAPPORT ANALYTIQUE'],
       ['Date', new Date().toLocaleDateString('fr-FR')],
       [''],
-      ['RESUME GENERAL'],
+      ['INDICATEURS CLÉS'],
       ['Total Tonnes', filtered.reduce((s, c) => s + c.tonnes, 0).toFixed(2)],
       ['Nombre de commandes', filtered.length],
-      ['Commandes livrees', filtered.filter(c => c.statut === 'LIVRÉE').length],
+      ['Commandes livrées', filtered.filter(c => c.statut === 'LIVRÉE').length],
+      ['Commandes en attente', filtered.filter(c => c.statut === 'EN ATTENTE').length],
+      ['Taux de livraison', filtered.length > 0 ? Math.round((filtered.filter(c => c.statut === 'LIVRÉE').length / filtered.length) * 100) + '%' : '0%'],
       [''],
-      ['STATISTIQUES PAR TRANSPORTEUR'],
-      ['Transporteur', 'Livraisons', 'Tonnes', 'Destinations']
+      ['STATISTIQUES PAR PAYS'],
+      ['Pays', 'Commandes', 'Tonnes', '% Total']
     ];
     
-    const transporterData = {};
+    const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
+    const countryData = {};
     filtered.forEach(c => {
-      if (c.transporteur) {
-        if (!transporterData[c.transporteur]) {
-          transporterData[c.transporteur] = { count: 0, tonnes: 0, dests: new Set() };
-        }
-        transporterData[c.transporteur].count++;
-        transporterData[c.transporteur].tonnes += c.tonnes;
-        transporterData[c.transporteur].dests.add(c.pays);
-      }
+      if (!countryData[c.pays]) countryData[c.pays] = { count: 0, tonnes: 0 };
+      countryData[c.pays].count++;
+      countryData[c.pays].tonnes += c.tonnes;
     });
     
-    Object.entries(transporterData)
+    Object.entries(countryData)
       .sort((a, b) => b[1].tonnes - a[1].tonnes)
-      .forEach(([name, data]) => {
-        summaryData.push([name, data.count, data.tonnes.toFixed(2), [...data.dests].join(', ')]);
+      .forEach(([pays, data]) => {
+        summaryData.push([
+          `${paysNoms[pays] || pays}`,
+          data.count,
+          data.tonnes.toFixed(2),
+          ((data.tonnes / totalTonnes) * 100).toFixed(1) + '%'
+        ]);
       });
     
     const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, ws1, 'Resume');
+    ws1['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Résumé');
     
-    // Sheet 2: All commands with transporter
+    // Sheet 2: All commands
     const commandsData = [
-      ['Client', 'Reference', 'Date', 'Depart', 'Pays', 'Tonnes', 'Statut', 'Transporteur', 'Immatriculation', 'Email']
+      ['Client', 'Référence', 'Date', 'Départ', 'Pays', 'Tonnes', 'Statut', 'Email']
     ];
     
     filtered.forEach(c => {
       commandsData.push([
         c.client, c.ref, c.date, c.point_depart,
-        paysNoms[c.pays] || c.pays, c.tonnes, c.statut,
-        c.transporteur || '', c.immat || '', c.email
+        paysNoms[c.pays] || c.pays, c.tonnes, c.statut, c.email
       ]);
     });
     
     const ws2 = XLSX.utils.aoa_to_sheet(commandsData);
+    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 15 }, { wch: 10 }, { wch: 12 }, { wch: 25 }];
     XLSX.utils.book_append_sheet(wb, ws2, 'Commandes');
     
+    // Sheet 3: Top Clients
+    const clientStats = {};
+    filtered.forEach(c => {
+      if (!clientStats[c.client]) clientStats[c.client] = { count: 0, tonnes: 0 };
+      clientStats[c.client].count++;
+      clientStats[c.client].tonnes += c.tonnes;
+    });
+    
+    const topClientsData = [['Client', 'Commandes', 'Tonnes']];
+    Object.entries(clientStats)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes)
+      .slice(0, 10)
+      .forEach(([client, data]) => {
+        topClientsData.push([client, data.count, data.tonnes.toFixed(2)]);
+      });
+    
+    const ws3 = XLSX.utils.aoa_to_sheet(topClientsData);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Top Clients');
+    
     hideLoading();
-    XLSX.writeFile(wb, `Solana_SupplyChain_${new Date().toISOString().split('T')[0]}.xlsx`);
-    showToast('Rapport Excel exporte!');
+    XLSX.writeFile(wb, `Solana_Rapport_${new Date().toISOString().split('T')[0]}.xlsx`);
+    showToast('📥 Rapport Excel exporté!');
+  }
+
+  // ==================== PUBLIC VIEW ====================
+  function checkPublicView() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewMode = urlParams.get('view');
+    const ref = urlParams.get('ref');
+    
+    if (viewMode === 'delivery' && ref) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('publicView').classList.remove('hidden');
+      loadPublicDeliveryView(ref);
+      return true;
+    }
+    return false;
+  }
+
+  let currentPublicCmd = null;
+  let publicSignatureCanvas = null;
+  let publicSignatureCtx = null;
+  let publicIsDrawing = false;
+  let publicLastX = 0;
+  let publicLastY = 0;
+  let publicHasSignature = false;
+  let publicUploadedPhotos = [];
+  let publicUploadedDocs = [];
+  
+  async function loadPublicDeliveryView(ref) {
+    console.log('loadPublicDeliveryView called with ref:', ref);
+    const container = document.getElementById('publicViewContent');
+    container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Chargement...</p></div>';
+    
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(ref)}&select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      
+      console.log('Fetch response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Server error:', errorText);
+        throw new Error(`Server error: ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log('Data received:', data.length, 'records');
+      
+      if (data.length === 0) {
+        container.innerHTML = '<div class="text-center py-10"><div class="text-6xl mb-4">❌</div><h2 class="text-2xl font-bold text-gray-800 mb-2">Commande non trouvée</h2></div>';
+        return;
+      }
+      
+      const cmd = data[0];
+      console.log('Command loaded:', cmd.ref, cmd.statut);
+      currentPublicCmd = cmd;
+      const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+      console.log('Has signature:', hasSignature);
+      
+      // Si LIVRÉE avec signature, afficher la confirmation finale
+      if (cmd.statut === 'LIVRÉE' && hasSignature) {
+        console.log('Showing delivery confirmation page (already signed)');
+        showDeliveryConfirmationPage(cmd);
+        return;
+      }
+      
+      // Si LIVRÉE sans signature, afficher le formulaire pour que le client signe
+      if (cmd.statut === 'LIVRÉE' && !hasSignature) {
+        console.log('Showing client signature form');
+        showClientSignatureForm(cmd);
+        return;
+      }
+      
+      // Si CHARGÉE, afficher que la livraison est en route
+      if (cmd.statut === 'CHARGÉE') {
+        console.log('Showing CHARGÉE status');
+        container.innerHTML = `
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
+          <h1 class="text-2xl font-black text-gray-800 mb-1">Commande en cours</h1>
+          <p class="text-gray-500">Solana Logistique</p>
+        </div>
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 mb-6">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-amber-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          </div>
+        </div>
+        <div class="text-center pt-4">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-warning text-white rounded-full font-bold text-lg">⏳ ${cmd.statut}</span>
+          <p class="text-sm text-gray-500 mt-4">Votre commande est en cours de livraison.</p>
+        </div>
+      `;
+        return;
+      }
+      
+      // Autres statuts (EN ATTENTE, etc.)
+      console.log('Showing other status:', cmd.statut);
+      container.innerHTML = `
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 gradient-warning rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">⏳</span></div>
+          <h1 class="text-2xl font-black text-gray-800 mb-1">Commande en attente</h1>
+          <p class="text-gray-500">Solana Logistique</p>
+        </div>
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-5 mb-6">
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client}</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-amber-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+            <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
+          </div>
+        </div>
+        <div class="text-center pt-4">
+          <span class="inline-flex items-center gap-2 px-6 py-3 gradient-warning text-white rounded-full font-bold text-lg">⏳ ${cmd.statut}</span>
+          <p class="text-sm text-gray-500 mt-4">Votre commande est en cours de traitement.</p>
+        </div>
+      `;
+    } catch (error) {
+      console.error('Error loading delivery view:', error);
+      container.innerHTML = `<div class="text-center py-10">
+        <div class="text-6xl mb-4">❌</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de chargement</h2>
+        <p class="text-gray-500 mb-4">${error.message || 'Veuillez réessayer'}</p>
+        <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+      </div>`;
+    }
+  }
+  
+  // Afficher le formulaire de signature pour le client (APRÈS livraison confirmée)
+  function showClientSignatureForm(cmd) {
+    console.log('showClientSignatureForm called for cmd:', cmd.ref);
+    const container = document.getElementById('publicViewContent');
+    
+    // Reset les variables
+    publicUploadedPhotos = [];
+    publicUploadedDocs = [];
+    publicHasSignature = false;
+    publicSignatureCanvas = null;
+    publicSignatureCtx = null;
+    
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
+    
+    container.innerHTML = `
+      <div class="text-center mb-6">
+        <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4 animate__animated animate__pulse"><span class="text-4xl">📦</span></div>
+        <h1 class="text-2xl font-black text-gray-800 mb-1">Livraison Effectuée!</h1>
+        <p class="text-gray-500">Veuillez signer pour confirmer la réception</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-5 mb-6 animate__animated animate__fadeIn border-2 border-emerald-200">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm">✓</span>
+          <span class="font-bold text-emerald-700">Votre commande a été livrée</span>
+        </div>
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold text-emerald-600 text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${destination}</p></div>
+          <div class="col-span-2"><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+        </div>
+      </div>
+      
+      <!-- Signature Electronique Client -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+        <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <span class="text-xl">✍️</span> Votre signature
+          <span class="text-xs font-normal text-gray-400">(Signez avec votre doigt/souris)</span>
+        </h4>
+        <div class="signature-container" id="publicSignatureContainer">
+          <canvas id="publicSignatureCanvas" width="350" height="150"></canvas>
+          <div class="signature-placeholder" id="publicSignaturePlaceholder">
+            <svg class="w-12 h-12 mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+            </svg>
+            <p class="text-sm">Signez ici</p>
+          </div>
+          <div class="signature-line"></div>
+        </div>
+        <div class="signature-actions">
+          <button type="button" onclick="clearPublicSignature()" class="signature-btn bg-gray-100 hover:bg-gray-200 text-gray-700">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+            Effacer
+          </button>
+          <div id="publicSignatureStatus" class="hidden ml-auto flex items-center gap-2 text-emerald-600 font-semibold">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Signé!
+          </div>
+        </div>
+      </div>
+      
+      <!-- Photos de livraison -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.3s">
+        <h4 class="font-bold text-gray-800 mb-3">📸 Photos de réception (optionnel)</h4>
+        <div class="flex flex-wrap gap-3" id="publicPhotoContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">Photo</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePublicPhotoUpload(event)">
+          </label>
+        </div>
+      </div>
+      
+      <!-- Documents CMR -->
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.4s">
+        <h4 class="font-bold text-gray-800 mb-3">📄 Documents CMR (optionnel)</h4>
+        <div class="flex flex-wrap gap-3" id="publicDocContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">CMR</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePublicDocUpload(event)">
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex gap-3 animate__animated animate__fadeIn" style="animation-delay: 0.5s">
+        <button type="button" onclick="saveClientSignature()" class="flex-1 py-4 gradient-delivered text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all">
+          ✅ Confirmer la réception
+        </button>
+      </div>
+      
+      <div class="text-center mt-6 text-xs text-gray-400">
+        <p>🚚 Solana Logistique</p>
+      </div>
+    `;
+    
+    // Initialiser le canvas de signature après le rendu
+    setTimeout(() => {
+      initPublicSignature();
+    }, 100);
+  }
+  
+  // Initialiser la signature publique
+  function initPublicSignature() {
+    console.log('initPublicSignature called');
+    publicSignatureCanvas = document.getElementById('publicSignatureCanvas');
+    if (!publicSignatureCanvas) {
+      console.error('publicSignatureCanvas not found');
+      return;
+    }
+    console.log('Canvas found, initializing...');
+    
+    publicSignatureCtx = publicSignatureCanvas.getContext('2d');
+    
+    // Ajuster la taille
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) {
+      const width = container.offsetWidth || 350;
+      publicSignatureCanvas.width = width;
+      publicSignatureCanvas.height = 150;
+      console.log('Canvas size set to:', width, 'x', 150);
+    }
+    
+    // Style
+    publicSignatureCtx.strokeStyle = '#1e3a5f';
+    publicSignatureCtx.lineWidth = 3;
+    publicSignatureCtx.lineCap = 'round';
+    publicSignatureCtx.lineJoin = 'round';
+    
+    // Reset le flag de signature
+    publicHasSignature = false;
+    
+    // Events souris
+    publicSignatureCanvas.addEventListener('mousedown', startPublicDrawing);
+    publicSignatureCanvas.addEventListener('mousemove', publicDraw);
+    publicSignatureCanvas.addEventListener('mouseup', stopPublicDrawing);
+    publicSignatureCanvas.addEventListener('mouseout', stopPublicDrawing);
+    
+    // Events tactile
+    publicSignatureCanvas.addEventListener('touchstart', handlePublicTouchStart, { passive: false });
+    publicSignatureCanvas.addEventListener('touchmove', handlePublicTouchMove, { passive: false });
+    publicSignatureCanvas.addEventListener('touchend', stopPublicDrawing);
+    
+    console.log('Signature canvas initialized successfully');
+  }
+  
+  function startPublicDrawing(e) {
+    publicIsDrawing = true;
+    [publicLastX, publicLastY] = getPublicPosition(e);
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) container.classList.add('signing');
+  }
+  
+  function publicDraw(e) {
+    if (!publicIsDrawing) return;
+    const [x, y] = getPublicPosition(e);
+    publicSignatureCtx.beginPath();
+    publicSignatureCtx.moveTo(publicLastX, publicLastY);
+    publicSignatureCtx.lineTo(x, y);
+    publicSignatureCtx.stroke();
+    [publicLastX, publicLastY] = [x, y];
+    publicHasSignature = true;
+    const status = document.getElementById('publicSignatureStatus');
+    if (status) status.classList.remove('hidden');
+  }
+  
+  function stopPublicDrawing() {
+    publicIsDrawing = false;
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) {
+      container.classList.remove('signing');
+      if (publicHasSignature) container.classList.add('signed');
+    }
+  }
+  
+  function handlePublicTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    startPublicDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+  }
+  
+  function handlePublicTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    publicDraw({ clientX: touch.clientX, clientY: touch.clientY });
+  }
+  
+  function getPublicPosition(e) {
+    const rect = publicSignatureCanvas.getBoundingClientRect();
+    return [e.clientX - rect.left, e.clientY - rect.top];
+  }
+  
+  function clearPublicSignature() {
+    if (!publicSignatureCtx || !publicSignatureCanvas) return;
+    publicSignatureCtx.clearRect(0, 0, publicSignatureCanvas.width, publicSignatureCanvas.height);
+    publicHasSignature = false;
+    const container = document.getElementById('publicSignatureContainer');
+    if (container) container.classList.remove('signing', 'signed');
+    const status = document.getElementById('publicSignatureStatus');
+    if (status) status.classList.add('hidden');
+    publicSignatureCtx.strokeStyle = '#1e3a5f';
+    publicSignatureCtx.lineWidth = 3;
+    publicSignatureCtx.lineCap = 'round';
+    publicSignatureCtx.lineJoin = 'round';
+  }
+  
+  function getPublicSignatureImage() {
+    console.log('getPublicSignatureImage called');
+    console.log('publicSignatureCanvas:', !!publicSignatureCanvas);
+    console.log('publicHasSignature:', publicHasSignature);
+    
+    if (!publicSignatureCanvas) {
+      console.error('Canvas not available');
+      return null;
+    }
+    
+    if (!publicHasSignature) {
+      console.log('No signature drawn yet');
+      return null;
+    }
+    
+    try {
+      const dataUrl = publicSignatureCanvas.toDataURL('image/png');
+      console.log('Signature image generated, length:', dataUrl.length);
+      return dataUrl;
+    } catch (e) {
+      console.error('Error generating signature image:', e);
+      return null;
+    }
+  }
+  
+  function handlePublicPhotoUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('publicPhotoContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        publicUploadedPhotos.push(base64);
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); publicUploadedPhotos = publicUploadedPhotos.filter(p => p !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  
+  function handlePublicDocUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('publicDocContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        publicUploadedDocs.push(base64);
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); publicUploadedDocs = publicUploadedDocs.filter(p => p !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+  
+  // Sauvegarder la signature du client
+  async function saveClientSignature() {
+    console.log('saveClientSignature called');
+    console.log('currentPublicCmd:', currentPublicCmd);
+    
+    if (!currentPublicCmd) {
+      alert('❌ Erreur: Commande non trouvée. Veuillez rafraîchir la page.');
+      return;
+    }
+    
+    const signatureImage = getPublicSignatureImage();
+    console.log('signatureImage exists:', !!signatureImage);
+    
+    if (!signatureImage) {
+      alert('⚠️ Veuillez signer avant de confirmer');
+      return;
+    }
+    
+    const container = document.getElementById('publicViewContent');
+    container.innerHTML = '<div class="text-center py-10"><div class="animate-rotate w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div><p class="text-gray-500">Enregistrement en cours...</p></div>';
+    
+    try {
+      // Construire le body - seulement les données nécessaires
+      const bodyData = {
+        signature: signatureImage
+      };
+      
+      // Ajouter les photos si présentes (pas de null)
+      if (publicUploadedPhotos && publicUploadedPhotos.length > 0) {
+        bodyData.photos = JSON.stringify(publicUploadedPhotos);
+      }
+      
+      // Ajouter les documents si présents (pas de null)
+      if (publicUploadedDocs && publicUploadedDocs.length > 0) {
+        bodyData.documents_cmr = JSON.stringify(publicUploadedDocs);
+      }
+      
+      console.log('Body data keys:', Object.keys(bodyData));
+      console.log('Signature length:', signatureImage.length);
+      console.log('Ref:', currentPublicCmd.ref);
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(currentPublicCmd.ref)}`, {
+        method: 'PATCH',
+        headers: { 
+          'apikey': SUPABASE_KEY, 
+          'Authorization': `Bearer ${SUPABASE_KEY}`, 
+          'Content-Type': 'application/json', 
+          'Prefer': 'return=minimal' 
+        },
+        body: JSON.stringify(bodyData)
+      });
+      
+      console.log('Response status:', res.status);
+      
+      if (res.ok) {
+        console.log('Signature saved successfully');
+        showDeliveryConfirmationPage({ ...currentPublicCmd, signature: signatureImage });
+      } else {
+        const errorText = await res.text();
+        console.error('Server error FULL:', errorText);
+        let errorMsg = `Erreur serveur (${res.status})`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('Error JSON:', errorJson);
+          if (errorJson.message) errorMsg = errorJson.message;
+          if (errorJson.details) errorMsg += ' - ' + errorJson.details;
+          if (errorJson.hint) errorMsg += ' (Hint: ' + errorJson.hint + ')';
+        } catch(e) {
+          errorMsg = errorText || errorMsg;
+        }
+        
+        // Afficher l'erreur avec plus de détails
+        container.innerHTML = `<div class="text-center py-10">
+          <div class="text-6xl mb-4">❌</div>
+          <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur</h2>
+          <p class="text-gray-600 mb-2 text-sm font-mono bg-gray-100 p-2 rounded">${errorMsg}</p>
+          <p class="text-gray-400 text-xs mb-4">Ref: ${currentPublicCmd.ref}</p>
+          <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+        </div>`;
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      container.innerHTML = `<div class="text-center py-10">
+        <div class="text-6xl mb-4">❌</div>
+        <h2 class="text-2xl font-bold text-gray-800 mb-2">Erreur de connexion</h2>
+        <p class="text-gray-500 mb-4">${error.message || 'Vérifiez votre connexion internet'}</p>
+        <button onclick="location.reload()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-bold">Réessayer</button>
+      </div>`;
+    }
+  }
+  
+  // Afficher la page de confirmation finale
+  function showDeliveryConfirmationPage(cmd) {
+    console.log('showDeliveryConfirmationPage called with:', cmd);
+    
+    const container = document.getElementById('publicViewContent');
+    const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : 'En attente';
+    
+    // Gérer les photos - peut être un tableau ou une chaîne JSON
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) {
+          photos = cmd.photos;
+        } else if (typeof cmd.photos === 'string') {
+          photos = JSON.parse(cmd.photos);
+        }
+      } catch (e) {
+        // Si le parsing échoue, vérifier si c'est une image base64
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) {
+          photos = [cmd.photos];
+        }
+      }
+    }
+    
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    const isDelivered = cmd.statut === 'LIVRÉE';
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
+    
+    container.innerHTML = `
+      <div class="text-center mb-6 animate__animated animate__fadeInDown">
+        <div class="w-20 h-20 ${isDelivered ? 'gradient-delivered' : 'gradient-ocean'} rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">${isDelivered ? '🎉' : '✅'}</span></div>
+        <h1 class="text-2xl font-black text-gray-800 mb-1">${isDelivered ? 'Livraison Confirmée' : 'Signature Enregistrée'}</h1>
+        <p class="text-gray-500">Solana Logistique</p>
+      </div>
+      
+      <div class="bg-gradient-to-r ${isDelivered ? 'from-emerald-50 to-teal-50' : 'from-blue-50 to-cyan-50'} rounded-2xl p-5 mb-6 animate__animated animate__fadeIn">
+        <div class="grid grid-cols-2 gap-4 text-sm">
+          <div><p class="text-gray-500 text-xs uppercase">Référence</p><p class="font-bold text-lg">${cmd.ref || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Client</p><p class="font-bold text-lg">${cmd.client || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Tonnes</p><p class="font-bold ${isDelivered ? 'text-emerald-600' : 'text-cyan-600'} text-lg">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Destination</p><p class="font-bold text-lg">${destination}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+          <div><p class="text-gray-500 text-xs uppercase">Date</p><p class="font-bold">${deliveryDate}</p></div>
+        </div>
+      </div>
+      
+      ${hasSignature ? `
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.2s">
+        <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">✍️ Signature du client</h3>
+        <div class="bg-gray-50 rounded-xl p-4 border-2 border-emerald-200">
+          <img src="${cmd.signature}" alt="Signature" class="max-w-full mx-auto" style="max-height: 150px;">
+        </div>
+        ${!isDelivered ? '<p class="text-sm text-center text-gray-500 mt-2">✅ Votre signature a été enregistrée. L\'administrateur confirmera la livraison prochainement.</p>' : ''}
+      </div>
+      ` : ''}
+      
+      ${photos.length > 0 ? `
+      <div class="mb-6 animate__animated animate__fadeIn" style="animation-delay: 0.3s">
+        <h3 class="font-bold text-gray-800 mb-3">📸 Photos de livraison</h3>
+        <div class="grid grid-cols-2 gap-3">
+          ${photos.map((p, i) => `<img src="${p}" class="delivery-photo cursor-pointer" onclick="window.open('${p}', '_blank')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div class="text-center pt-4 border-t animate__animated animate__fadeIn" style="animation-delay: 0.4s">
+        <span class="inline-flex items-center gap-2 px-6 py-3 ${isDelivered ? 'gradient-delivered' : 'gradient-ocean'} text-white rounded-full font-bold text-lg">
+          ${isDelivered ? '✅ LIVRÉE' : '✅ SIGNÉE'}
+        </span>
+        ${!isDelivered ? '<p class="text-sm text-gray-500 mt-3">En attente de confirmation finale par l\'administrateur</p>' : ''}
+      </div>
+      
+      ${hasSignature ? `
+      <div class="text-center mt-6 animate__animated animate__fadeIn" style="animation-delay: 0.5s">
+        <button onclick="downloadDeliveryPDF('${cmd.ref}')" class="px-6 py-3 gradient-report text-white rounded-xl font-bold flex items-center gap-2 mx-auto">
+          📄 Télécharger le PDF de livraison
+        </button>
+      </div>
+      ` : ''}
+      
+      <div class="text-center mt-6 text-xs text-gray-400">
+        <p>🚚 Solana Logistique</p>
+        <p>Document généré le ${new Date().toLocaleDateString('fr-FR')}</p>
+      </div>
+    `;
+  }
+  
+  // Fonction pour télécharger le PDF de livraison (côté client)
+  function downloadDeliveryPDF(ref) {
+    // Récupérer les données de la commande depuis currentPublicCmd
+    const cmd = currentPublicCmd;
+    if (!cmd) {
+      alert('Erreur: données non disponibles');
+      return;
+    }
+    
+    // Ouvrir une nouvelle fenêtre pour le PDF
+    const printWindow = window.open('', '_blank');
+    
+    // Préparer les photos
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) {
+          photos = cmd.photos;
+        } else if (typeof cmd.photos === 'string') {
+          photos = JSON.parse(cmd.photos);
+        }
+      } catch (e) {
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) {
+          photos = [cmd.photos];
+        }
+      }
+    }
+    
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
+    const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Livraison ${cmd.ref} - Solana Logistique</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 3px solid #0077b6; padding-bottom: 20px; margin-bottom: 20px; }
+    .logo { font-size: 32px; font-weight: bold; color: #0077b6; }
+    .subtitle { color: #666; font-size: 16px; margin-top: 5px; }
+    .title { font-size: 24px; color: #10b981; margin-top: 15px; font-weight: bold; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
+    .detail-box { background: #f8fafc; padding: 12px 15px; border-radius: 8px; border-left: 4px solid #0077b6; }
+    .detail-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+    .section { margin: 30px 0; page-break-inside: avoid; }
+    .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .signature-box { background: #ecfdf5; padding: 25px; border-radius: 12px; border: 2px solid #10b981; text-align: center; }
+    .signature-img { max-width: 100%; max-height: 150px; margin: 15px auto; }
+    .photos-container { display: flex; flex-direction: column; gap: 20px; }
+    .photo-wrapper { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e5e7eb; page-break-inside: avoid; }
+    .photo-wrapper img { width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px; }
+    .photo-label { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
+    .status-badge { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 25px; font-weight: bold; font-size: 16px; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 25px; border-top: 2px solid #e5e7eb; color: #888; font-size: 12px; }
+    .footer p { margin: 5px 0; }
+    @media print { 
+      body { padding: 15px; max-width: none; }
+      .section { page-break-inside: avoid; }
+      .photo-wrapper { page-break-inside: avoid; }
+    }
+    @page { margin: 1cm; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🚚 SOLANA LOGISTIQUE</div>
+    <div class="subtitle">Bon de Livraison - Transport & Logistique</div>
+    <div class="title">✅ LIVRAISON CONFIRMÉE</div>
+  </div>
+  
+  <div class="details">
+    <div class="detail-box">
+      <div class="detail-label">Référence</div>
+      <div class="detail-value">${cmd.ref || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Client</div>
+      <div class="detail-value">${cmd.client || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Quantité</div>
+      <div class="detail-value" style="color: #10b981;">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} Tonnes</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Destination</div>
+      <div class="detail-value">${destination}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Camion / Immatriculation</div>
+      <div class="detail-value">${cmd.immat || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Date de livraison</div>
+      <div class="detail-value">${deliveryDate}</div>
+    </div>
+    ${cmd.point_depart ? `
+    <div class="detail-box" style="grid-column: span 2;">
+      <div class="detail-label">Point de départ</div>
+      <div class="detail-value">${cmd.point_depart}</div>
+    </div>
+    ` : ''}
+  </div>
+  
+  ${hasSignature ? `
+  <div class="section">
+    <div class="section-title">✍️ Signature du Client</div>
+    <div class="signature-box">
+      <img src="${cmd.signature}" alt="Signature client" class="signature-img">
+      <p style="margin-top: 10px; color: #10b981; font-weight: bold; font-size: 14px;">✓ Signature validée le ${new Date().toLocaleDateString('fr-FR')}</p>
+    </div>
+  </div>
+  ` : ''}
+  
+  ${photos.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📸 Photos de livraison (${photos.length} photo${photos.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${photos.map((p, i) => `
+      <div class="photo-wrapper">
+        <img src="${p}" alt="Photo ${i + 1}">
+        <div class="photo-label">Photo ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  ${documents.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📄 Documents CMR (${documents.length} document${documents.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${documents.map((d, i) => `
+      <div class="photo-wrapper">
+        <img src="${d}" alt="Document CMR ${i + 1}">
+        <div class="photo-label">Document CMR ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  <div style="text-align: center; margin: 40px 0;">
+    <span class="status-badge">✅ LIVRÉE ET SIGNÉE</span>
+  </div>
+  
+  <div class="footer">
+    <p><strong>🚚 Solana Logistique - Transport & Logistique</strong></p>
+    <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+    <p style="margin-top: 8px; font-weight: bold;">Référence: ${cmd.ref}</p>
+  </div>
+  
+</body>
+</html>`;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  // Télécharger une photo individuellement
+  function downloadPhoto(photoData, filename) {
+    const link = document.createElement('a');
+    link.href = photoData;
+    link.download = filename || 'photo.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('📥 Photo téléchargée!');
+  }
+
+  // Télécharger toutes les photos en ZIP (si disponibles)
+  function downloadAllPhotos(cmd) {
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) photos = cmd.photos;
+        else if (typeof cmd.photos === 'string') photos = JSON.parse(cmd.photos);
+      } catch (e) {
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) photos = [cmd.photos];
+      }
+    }
+    
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) documents = cmd.documents_cmr;
+        else if (typeof cmd.documents_cmr === 'string') documents = JSON.parse(cmd.documents_cmr);
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) documents = [cmd.documents_cmr];
+      }
+    }
+    
+    const allImages = [...photos, ...documents];
+    
+    if (allImages.length === 0) {
+      showToast('⚠️ Aucune photo à télécharger', 'warning');
+      return;
+    }
+    
+    // Télécharger une par une
+    allImages.forEach((img, i) => {
+      setTimeout(() => {
+        const type = i < photos.length ? 'photo' : 'document';
+        const num = i < photos.length ? i + 1 : (i - photos.length + 1);
+        downloadPhoto(img, `${cmd.ref}_${type}_${num}.png`);
+      }, i * 500);
+    });
+  }
+
+  function openPhotoViewer(src) {
+    document.getElementById('photoViewerImage').src = src;
+    document.getElementById('photoViewerModal').classList.remove('hidden');
+  }
+
+  function closePhotoViewer() {
+    document.getElementById('photoViewerModal').classList.add('hidden');
   }
 
   // ==================== DARK MODE ====================
@@ -1808,7 +2604,7 @@
       document.getElementById('supabaseBadge').classList.remove('hidden');
       maj();
     } catch (e) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="text-center py-12 text-red-500">❌ Erreur Supabase</td></tr>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-red-500">❌ Erreur Supabase</td></tr>';
     }
     document.getElementById('syncIcon').innerHTML = '🔄';
   }
@@ -1857,8 +2653,7 @@
       point_depart: document.getElementById('pointDepart').value.trim(),
       pays: document.getElementById('paysIn').value,
       tonnes: parseFloat(document.getElementById('tonnesIn').value),
-      immat: '',
-      transporteur: '',
+      immat: '', // Vide à la création, sera rempli au chargement
       email: document.getElementById('emailIn').value.trim(),
       statut: 'EN ATTENTE',
       nb_emails: 0
@@ -1882,9 +2677,12 @@
     }
   }
 
+  // Variables pour le modal de chargement
+  let currentLoadingCmd = null;
+  
   function confirmerEmail(cmd) {
+    // Ouvrir le modal pour demander l'immatriculation
     currentLoadingCmd = cmd;
-    currentMsgLanguage = 'fr';
     
     document.getElementById('loadingModalCmdInfo').innerHTML = `
       <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 space-y-2">
@@ -1907,20 +2705,9 @@
       </div>
     `;
     
-    // Pre-fill
+    // Pré-remplir si déjà une immatriculation
     document.getElementById('loadingImmat').value = cmd.immat || '';
-    document.getElementById('loadingTransporteur').value = cmd.transporteur || '';
-    document.getElementById('loadingDate').value = new Date().toISOString().split('T')[0];
     
-    // Reset language buttons
-    setMsgLanguage('fr');
-    
-    // Add event listeners for preview update
-    document.getElementById('loadingImmat').oninput = updateMessagePreview;
-    document.getElementById('loadingTransporteur').oninput = updateMessagePreview;
-    document.getElementById('loadingDate').onchange = updateMessagePreview;
-    
-    updateMessagePreview();
     document.getElementById('loadingModal').classList.remove('hidden');
   }
   
@@ -1933,34 +2720,25 @@
     if (!currentLoadingCmd) return;
     
     const immat = document.getElementById('loadingImmat').value.trim();
-    const transporteur = document.getElementById('loadingTransporteur').value.trim();
-    const loadingDate = document.getElementById('loadingDate').value;
     
     if (!immat) {
       showToast('⚠️ Veuillez saisir l\'immatriculation', 'error');
       return;
     }
     
-    if (!transporteur) {
-      showToast('⚠️ Veuillez saisir le nom du transporteur', 'error');
-      return;
-    }
-    
-    if (!loadingDate) {
-      showToast('⚠️ Veuillez sélectionner la date de chargement', 'error');
-      return;
-    }
-    
+    // Sauvegarder la commande avant de fermer le modal
     const cmdToConfirm = currentLoadingCmd;
+    
+    // Fermer le modal d'abord
     document.getElementById('loadingModal').classList.add('hidden');
+    
     showLoading();
     
     const updates = { 
       statut: 'CHARGÉE', 
       immat: immat,
-      transporteur: transporteur,
-      date_chargement: loadingDate,
-      nb_emails: (cmdToConfirm.nb_emails || 0) + 1
+      nb_emails: (cmdToConfirm.nb_emails || 0) + 1,
+      date_chargement: new Date().toISOString().split('T')[0]
     };
     
     const ok = await updateCmdDB(cmdToConfirm.ref, updates);
@@ -1973,17 +2751,12 @@
       }
       hideLoading();
       
-      // Generate message in selected language
-      const message = getMessageTemplate(cmdToConfirm, immat, transporteur, loadingDate, currentMsgLanguage);
-      const sujet = currentMsgLanguage === 'en' 
-        ? `✅ LOADED - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`
-        : currentMsgLanguage === 'es'
-        ? `✅ CARGADO - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`
-        : `✅ CHARGÉE - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`;
-      
+      // Ouvrir email
+      const sujet = `✅ CHARGÉE - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`;
+      const message = `Bonjour ${cmdToConfirm.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmdToConfirm.ref}\nDépart: ${cmdToConfirm.point_depart}\nDestination: ${cmdToConfirm.pays}\nTonnes: ${cmdToConfirm.tonnes.toFixed(2)}T\nCamion: ${immat}`;
       window.open(`mailto:${cmdToConfirm.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
       
-      showToast('✅ Commande chargée!');
+      showToast('✅ Commande chargée avec immat: ' + immat);
       currentLoadingCmd = null;
     } else {
       hideLoading();
@@ -2001,47 +2774,327 @@
 
   function synchroniser() { loadCmds(); }
 
-  // ==================== SIMPLE DELIVERY CONFIRMATION ====================
+  // ==================== DELIVERY CONFIRMATION ====================
   function showDeliveryConfirmation(cmd) {
     currentDeliveryCmd = cmd;
+    uploadedPhotos = [];
+    
+    const hasClientSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    let clientPhotos = [];
+    if (cmd.photos) {
+      try { clientPhotos = JSON.parse(cmd.photos); } catch (e) { if (cmd.photos.startsWith('data:image')) clientPhotos = [cmd.photos]; }
+    }
+    
+    let clientDocs = [];
+    if (cmd.documents_cmr) {
+      try { clientDocs = JSON.parse(cmd.documents_cmr); } catch (e) { if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) clientDocs = [cmd.documents_cmr]; }
+    }
     
     document.getElementById('deliveryModalContent').innerHTML = `
       <div class="text-center mb-6">
         <div class="w-20 h-20 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🎉</span></div>
-        <p class="text-gray-500">Confirmer la livraison de cette commande?</p>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Confirmer la livraison</h3>
+        <p class="text-gray-500">Commande ${cmd.ref}</p>
       </div>
       
       <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-2xl p-5 mb-6">
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div><p class="text-gray-500">Client</p><p class="font-bold">${cmd.client}</p></div>
-          <div><p class="text-gray-500">Référence</p><p class="font-bold">${cmd.ref}</p></div>
           <div><p class="text-gray-500">Tonnes</p><p class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</p></div>
           <div><p class="text-gray-500">Destination</p><p class="font-bold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</p></div>
-          <div><p class="text-gray-500">Transporteur</p><p class="font-bold text-sky-600">${cmd.transporteur || '-'}</p></div>
           <div><p class="text-gray-500">Camion</p><p class="font-bold">${cmd.immat || '-'}</p></div>
+        </div>
+      </div>
+      
+      <!-- Info workflow -->
+      <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4 mb-6 border-2 border-blue-200">
+        <div class="flex items-start gap-3">
+          <span class="text-2xl">📋</span>
+          <div>
+            <h4 class="font-bold text-blue-700 dark:text-blue-300">Workflow de livraison</h4>
+            <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+              <b>1.</b> Vous confirmez la livraison → statut = LIVRÉE<br>
+              <b>2.</b> Un QR Code est généré pour le client<br>
+              <b>3.</b> Le client signe pour confirmer la réception
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      ${hasClientSignature ? `
+      <div class="mb-6">
+        <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-5 border-2 border-emerald-200">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center text-lg">✓</span>
+            <h4 class="font-bold text-emerald-700 dark:text-emerald-300">✅ Signature client reçue!</h4>
+          </div>
+          <div class="bg-white dark:bg-slate-800 rounded-xl p-4 border border-gray-200">
+            <img src="${cmd.signature}" alt="Signature client" class="max-w-full mx-auto" style="max-height: 120px;">
+          </div>
+        </div>
+      </div>
+      ` : ''}
+      
+      ${clientPhotos.length > 0 ? `
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">📸 Photos du client</h4>
+        <div class="grid grid-cols-4 gap-3">
+          ${clientPhotos.map(p => `<img src="${p}" class="photo-preview cursor-pointer" onclick="openPhotoViewer('${p}')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      ${clientDocs.length > 0 ? `
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3 flex items-center gap-2">📄 Documents CMR du client</h4>
+        <div class="grid grid-cols-4 gap-3">
+          ${clientDocs.map(d => `<img src="${d}" class="photo-preview cursor-pointer" onclick="openPhotoViewer('${d}')">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      
+      <div class="mb-6">
+        <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Ajouter des documents (optionnel)</h4>
+        <div class="flex flex-wrap gap-3" id="photoPreviewContainer">
+          <label class="photo-upload-btn cursor-pointer">
+            <span class="text-3xl text-gray-400">+</span>
+            <span class="text-xs text-gray-400">Ajouter</span>
+            <input type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoUpload(event)">
+          </label>
         </div>
       </div>
       
       <div class="flex gap-3">
         <button type="button" onclick="closeDeliveryModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
-        <button type="button" onclick="confirmDeliverySimple()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
+        <button type="button" onclick="confirmDeliveryFinal()" class="flex-1 py-3 gradient-delivered text-white rounded-xl font-bold">
           ✅ Confirmer Livraison
         </button>
       </div>
     `;
     document.getElementById('deliveryModal').classList.remove('hidden');
   }
+  
+  // ==================== SIGNATURE ELECTRONIQUE ====================
+  let signatureCanvas = null;
+  let signatureCtx = null;
+  let isDrawing = false;
+  let lastX = 0;
+  let lastY = 0;
+  let hasSignature = false;
+  let signatureHistory = [];
+  
+  function initSignature() {
+    signatureCanvas = document.getElementById('signatureCanvas');
+    if (!signatureCanvas) return;
+    
+    signatureCtx = signatureCanvas.getContext('2d');
+    
+    // Ajuster la taille du canvas
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      signatureCanvas.width = container.offsetWidth;
+      signatureCanvas.height = 150;
+    }
+    
+    // Configuration du style
+    signatureCtx.strokeStyle = '#1e3a5f';
+    signatureCtx.lineWidth = 3;
+    signatureCtx.lineCap = 'round';
+    signatureCtx.lineJoin = 'round';
+    
+    hasSignature = false;
+    signatureHistory = [];
+    
+    // Events souris
+    signatureCanvas.addEventListener('mousedown', startDrawing);
+    signatureCanvas.addEventListener('mousemove', draw);
+    signatureCanvas.addEventListener('mouseup', stopDrawing);
+    signatureCanvas.addEventListener('mouseout', stopDrawing);
+    
+    // Events tactile
+    signatureCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    signatureCanvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    signatureCanvas.addEventListener('touchend', stopDrawing);
+  }
+  
+  function startDrawing(e) {
+    isDrawing = true;
+    [lastX, lastY] = getPosition(e);
+    
+    // Sauvegarder l'etat pour undo
+    saveSignatureState();
+    
+    // Animation du container
+    const container = document.getElementById('signatureContainer');
+    if (container) container.classList.add('signing');
+  }
+  
+  function draw(e) {
+    if (!isDrawing) return;
+    
+    const [x, y] = getPosition(e);
+    
+    signatureCtx.beginPath();
+    signatureCtx.moveTo(lastX, lastY);
+    signatureCtx.lineTo(x, y);
+    signatureCtx.stroke();
+    
+    [lastX, lastY] = [x, y];
+    hasSignature = true;
+    
+    // Mettre a jour le statut
+    const status = document.getElementById('signatureStatus');
+    if (status && hasSignature) {
+      status.classList.remove('hidden');
+    }
+  }
+  
+  function stopDrawing() {
+    isDrawing = false;
+    
+    // Mettre a jour le container
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      container.classList.remove('signing');
+      if (hasSignature) {
+        container.classList.add('signed');
+      }
+    }
+  }
+  
+  function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    startDrawing(mouseEvent);
+  }
+  
+  function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY
+    });
+    draw(mouseEvent);
+  }
+  
+  function getPosition(e) {
+    const rect = signatureCanvas.getBoundingClientRect();
+    return [
+      e.clientX - rect.left,
+      e.clientY - rect.top
+    ];
+  }
+  
+  function saveSignatureState() {
+    if (signatureCanvas) {
+      signatureHistory.push(signatureCanvas.toDataURL());
+    }
+  }
+  
+  function clearSignature() {
+    if (!signatureCtx || !signatureCanvas) return;
+    
+    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    hasSignature = false;
+    signatureHistory = [];
+    
+    // Reset visuel
+    const container = document.getElementById('signatureContainer');
+    if (container) {
+      container.classList.remove('signing', 'signed');
+    }
+    
+    const status = document.getElementById('signatureStatus');
+    if (status) status.classList.add('hidden');
+    
+    // Reinitialiser le style
+    signatureCtx.strokeStyle = '#1e3a5f';
+    signatureCtx.lineWidth = 3;
+    signatureCtx.lineCap = 'round';
+    signatureCtx.lineJoin = 'round';
+  }
+  
+  function undoSignature() {
+    if (signatureHistory.length === 0) {
+      clearSignature();
+      return;
+    }
+    
+    const previousState = signatureHistory.pop();
+    const img = new Image();
+    img.onload = function() {
+      signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+      signatureCtx.drawImage(img, 0, 0);
+    };
+    img.src = previousState;
+  }
+  
+  function getSignatureImage() {
+    if (!signatureCanvas || !hasSignature) return null;
+    return signatureCanvas.toDataURL('image/png');
+  }
 
-  async function confirmDeliverySimple() {
+  function handlePhotoUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('photoPreviewContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        uploadedPhotos.push({ type: 'photo', data: base64 });
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handleDocumentUpload(event) {
+    const files = event.target.files;
+    const container = document.getElementById('documentPreviewContainer');
+    for (let file of files) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64 = e.target.result;
+        uploadedPhotos.push({ type: 'document', data: base64 });
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'relative';
+        previewDiv.innerHTML = `<img src="${base64}" class="photo-preview"><button type="button" onclick="this.parentElement.remove(); uploadedPhotos = uploadedPhotos.filter(p => p.data !== '${base64}')" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs font-bold">✕</button>`;
+        container.insertBefore(previewDiv, container.lastElementChild);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  async function confirmDeliveryFinal() {
     if (!currentDeliveryCmd) { showToast('❌ Erreur', 'error'); return; }
     
     showLoading();
     
     const today = new Date().toISOString().split('T')[0];
+    const photos = uploadedPhotos.filter(p => p.type === 'photo').map(p => p.data);
+    const documents = uploadedPhotos.filter(p => p.type === 'document').map(p => p.data);
+    
     const updates = { 
       statut: 'LIVRÉE', 
       date_livraison: today
     };
+    
+    // Ajouter les nouvelles photos/documents si fournis
+    if (photos.length > 0) {
+      updates.photos = JSON.stringify(photos);
+    }
+    if (documents.length > 0) {
+      updates.documents_cmr = JSON.stringify(documents);
+    }
     
     const ok = await updateCmdDB(currentDeliveryCmd.ref, updates);
     
@@ -2054,6 +3107,12 @@
       hideLoading();
       closeDeliveryModal();
       showToast('🎉 Livraison confirmée!');
+      
+      // Afficher le QR pour envoyer au client
+      const updatedCmd = { ...currentDeliveryCmd, ...updates };
+      setTimeout(() => { 
+        showQRModalAfterDelivery(updatedCmd); 
+      }, 300);
     } else {
       hideLoading();
       showToast('❌ Erreur lors de la confirmation', 'error');
@@ -2063,6 +3122,393 @@
   function closeDeliveryModal() {
     document.getElementById('deliveryModal').classList.add('hidden');
     currentDeliveryCmd = null;
+    uploadedPhotos = [];
+  }
+
+  // ==================== QR CODE ====================
+  // Modal QR affiché APRÈS confirmation de livraison - pour envoyer au client
+  function showQRModalAfterDelivery(cmd) {
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 gradient-delivered rounded-full flex items-center justify-center mx-auto mb-4"><span class="text-3xl">🎉</span></div>
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white">Livraison Confirmée!</h3>
+        <p class="text-gray-500">Envoyez ce lien au client pour signature</p>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="text-center">
+          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block"><div id="qrCodeContainer" class="flex justify-center"></div></div>
+          <p class="mt-4 text-sm text-gray-500">Le client scanne pour signer</p>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger</button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails de la livraison</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Camion:</span><span class="font-semibold">${cmd.immat || '-'}</span></div>
+            </div>
+          </div>
+          
+          <!-- Lien à copier -->
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-4 border-2 border-amber-200">
+            <h4 class="font-bold text-amber-700 dark:text-amber-300 mb-2">📋 Lien pour le client</h4>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-2 border border-gray-200 mb-3">
+              <code class="text-xs text-blue-600 break-all">${viewUrl}</code>
+            </div>
+            <button onclick="navigator.clipboard.writeText('${viewUrl}').then(() => showToast('📋 Lien copié!'))" class="w-full py-2 bg-amber-500 text-white rounded-xl font-semibold text-sm">
+              📋 Copier le lien
+            </button>
+          </div>
+          
+          <button onclick="sendDeliveryEmail('${cmd.ref}')" class="w-full py-3 gradient-ocean text-white rounded-xl font-bold text-sm">
+            📧 Envoyer par email au client
+          </button>
+          
+          <div class="text-center"><span class="px-6 py-3 gradient-delivered text-white rounded-full font-bold">✅ LIVRÉE</span></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('qrModal').classList.remove('hidden');
+    setTimeout(() => { generateQRCode(viewUrl); }, 100);
+  }
+  
+  // Modal QR standard pour voir les détails
+  function showQRModal(cmd) {
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(cmd.ref)}`;
+    const isDelivered = cmd.statut === 'LIVRÉE';
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    // Préparer les photos
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) {
+          photos = cmd.photos;
+        } else if (typeof cmd.photos === 'string') {
+          photos = JSON.parse(cmd.photos);
+        }
+      } catch (e) {
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) {
+          photos = [cmd.photos];
+        }
+      }
+    }
+    
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
+    const totalImages = photos.length + documents.length;
+    
+    document.getElementById('qrModalContent').innerHTML = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="text-center">
+          <div class="bg-white p-6 rounded-2xl shadow-lg inline-block"><div id="qrCodeContainer" class="flex justify-center"></div></div>
+          <p class="mt-4 text-sm text-gray-500">${isDelivered ? 'Preuve de livraison' : 'Lien de suivi'}</p>
+          <div class="mt-4 flex gap-2 justify-center flex-wrap">
+            <button onclick="downloadQRCode('${cmd.ref}')" class="px-4 py-2 gradient-ocean text-white rounded-xl font-semibold text-sm">📥 Télécharger QR</button>
+            <button onclick="printQRCode('${cmd.ref}')" class="px-4 py-2 bg-gray-100 dark:bg-slate-700 rounded-xl font-semibold text-sm">🖨️ Imprimer</button>
+          </div>
+          ${hasSignature ? `
+          <div class="mt-4">
+            <button onclick='downloadAdminDeliveryPDF(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-report text-white rounded-xl font-semibold text-sm w-full">
+              📄 Télécharger PDF Livraison
+            </button>
+          </div>
+          ` : ''}
+          ${totalImages > 0 ? `
+          <div class="mt-4">
+            <button onclick='downloadAllPhotos(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-4 py-2 gradient-purple text-white rounded-xl font-semibold text-sm w-full">
+              📥 Télécharger toutes les photos (${totalImages})
+            </button>
+          </div>
+          ` : ''}
+        </div>
+        <div class="space-y-4">
+          <div class="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📦 Détails</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-semibold">${cmd.ref}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Client:</span><span class="font-semibold">${cmd.client}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} T</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-semibold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Camion:</span><span class="font-semibold">${cmd.immat || '-'}</span></div>
+            </div>
+          </div>
+          
+          ${hasSignature ? `
+          <div class="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 rounded-2xl p-4 border-2 border-emerald-200">
+            <div class="flex items-center gap-2 mb-3">
+              <span class="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-sm">✓</span>
+              <span class="font-bold text-emerald-700">Client a signé!</span>
+            </div>
+            <div class="bg-white dark:bg-slate-800 rounded-xl p-3 border border-gray-200">
+              <img src="${cmd.signature}" alt="Signature client" class="max-w-full mx-auto" style="max-height: 80px;">
+            </div>
+          </div>
+          ` : ''}
+          
+          ${photos.length > 0 ? `
+          <div class="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📸 Photos (${photos.length})</h4>
+            <div class="grid grid-cols-3 gap-2">
+              ${photos.map((p, i) => `<div class="relative group"><img src="${p}" class="w-full h-16 object-cover rounded-lg cursor-pointer" onclick="window.open('${p}', '_blank')"><button onclick="event.stopPropagation(); downloadPhoto('${p}', '${cmd.ref}_photo_${i+1}.png')" class="absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">📥</button></div>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+          
+          ${documents.length > 0 ? `
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/30 dark:to-orange-900/30 rounded-2xl p-4">
+            <h4 class="font-bold text-gray-800 dark:text-white mb-3">📄 Documents CMR (${documents.length})</h4>
+            <div class="grid grid-cols-3 gap-2">
+              ${documents.map((d, i) => `<div class="relative group"><img src="${d}" class="w-full h-16 object-cover rounded-lg cursor-pointer" onclick="window.open('${d}', '_blank')"><button onclick="event.stopPropagation(); downloadPhoto('${d}', '${cmd.ref}_cmr_${i+1}.png')" class="absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity">📥</button></div>`).join('')}
+            </div>
+          </div>
+          ` : ''}
+          
+          <div class="text-center"><span class="px-6 py-3 ${isDelivered ? 'gradient-delivered' : 'gradient-success'} text-white rounded-full font-bold">${isDelivered ? '🎉 LIVRÉE' : '✅ CHARGÉE'}</span></div>
+        </div>
+      </div>
+    `;
+    document.getElementById('qrModal').classList.remove('hidden');
+    setTimeout(() => { generateQRCode(viewUrl); }, 100);
+  }
+  
+  // Fonction PDF pour l'admin
+  function downloadAdminDeliveryPDF(cmd) {
+    // Préparer les photos
+    let photos = [];
+    if (cmd.photos) {
+      try {
+        if (Array.isArray(cmd.photos)) {
+          photos = cmd.photos;
+        } else if (typeof cmd.photos === 'string') {
+          photos = JSON.parse(cmd.photos);
+        }
+      } catch (e) {
+        if (typeof cmd.photos === 'string' && cmd.photos.startsWith('data:image')) {
+          photos = [cmd.photos];
+        }
+      }
+    }
+    
+    // Préparer les documents CMR
+    let documents = [];
+    if (cmd.documents_cmr) {
+      try {
+        if (Array.isArray(cmd.documents_cmr)) {
+          documents = cmd.documents_cmr;
+        } else if (typeof cmd.documents_cmr === 'string') {
+          documents = JSON.parse(cmd.documents_cmr);
+        }
+      } catch (e) {
+        if (typeof cmd.documents_cmr === 'string' && cmd.documents_cmr.startsWith('data:image')) {
+          documents = [cmd.documents_cmr];
+        }
+      }
+    }
+    
+    const destination = cmd.pays ? `${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}` : '-';
+    const deliveryDate = cmd.date_livraison ? new Date(cmd.date_livraison).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR');
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
+    
+    const printWindow = window.open('', '_blank');
+    const html = `
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Livraison ${cmd.ref} - Solana Logistique</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 3px solid #0077b6; padding-bottom: 20px; margin-bottom: 20px; }
+    .logo { font-size: 32px; font-weight: bold; color: #0077b6; }
+    .subtitle { color: #666; font-size: 16px; margin-top: 5px; }
+    .title { font-size: 24px; color: #10b981; margin-top: 15px; font-weight: bold; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 25px 0; }
+    .detail-box { background: #f8fafc; padding: 12px 15px; border-radius: 8px; border-left: 4px solid #0077b6; }
+    .detail-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+    .section { margin: 30px 0; page-break-inside: avoid; }
+    .section-title { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .signature-box { background: #ecfdf5; padding: 25px; border-radius: 12px; border: 2px solid #10b981; text-align: center; }
+    .signature-img { max-width: 100%; max-height: 150px; margin: 15px auto; }
+    .photos-container { display: flex; flex-direction: column; gap: 20px; }
+    .photo-wrapper { background: #f8fafc; border-radius: 12px; padding: 15px; border: 1px solid #e5e7eb; page-break-inside: avoid; }
+    .photo-wrapper img { width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px; }
+    .photo-label { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
+    .status-badge { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #10b981, #34d399); color: white; border-radius: 25px; font-weight: bold; font-size: 16px; }
+    .footer { text-align: center; margin-top: 40px; padding-top: 25px; border-top: 2px solid #e5e7eb; color: #888; font-size: 12px; }
+    .footer p { margin: 5px 0; }
+    @media print { 
+      body { padding: 15px; max-width: none; }
+      .section { page-break-inside: avoid; }
+      .photo-wrapper { page-break-inside: avoid; }
+    }
+    @page { margin: 1cm; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">🚚 SOLANA LOGISTIQUE</div>
+    <div class="subtitle">Bon de Livraison - Transport & Logistique</div>
+    <div class="title">✅ LIVRAISON CONFIRMÉE</div>
+  </div>
+  
+  <div class="details">
+    <div class="detail-box">
+      <div class="detail-label">Référence</div>
+      <div class="detail-value">${cmd.ref || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Client</div>
+      <div class="detail-value">${cmd.client || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Quantité</div>
+      <div class="detail-value" style="color: #10b981;">${cmd.tonnes ? cmd.tonnes.toFixed(2) : '0.00'} Tonnes</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Destination</div>
+      <div class="detail-value">${destination}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Camion / Immatriculation</div>
+      <div class="detail-value">${cmd.immat || '-'}</div>
+    </div>
+    <div class="detail-box">
+      <div class="detail-label">Date de livraison</div>
+      <div class="detail-value">${deliveryDate}</div>
+    </div>
+    ${cmd.point_depart ? `
+    <div class="detail-box" style="grid-column: span 2;">
+      <div class="detail-label">Point de départ</div>
+      <div class="detail-value">${cmd.point_depart}</div>
+    </div>
+    ` : ''}
+  </div>
+  
+  ${hasSignature ? `
+  <div class="section">
+    <div class="section-title">✍️ Signature du Client</div>
+    <div class="signature-box">
+      <img src="${cmd.signature}" alt="Signature client" class="signature-img">
+      <p style="margin-top: 10px; color: #10b981; font-weight: bold; font-size: 14px;">✓ Signature validée le ${new Date().toLocaleDateString('fr-FR')}</p>
+    </div>
+  </div>
+  ` : ''}
+  
+  ${photos.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📸 Photos de livraison (${photos.length} photo${photos.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${photos.map((p, i) => `
+      <div class="photo-wrapper">
+        <img src="${p}" alt="Photo ${i + 1}">
+        <div class="photo-label">Photo ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  ${documents.length > 0 ? `
+  <div class="section">
+    <div class="section-title">📄 Documents CMR (${documents.length} document${documents.length > 1 ? 's' : ''})</div>
+    <div class="photos-container">
+      ${documents.map((d, i) => `
+      <div class="photo-wrapper">
+        <img src="${d}" alt="Document CMR ${i + 1}">
+        <div class="photo-label">Document CMR ${i + 1} - ${cmd.ref}</div>
+      </div>
+      `).join('')}
+    </div>
+  </div>
+  ` : ''}
+  
+  <div style="text-align: center; margin: 40px 0;">
+    <span class="status-badge">✅ LIVRÉE ET SIGNÉE</span>
+  </div>
+  
+  <div class="footer">
+    <p><strong>🚚 Solana Logistique - Transport & Logistique</strong></p>
+    <p>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+    <p style="margin-top: 8px; font-weight: bold;">Référence: ${cmd.ref}</p>
+  </div>
+  
+</body>
+</html>`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  function generateQRCode(text) {
+    const container = document.getElementById('qrCodeContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    currentQRInstance = new QRCode(container, { text: text, width: 220, height: 220, colorDark: '#0077b6', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  }
+
+  function closeQRModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+    if (currentQRInstance) currentQRInstance = null;
+  }
+
+  function downloadQRCode(ref) {
+    const container = document.getElementById('qrCodeContainer');
+    const canvas = container ? container.querySelector('canvas') : null;
+    if (canvas) {
+      const link = document.createElement('a');
+      link.download = `QR_Livraison_${ref}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('📥 QR Code téléchargé!');
+    }
+  }
+
+  function printQRCode(ref) {
+    const container = document.getElementById('qrCodeContainer');
+    const canvas = container ? container.querySelector('canvas') : null;
+    if (canvas) {
+      const imgData = canvas.toDataURL('image/png');
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`<!DOCTYPE html><html><head><title>Livraison ${ref}</title><style>body{font-family:Arial;text-align:center;padding:30px;}.qr{margin:20px auto;padding:20px;background:white;display:inline-block;border-radius:10px;}</style></head><body><h1>🚚 Solana Logistique</h1><h2>Confirmation de Livraison</h2><div class="qr"><img src="${imgData}" style="width:200px;height:200px;"></div><p><strong>Réf:</strong> ${ref}</p><p><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p></body></html>`);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 500);
+    }
+  }
+
+  function sendDeliveryEmail(ref) {
+    const cmd = cmds.find(c => c.ref === ref);
+    if (!cmd) return;
+    const viewUrl = `${BASE_URL}?view=delivery&ref=${encodeURIComponent(ref)}`;
+    const sujet = `🎉 LIVRAISON CONFIRMÉE - ${cmd.ref}`;
+    const message = `Bonjour ${cmd.client},\n\n🎉 VOTRE COMMANDE A ÉTÉ LIVRÉE!\n\nRéférence: ${cmd.ref}\nTonnes: ${cmd.tonnes.toFixed(2)} T\nDestination: ${paysNoms[cmd.pays]}\n\nVoir détails: ${viewUrl}\n\n🚚 Solana Logistique`;
+    window.open(`mailto:${cmd.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
+    showToast('📧 Email préparé!');
   }
 
   // ==================== FILTERS ====================
@@ -2073,11 +3519,7 @@
     const country = document.getElementById('countryFilter').value;
     
     filteredCmds = cmds.filter(c => {
-      const matchSearch = !search || 
-        c.client.toLowerCase().includes(search) || 
-        c.ref.toLowerCase().includes(search) || 
-        c.pays.toLowerCase().includes(search) ||
-        (c.transporteur && c.transporteur.toLowerCase().includes(search));
+      const matchSearch = !search || c.client.toLowerCase().includes(search) || c.ref.toLowerCase().includes(search) || c.pays.toLowerCase().includes(search);
       const matchDateFrom = !dateFrom || c.date >= dateFrom;
       const matchDateTo = !dateTo || c.date <= dateTo;
       const matchCountry = !country || c.pays === country;
@@ -2130,14 +3572,14 @@
     const att = filteredCmds.filter(c => c.statut === 'EN ATTENTE').length;
     const ch = filteredCmds.filter(c => c.statut === 'CHARGÉE').length;
     const liv = filteredCmds.filter(c => c.statut === 'LIVRÉE').length;
-    const transporteurs = [...new Set(filteredCmds.map(c => c.transporteur).filter(t => t))].length;
+    const em = filteredCmds.reduce((s, c) => s + (c.nb_emails || 0), 0);
     const pct = filteredCmds.length ? Math.round(((ch + liv) / filteredCmds.length) * 100) : 0;
 
     document.getElementById('kpiTonnes').textContent = tot.toFixed(1) + ' T';
     document.getElementById('kpiAttente').textContent = att;
     document.getElementById('kpiChargees').textContent = ch;
     document.getElementById('kpiLivrees').textContent = liv;
-    document.getElementById('kpiTransporteurs').textContent = transporteurs;
+    document.getElementById('kpiEmails').textContent = em;
     document.getElementById('headerStats').textContent = `${filteredCmds.length} commandes`;
     document.getElementById('progressPercent').textContent = pct + '%';
     document.getElementById('progressBar').style.width = pct + '%';
@@ -2149,26 +3591,47 @@
     if (map && !document.getElementById('view-map').classList.contains('hidden')) updateMapMarkers();
   }
 
-  function getStatusBadge(statut) {
+  function getStatusBadge(statut, hasSignature = false) {
     if (statut === 'LIVRÉE') return `<span class="px-3 py-1 gradient-delivered text-white text-xs font-bold rounded-full">🎉 LIVRÉE</span>`;
-    if (statut === 'CHARGÉE') return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE</span>`;
+    if (statut === 'CHARGÉE') {
+      const signatureIndicator = hasSignature ? ' ✍️' : '';
+      return `<span class="px-3 py-1 gradient-success text-white text-xs font-bold rounded-full">✅ CHARGÉE${signatureIndicator}</span>`;
+    }
     return `<span class="px-3 py-1 gradient-warning text-white text-xs font-bold rounded-full">⏳ ATTENTE</span>`;
+  }
+
+  function getSignatureIndicator(cmd) {
+    if (cmd.signature && cmd.signature.startsWith('data:image')) {
+      return '<span class="ml-1 text-emerald-500" title="Client a signé">✍️</span>';
+    }
+    if (cmd.statut === 'CHARGÉE') {
+      return '<span class="ml-1 text-amber-500 animate-pulse" title="En attente de signature">⏳</span>';
+    }
+    return '';
   }
 
   function getActionButtons(cmd) {
     let buttons = '';
+    const hasSignature = cmd.signature && cmd.signature.startsWith('data:image');
     if (cmd.statut === 'EN ATTENTE') buttons += `<button onclick='confirmerEmail(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-success text-white text-xs rounded-lg" title="Confirmer le chargement">✅</button>`;
-    else if (cmd.statut === 'CHARGÉE') buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 gradient-delivered text-white text-xs rounded-lg" title="Confirmer la livraison">🎉</button>`;
+    else if (cmd.statut === 'CHARGÉE') {
+      const btnClass = hasSignature ? 'gradient-delivered' : 'bg-gray-400 cursor-not-allowed';
+      const btnTitle = hasSignature ? 'Confirmer la livraison' : 'Client doit signer d\'abord';
+      buttons += `<button onclick='showDeliveryConfirmation(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 ${btnClass} text-white text-xs rounded-lg" title="${btnTitle}">🎉</button>`;
+    }
+    if (cmd.statut === 'CHARGÉE' || cmd.statut === 'LIVRÉE') buttons += `<button onclick='showQRModal(${JSON.stringify(cmd).replace(/'/g, "\\'")})' class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg" title="QR Code">📱</button>`;
     buttons += `<button onclick="supprimerCmd('${cmd.ref}')" class="px-3 py-1 gradient-danger text-white text-xs rounded-lg" title="Supprimer">🗑️</button>`;
     return buttons;
   }
 
   function renderTable() {
     if (filteredCmds.length === 0) {
-      document.getElementById('tableBody').innerHTML = `<tr><td colspan="10" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
+      document.getElementById('tableBody').innerHTML = `<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>`;
       return;
     }
-    document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
+    document.getElementById('tableBody').innerHTML = filteredCmds.map(c => {
+      const hasSignature = c.signature && c.signature.startsWith('data:image');
+      return `
       <tr class="table-row border-b dark:border-gray-700 ${c.statut === 'LIVRÉE' ? 'bg-emerald-50/50 dark:bg-emerald-900/20' : c.statut === 'CHARGÉE' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}">
         <td class="px-4 py-3"><input type="checkbox" ${selectedCmds.has(c.ref) ? 'checked' : ''} onchange="toggleSelect('${c.ref}')" class="w-5 h-5 rounded"></td>
         <td class="px-4 py-3 font-bold">${c.client}</td>
@@ -2177,11 +3640,10 @@
         <td class="px-4 py-3">${c.point_depart}</td>
         <td class="px-4 py-3">${paysEmojis[c.pays]} ${c.pays}</td>
         <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}T</td>
-        <td class="px-4 py-3 text-sky-600 font-medium text-sm">${c.transporteur || '-'}</td>
-        <td class="px-4 py-3">${getStatusBadge(c.statut)}</td>
+        <td class="px-4 py-3">${getStatusBadge(c.statut, hasSignature)}${getSignatureIndicator(c)}</td>
         <td class="px-4 py-3"><div class="flex justify-center gap-1">${getActionButtons(c)}</div></td>
       </tr>`;
-    ).join('');
+    }).join('');
   }
 
   function renderCards() {
@@ -2189,19 +3651,15 @@
       document.getElementById('cardsContainer').innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">Aucun résultat</div>`;
       return;
     }
-    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
+    document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => {
+      const hasSignature = c.signature && c.signature.startsWith('data:image');
+      return `
       <div class="bg-white dark:bg-slate-800 rounded-xl border-2 ${c.statut === 'LIVRÉE' ? 'border-emerald-400' : c.statut === 'CHARGÉE' ? 'border-blue-400' : 'border-amber-400'} shadow-lg p-4">
-        <div class="flex justify-between items-center mb-2"><span class="font-bold">${c.client}</span>${getStatusBadge(c.statut)}</div>
-        <div class="text-sm text-gray-500 space-y-1">
-          <p>📄 ${c.ref}</p>
-          <p>📅 ${c.date}</p>
-          <p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p>
-          <p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p>
-          <p>🚛 <span class="text-sky-600">${c.transporteur || 'Non assigné'}</span></p>
-        </div>
+        <div class="flex justify-between items-center mb-2"><span class="font-bold">${c.client}</span>${getStatusBadge(c.statut, hasSignature)}</div>
+        <div class="text-sm text-gray-500 space-y-1"><p>📄 ${c.ref}</p><p>📅 ${c.date}</p><p>🌍 ${paysEmojis[c.pays]} ${paysNoms[c.pays]}</p><p>⚖️ <span class="font-bold text-emerald-600">${c.tonnes.toFixed(2)} T</span></p>${getSignatureIndicator(c) ? `<p class="text-xs">Signature: ${getSignatureIndicator(c)}</p>` : ''}</div>
         <div class="flex gap-1 mt-3 justify-end">${getActionButtons(c)}</div>
       </div>`;
-    ).join('');
+    }).join('');
   }
 
   // ==================== CALENDAR ====================
@@ -2229,7 +3687,7 @@
     const dayCmds = cmds.filter(c => c.date === date);
     if (dayCmds.length === 0) return;
     document.getElementById('calendarModalTitle').textContent = `📅 ${new Date(date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`;
-    document.getElementById('calendarModalContent').innerHTML = dayCmds.map(c => `<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl mb-2"><div><p class="font-bold">${c.client}</p><p class="text-sm text-gray-500">${c.ref} - ${c.tonnes.toFixed(2)}T → ${paysNoms[c.pays]} | 🚛 ${c.transporteur || '-'}</p></div>${getStatusBadge(c.statut)}</div>`).join('');
+    document.getElementById('calendarModalContent').innerHTML = dayCmds.map(c => `<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-700 rounded-xl mb-2"><div><p class="font-bold">${c.client}</p><p class="text-sm text-gray-500">${c.ref} - ${c.tonnes.toFixed(2)}T → ${paysNoms[c.pays]}</p></div>${getStatusBadge(c.statut)}</div>`).join('');
     document.getElementById('calendarModal').classList.remove('hidden');
   }
 
@@ -2251,7 +3709,7 @@
       if (paysCoords[c.pays]) {
         const color = c.statut === 'LIVRÉE' ? '#10b981' : c.statut === 'CHARGÉE' ? '#0077b6' : '#f59e0b';
         const icon = L.divIcon({ className: 'custom-marker', html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${paysEmojis[c.pays] || '📦'}</div>`, iconSize: [30, 30] });
-        L.marker(paysCoords[c.pays], { icon }).bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T<br>🚛 ${c.transporteur || 'N/A'}`).addTo(markersLayer);
+        L.marker(paysCoords[c.pays], { icon }).bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T`).addTo(markersLayer);
       }
     });
   }
@@ -2276,7 +3734,7 @@
 
   // ==================== EXPORT ====================
   function exportExcel() {
-    const data = filteredCmds.map(c => ({ Client: c.client, Référence: c.ref, Date: c.date, Départ: c.point_depart, Pays: paysNoms[c.pays], Tonnes: c.tonnes, Statut: c.statut, Transporteur: c.transporteur || '', Immatriculation: c.immat || '', Email: c.email }));
+    const data = filteredCmds.map(c => ({ Client: c.client, Référence: c.ref, Date: c.date, Départ: c.point_depart, Pays: paysNoms[c.pays], Tonnes: c.tonnes, Statut: c.statut, Email: c.email }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
@@ -2293,13 +3751,7 @@
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Exporté le ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
-    doc.autoTable({ 
-      head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Transporteur', 'Statut']], 
-      body: filteredCmds.map(c => [c.client, c.ref, c.date, paysNoms[c.pays], c.tonnes.toFixed(2) + ' T', c.transporteur || '-', c.statut]), 
-      startY: 35, 
-      headStyles: { fillColor: [0, 119, 182] }, 
-      alternateRowStyles: { fillColor: [240, 249, 255] } 
-    });
+    doc.autoTable({ head: [['Client', 'Réf', 'Date', 'Pays', 'Tonnes', 'Statut']], body: filteredCmds.map(c => [c.client, c.ref, c.date, paysNoms[c.pays], c.tonnes.toFixed(2) + ' T', c.statut]), startY: 35, headStyles: { fillColor: [0, 119, 182] }, alternateRowStyles: { fillColor: [240, 249, 255] } });
     doc.save(`Solana_Commandes_${new Date().toISOString().split('T')[0]}.pdf`);
     showToast('📄 PDF exporté!');
   }
@@ -2325,12 +3777,23 @@
   }
 
   // ==================== START ====================
+  // Initialize on page load - ensure login screen is shown correctly
   document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('loginScreen').classList.remove('hidden');
+    console.log('Page loaded, checking view mode...');
+    const isPublicView = checkPublicView();
+    console.log('Is public view:', isPublicView);
+    
+    if (!isPublicView) {
+      console.log('Showing login screen...');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
   });
   
+  // Fallback if DOMContentLoaded already fired
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    document.getElementById('loginScreen').classList.remove('hidden');
+    if (!checkPublicView()) {
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
   }
 </script>
 
