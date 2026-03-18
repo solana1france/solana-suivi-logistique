@@ -607,24 +607,32 @@
             </h3>
           </div>
           
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
             <!-- Graphique transporteurs -->
-            <div>
-              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">📊 Performance par Transporteur</h4>
+            <div class="lg:col-span-1">
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">📊 Tonnes par Transporteur</h4>
               <div class="chart-container" style="height: 250px;">
                 <canvas id="transporteursChart"></canvas>
               </div>
             </div>
             
-            <!-- Top transporteurs -->
-            <div>
-              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">🏆 Top 5 Transporteurs</h4>
+            <!-- Comparatif transporteurs -->
+            <div class="lg:col-span-1">
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">⚖️ Comparatif Performance</h4>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="transporteursComparatifChart"></canvas>
+              </div>
+            </div>
+            
+            <!-- Top transporteurs avec note -->
+            <div class="lg:col-span-1">
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">🏆 Classement Qualité</h4>
               <div id="topTransporteursList" class="space-y-3">
               </div>
             </div>
           </div>
           
-          <!-- Tableau détaillé des transporteurs -->
+          <!-- Tableau détaillé des transporteurs avec SLA et Note -->
           <div class="overflow-x-auto border-t dark:border-gray-700">
             <table class="w-full">
               <thead class="bg-gray-50 dark:bg-slate-700">
@@ -633,12 +641,124 @@
                   <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
                   <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
                   <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Livrées</th>
-                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Taux</th>
+                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">SLA %</th>
+                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Note</th>
                 </tr>
               </thead>
               <tbody id="transporteursTable">
               </tbody>
             </table>
+          </div>
+        </div>
+        
+        <!-- Rapport Exécutif Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
+          <div class="p-4 border-b dark:border-gray-700 bg-gradient-to-r from-amber-500 to-orange-500">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <h3 class="font-bold text-white flex items-center gap-2">
+                <span class="text-xl">📋</span> Rapport Exécutif - Résumé Direction
+              </h3>
+              <div class="flex items-center gap-2">
+                <label class="text-white text-sm font-medium">📅 Période:</label>
+                <select id="execMonthSelector" onchange="updateExecutiveReportFromSelector()" class="px-3 py-1.5 rounded-lg bg-white/20 text-white border border-white/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/50">
+                  <!-- Options générées dynamiquement -->
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          <div class="p-6">
+            <!-- Score Global -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-white text-center">
+                <p class="text-sm opacity-80 mb-1">Score Global</p>
+                <p class="text-4xl font-black" id="execScoreGlobal">0</p>
+                <p class="text-xs opacity-70">/ 100</p>
+              </div>
+              <div class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl p-5 text-white text-center">
+                <p class="text-sm opacity-80 mb-1">Taux Livraison</p>
+                <p class="text-4xl font-black" id="execTauxLivraison">0%</p>
+                <p class="text-xs opacity-70">objectif 90%</p>
+              </div>
+              <div class="bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl p-5 text-white text-center">
+                <p class="text-sm opacity-80 mb-1">Commandes ce mois</p>
+                <p class="text-4xl font-black" id="execCommandesMois">0</p>
+                <p class="text-xs opacity-70">commandes</p>
+              </div>
+              <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-white text-center">
+                <p class="text-sm opacity-80 mb-1">Tonnes ce mois</p>
+                <p class="text-4xl font-black" id="execTonnesMois">0 T</p>
+                <p class="text-xs opacity-70">transportées</p>
+              </div>
+            </div>
+            
+            <!-- Classements -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Top Client -->
+              <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4">
+                <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <span class="text-amber-500">🥇</span> Top Client du Mois
+                </h4>
+                <div id="execTopClient" class="text-center py-4">
+                  <p class="text-2xl font-bold text-gray-800 dark:text-white">-</p>
+                  <p class="text-sm text-gray-500">0 T</p>
+                </div>
+              </div>
+              
+              <!-- Top Transporteur -->
+              <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4">
+                <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <span class="text-amber-500">🥇</span> Top Transporteur
+                </h4>
+                <div id="execTopTransporteur" class="text-center py-4">
+                  <p class="text-2xl font-bold text-gray-800 dark:text-white">-</p>
+                  <p class="text-sm text-gray-500">⭐ 0/5</p>
+                </div>
+              </div>
+              
+              <!-- Top Destination -->
+              <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4">
+                <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                  <span class="text-amber-500">🥇</span> Top Destination
+                </h4>
+                <div id="execTopDestination" class="text-center py-4">
+                  <p class="text-2xl font-bold text-gray-800 dark:text-white">-</p>
+                  <p class="text-sm text-gray-500">0 T</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Indicateurs de santé -->
+            <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div class="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                <span class="text-2xl">✅</span>
+                <div>
+                  <p class="text-xs text-gray-500">Livraisons OK</p>
+                  <p class="font-bold text-emerald-600" id="execLivraisonsOK">0</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <span class="text-2xl">🚚</span>
+                <div>
+                  <p class="text-xs text-gray-500">En cours</p>
+                  <p class="font-bold text-blue-600" id="execEnCours">0</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                <span class="text-2xl">⏳</span>
+                <div>
+                  <p class="text-xs text-gray-500">En attente</p>
+                  <p class="font-bold text-amber-600" id="execEnAttente">0</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+                <span class="text-2xl">🚛</span>
+                <div>
+                  <p class="text-xs text-gray-500">Transporteurs actifs</p>
+                  <p class="font-bold text-purple-600" id="execTransporteursActifs">0</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1481,6 +1601,54 @@
 
   // ==================== TRANSPORTEURS ANALYTICS ====================
   let transporteursChart = null;
+  let transporteursComparatifChart = null;
+  
+  // Variables globales pour le rapport exécutif
+  let execDataCache = {
+    sortedTransporteurs: [],
+    filtered: []
+  };
+  let selectedExecMonth = 'all'; // 'all' ou 'YYYY-MM'
+  
+  // Calculer la note qualité (0-5 étoiles) basée sur SLA et performance
+  function calculateQualityNote(sla, tonnes, avgTonnes) {
+    if (sla === 0 && tonnes === 0) return 0;
+    
+    let note = 0;
+    
+    // SLA score (0-2.5 points)
+    if (sla >= 95) note += 2.5;
+    else if (sla >= 80) note += 2;
+    else if (sla >= 60) note += 1.5;
+    else if (sla >= 40) note += 1;
+    else if (sla > 0) note += 0.5;
+    
+    // Volume score (0-2.5 points)
+    if (avgTonnes > 0) {
+      const volumeRatio = tonnes / avgTonnes;
+      if (volumeRatio >= 1.5) note += 2.5;
+      else if (volumeRatio >= 1) note += 2;
+      else if (volumeRatio >= 0.5) note += 1.5;
+      else if (volumeRatio > 0) note += 1;
+    }
+    
+    return Math.min(5, Math.round(note * 2) / 2); // Arrondi à 0.5
+  }
+  
+  // Générer les étoiles HTML
+  function getStarsHTML(note) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+      if (i <= note) {
+        stars += '⭐';
+      } else if (i - 0.5 === note) {
+        stars += '✨';
+      } else {
+        stars += '☆';
+      }
+    }
+    return stars;
+  }
   
   function updateTransporteurs() {
     const filtered = getFilteredCmdsForReport();
@@ -1494,13 +1662,22 @@
             commandes: 0, 
             tonnes: 0, 
             livrees: 0,
-            encours: 0 
+            encours: 0,
+            slaOK: 0, // Livraisons dans les délais
+            slaTotal: 0
           };
         }
         transporteursData[c.transporteur].commandes++;
         transporteursData[c.transporteur].tonnes += c.tonnes;
         if (c.statut === 'LIVRÉE') transporteursData[c.transporteur].livrees++;
         if (c.statut === 'CHARGÉE') transporteursData[c.transporteur].encours++;
+        
+        // SLA: si date_livraison existe et proche de date_chargement (< 7 jours)
+        if (c.date_livraison && c.date_chargement) {
+          transporteursData[c.transporteur].slaTotal++;
+          const days = Math.abs((new Date(c.date_livraison) - new Date(c.date_chargement)) / (1000 * 60 * 60 * 24));
+          if (days <= 7) transporteursData[c.transporteur].slaOK++;
+        }
       }
     });
     
@@ -1508,13 +1685,15 @@
     const sortedTransporteurs = Object.entries(transporteursData)
       .sort((a, b) => b[1].tonnes - a[1].tonnes);
     
-    // Mettre à jour le graphique
+    // Calculer moyenne pour les notes
+    const avgTonnes = sortedTransporteurs.length > 0 
+      ? sortedTransporteurs.reduce((sum, [, d]) => sum + d.tonnes, 0) / sortedTransporteurs.length 
+      : 0;
+    
+    // Mettre à jour le graphique tonnes
     const top5 = sortedTransporteurs.slice(0, 5);
-    const labels = top5.map(([name]) => name);
+    const labels = top5.map(([name]) => name.length > 15 ? name.substring(0, 15) + '...' : name);
     const tonnesData = top5.map(([, data]) => data.tonnes);
-    const deliveryRates = top5.map(([, data]) => 
-      data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0
-    );
     
     if (transporteursChart) transporteursChart.destroy();
     
@@ -1523,9 +1702,9 @@
       transporteursChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: labels.length > 0 ? labels : ['Aucun transporteur'],
+          labels: labels.length > 0 ? labels : ['Aucun'],
           datasets: [{
-            label: 'Tonnes transportées',
+            label: 'Tonnes',
             data: tonnesData.length > 0 ? tonnesData : [0],
             backgroundColor: [
               'rgba(139, 92, 246, 0.8)',
@@ -1540,9 +1719,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
+          plugins: { legend: { display: false } },
           scales: {
             y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
             x: { grid: { display: false } }
@@ -1551,33 +1728,78 @@
       });
     }
     
-    // Mettre à jour la liste top 5
+    // Mettre à jour le graphique comparatif (SLA vs Volume)
+    const slaData = top5.map(([, data]) => {
+      if (data.slaTotal > 0) {
+        return Math.round((data.slaOK / data.slaTotal) * 100);
+      }
+      // Si pas de données SLA, utiliser le taux de livraison
+      return data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0;
+    });
+    
+    if (transporteursComparatifChart) transporteursComparatifChart.destroy();
+    
+    const ctx2 = document.getElementById('transporteursComparatifChart');
+    if (ctx2) {
+      transporteursComparatifChart = new Chart(ctx2, {
+        type: 'radar',
+        data: {
+          labels: labels.length > 0 ? labels : ['Aucun'],
+          datasets: [{
+            label: 'SLA %',
+            data: slaData.length > 0 ? slaData : [0],
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(16, 185, 129, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { stepSize: 20 }
+            }
+          }
+        }
+      });
+    }
+    
+    // Mettre à jour la liste top 5 avec notes
     const topList = document.getElementById('topTransporteursList');
     if (topList) {
       if (top5.length === 0) {
         topList.innerHTML = `
           <div class="text-center text-gray-400 py-8">
             <span class="text-4xl">🚛</span>
-            <p class="mt-2">Aucun transporteur enregistré</p>
-            <p class="text-xs">Les transporteurs apparaissent lors du chargement des commandes</p>
+            <p class="mt-2">Aucun transporteur</p>
+            <p class="text-xs">Apparaît lors du chargement</p>
           </div>
         `;
       } else {
         topList.innerHTML = top5.map(([name, data], i) => {
-          const rate = data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0;
+          const sla = data.slaTotal > 0 
+            ? Math.round((data.slaOK / data.slaTotal) * 100) 
+            : (data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0);
+          const note = calculateQualityNote(sla, data.tonnes, avgTonnes);
           const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+          
           return `
             <div class="flex items-center justify-between p-3 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-xl">
-              <div class="flex items-center gap-3">
-                <span class="text-2xl">${medals[i]}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xl">${medals[i]}</span>
                 <div>
-                  <p class="font-bold text-gray-800 dark:text-white">${name}</p>
-                  <p class="text-xs text-gray-500">${data.commandes} cmd • ${data.livrees} livrées</p>
+                  <p class="font-bold text-sm text-gray-800 dark:text-white truncate" style="max-width: 80px;">${name}</p>
+                  <p class="text-xs text-gray-500">${getStarsHTML(note)}</p>
                 </div>
               </div>
               <div class="text-right">
-                <p class="font-bold text-purple-600">${data.tonnes.toFixed(1)} T</p>
-                <p class="text-xs ${rate >= 80 ? 'text-emerald-500' : rate >= 50 ? 'text-amber-500' : 'text-gray-400'}">${rate}% livrées</p>
+                <p class="font-bold text-purple-600 text-sm">${data.tonnes.toFixed(1)} T</p>
+                <p class="text-xs ${sla >= 80 ? 'text-emerald-500' : sla >= 50 ? 'text-amber-500' : 'text-red-500'}">SLA ${sla}%</p>
               </div>
             </div>
           `;
@@ -1585,22 +1807,26 @@
       }
     }
     
-    // Mettre à jour le tableau détaillé
+    // Mettre à jour le tableau détaillé avec SLA et Note
     const tableBody = document.getElementById('transporteursTable');
     if (tableBody) {
       if (sortedTransporteurs.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="5" class="text-center py-8 text-gray-400">
+            <td colspan="6" class="text-center py-8 text-gray-400">
               Aucune donnée de transporteur disponible
             </td>
           </tr>
         `;
       } else {
         tableBody.innerHTML = sortedTransporteurs.map(([name, data]) => {
-          const rate = data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0;
-          const rateColor = rate >= 80 ? 'text-emerald-600' : rate >= 50 ? 'text-amber-600' : 'text-red-600';
-          const rateBg = rate >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30' : rate >= 50 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30';
+          const sla = data.slaTotal > 0 
+            ? Math.round((data.slaOK / data.slaTotal) * 100) 
+            : (data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0);
+          const note = calculateQualityNote(sla, data.tonnes, avgTonnes);
+          const slaColor = sla >= 80 ? 'text-emerald-600' : sla >= 60 ? 'text-amber-600' : 'text-red-600';
+          const slaBg = sla >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30' : sla >= 60 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30';
+          const noteColor = note >= 4 ? 'text-emerald-600' : note >= 2.5 ? 'text-amber-600' : 'text-red-600';
           
           return `
             <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700/50">
@@ -1609,13 +1835,179 @@
               <td class="px-4 py-3 text-right font-bold text-purple-600">${data.tonnes.toFixed(2)} T</td>
               <td class="px-4 py-3 text-center">${data.livrees}</td>
               <td class="px-4 py-3 text-center">
-                <span class="px-2 py-1 rounded-full text-xs font-bold ${rateBg} ${rateColor}">${rate}%</span>
+                <span class="px-2 py-1 rounded-full text-xs font-bold ${slaBg} ${slaColor}">${sla}%</span>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <span class="${noteColor} font-bold">${getStarsHTML(note)}</span>
               </td>
             </tr>
           `;
         }).join('');
       }
     }
+    
+    // Mettre à jour le rapport exécutif
+    updateExecutiveReport(sortedTransporteurs, filtered);
+  }
+  
+  // ==================== RAPPORT EXÉCUTIF ====================
+  // Initialiser le sélecteur de mois
+  function initExecMonthSelector(filtered) {
+    const selector = document.getElementById('execMonthSelector');
+    if (!selector) return;
+    
+    // Trouver tous les mois disponibles dans les données
+    const months = new Set();
+    filtered.forEach(c => {
+      if (c.date) {
+        const d = new Date(c.date);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        months.add(monthKey);
+      }
+    });
+    
+    // Trier les mois du plus récent au plus ancien
+    const sortedMonths = Array.from(months).sort().reverse();
+    
+    // Noms des mois en français
+    const monthNames = {
+      '01': 'Janvier', '02': 'Février', '03': 'Mars', '04': 'Avril',
+      '05': 'Mai', '06': 'Juin', '07': 'Juillet', '08': 'Août',
+      '09': 'Septembre', '10': 'Octobre', '11': 'Novembre', '12': 'Décembre'
+    };
+    
+    // Construire les options
+    let optionsHTML = '<option value="all">📅 Toute la période</option>';
+    sortedMonths.forEach(m => {
+      const [year, month] = m.split('-');
+      const label = `${monthNames[month]} ${year}`;
+      optionsHTML += `<option value="${m}">${label}</option>`;
+    });
+    
+    selector.innerHTML = optionsHTML;
+    selector.value = selectedExecMonth;
+  }
+  
+  // Fonction appelée quand on change le mois sélectionné
+  function updateExecutiveReportFromSelector() {
+    const selector = document.getElementById('execMonthSelector');
+    if (!selector) return;
+    
+    selectedExecMonth = selector.value;
+    updateExecutiveReport(execDataCache.sortedTransporteurs, execDataCache.filtered, selectedExecMonth);
+  }
+  
+  function updateExecutiveReport(sortedTransporteurs, filtered, selectedMonth = 'all') {
+    // Sauvegarder les données dans le cache
+    execDataCache = { sortedTransporteurs, filtered };
+    
+    // Initialiser le sélecteur si pas déjà fait
+    const selector = document.getElementById('execMonthSelector');
+    if (selector && selector.options.length <= 1) {
+      initExecMonthSelector(filtered);
+    }
+    
+    // Déterminer la période à filtrer
+    let cmdPeriode = filtered;
+    let periodeLabel = 'ce mois';
+    
+    if (selectedMonth !== 'all') {
+      const [year, month] = selectedMonth.split('-');
+      cmdPeriode = filtered.filter(c => {
+        if (!c.date) return false;
+        const d = new Date(c.date);
+        return d.getFullYear() === parseInt(year) && (d.getMonth() + 1) === parseInt(month);
+      });
+      const monthNames = {
+        '01': 'Janvier', '02': 'Février', '03': 'Mars', '04': 'Avril',
+        '05': 'Mai', '06': 'Juin', '07': 'Juillet', '08': 'Août',
+        '09': 'Septembre', '10': 'Octobre', '11': 'Novembre', '12': 'Décembre'
+      };
+      periodeLabel = `${monthNames[month]} ${year}`;
+    } else {
+      // Mode "toute la période" - utiliser le mois courant par défaut
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      cmdPeriode = filtered.filter(c => {
+        if (!c.date) return false;
+        const d = new Date(c.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+    }
+    
+    const tonnesPeriode = cmdPeriode.reduce((s, c) => s + c.tonnes, 0);
+    const livreesPeriode = cmdPeriode.filter(c => c.statut === 'LIVRÉE').length;
+    
+    // Calculer le taux de livraison sur les données filtrées par période
+    const tauxLivraison = cmdPeriode.length > 0 
+      ? Math.round((cmdPeriode.filter(c => c.statut === 'LIVRÉE').length / cmdPeriode.length) * 100)
+      : 0;
+    
+    // Score global (basé sur plusieurs critères)
+    const tauxChargement = cmdPeriode.length > 0 
+      ? Math.round(((cmdPeriode.filter(c => c.statut === 'CHARGÉE').length + cmdPeriode.filter(c => c.statut === 'LIVRÉE').length) / cmdPeriode.length) * 100)
+      : 0;
+    const scoreGlobal = Math.round((tauxLivraison + tauxChargement) / 2);
+    
+    // Mettre à jour les éléments
+    document.getElementById('execScoreGlobal').textContent = scoreGlobal;
+    document.getElementById('execTauxLivraison').textContent = tauxLivraison + '%';
+    document.getElementById('execCommandesMois').textContent = cmdPeriode.length;
+    document.getElementById('execTonnesMois').textContent = tonnesPeriode.toFixed(1) + ' T';
+    
+    // Top client de la période
+    const clientPeriode = {};
+    cmdPeriode.forEach(c => { clientPeriode[c.client] = (clientPeriode[c.client] || 0) + c.tonnes; });
+    const topClientPeriode = Object.entries(clientPeriode).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('execTopClient').innerHTML = topClientPeriode 
+      ? `<p class="text-2xl font-bold text-gray-800 dark:text-white">${topClientPeriode[0]}</p><p class="text-sm text-gray-500">${topClientPeriode[1].toFixed(1)} T</p>`
+      : '<p class="text-2xl font-bold text-gray-400">-</p>';
+    
+    // Top transporteur de la période
+    const transporteurPeriode = {};
+    cmdPeriode.forEach(c => {
+      if (c.transporteur) {
+        if (!transporteurPeriode[c.transporteur]) {
+          transporteurPeriode[c.transporteur] = { tonnes: 0, livrees: 0, total: 0 };
+        }
+        transporteurPeriode[c.transporteur].tonnes += c.tonnes;
+        transporteurPeriode[c.transporteur].total++;
+        if (c.statut === 'LIVRÉE') transporteurPeriode[c.transporteur].livrees++;
+      }
+    });
+    const sortedTransPeriode = Object.entries(transporteurPeriode).sort((a, b) => b[1].tonnes - a[1].tonnes);
+    const topTransPeriode = sortedTransPeriode[0];
+    
+    if (topTransPeriode) {
+      const slaTrans = topTransPeriode[1].total > 0 
+        ? Math.round((topTransPeriode[1].livrees / topTransPeriode[1].total) * 100) 
+        : 0;
+      const avgTonnesTrans = sortedTransPeriode.length > 0 
+        ? sortedTransPeriode.reduce((s, [, d]) => s + d.tonnes, 0) / sortedTransPeriode.length 
+        : 0;
+      const noteTrans = calculateQualityNote(slaTrans, topTransPeriode[1].tonnes, avgTonnesTrans);
+      document.getElementById('execTopTransporteur').innerHTML = `
+        <p class="text-2xl font-bold text-gray-800 dark:text-white">${topTransPeriode[0]}</p>
+        <p class="text-sm text-gray-500">${getStarsHTML(noteTrans)}</p>
+      `;
+    } else {
+      document.getElementById('execTopTransporteur').innerHTML = '<p class="text-2xl font-bold text-gray-400">-</p>';
+    }
+    
+    // Top destination de la période
+    const destPeriode = {};
+    cmdPeriode.forEach(c => { destPeriode[c.pays] = (destPeriode[c.pays] || 0) + c.tonnes; });
+    const topDestPeriode = Object.entries(destPeriode).sort((a, b) => b[1] - a[1])[0];
+    document.getElementById('execTopDestination').innerHTML = topDestPeriode
+      ? `<p class="text-2xl font-bold text-gray-800 dark:text-white">${paysEmojis[topDestPeriode[0]] || ''} ${paysNoms[topDestPeriode[0]] || topDestPeriode[0]}</p><p class="text-sm text-gray-500">${topDestPeriode[1].toFixed(1)} T</p>`
+      : '<p class="text-2xl font-bold text-gray-400">-</p>';
+    
+    // Indicateurs de santé (toujours sur la période filtrée)
+    document.getElementById('execLivraisonsOK').textContent = cmdPeriode.filter(c => c.statut === 'LIVRÉE').length;
+    document.getElementById('execEnCours').textContent = cmdPeriode.filter(c => c.statut === 'CHARGÉE').length;
+    document.getElementById('execEnAttente').textContent = cmdPeriode.filter(c => c.statut === 'EN ATTENTE').length;
+    document.getElementById('execTransporteursActifs').textContent = sortedTransPeriode.length;
   }
 
   // ==================== PROFESSIONAL PDF EXPORT ====================
