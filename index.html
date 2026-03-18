@@ -598,6 +598,49 @@
             </div>
           </div>
         </div>
+        
+        <!-- Supply Chain Section -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden mb-6">
+          <div class="p-4 border-b dark:border-gray-700 bg-gradient-to-r from-violet-500 to-purple-600">
+            <h3 class="font-bold text-white flex items-center gap-2">
+              <span class="text-xl">🚛</span> Analyse Supply Chain - Transporteurs
+            </h3>
+          </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+            <!-- Graphique transporteurs -->
+            <div>
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">📊 Performance par Transporteur</h4>
+              <div class="chart-container" style="height: 250px;">
+                <canvas id="transporteursChart"></canvas>
+              </div>
+            </div>
+            
+            <!-- Top transporteurs -->
+            <div>
+              <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-4">🏆 Top 5 Transporteurs</h4>
+              <div id="topTransporteursList" class="space-y-3">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Tableau détaillé des transporteurs -->
+          <div class="overflow-x-auto border-t dark:border-gray-700">
+            <table class="w-full">
+              <thead class="bg-gray-50 dark:bg-slate-700">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Transporteur</th>
+                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Commandes</th>
+                  <th class="px-4 py-3 text-right text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Tonnes</th>
+                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Livrées</th>
+                  <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 dark:text-gray-300 uppercase">Taux</th>
+                </tr>
+              </thead>
+              <tbody id="transporteursTable">
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->
@@ -921,7 +964,7 @@
     </div>
   </div>
 
-  <!-- LOADING CONFIRMATION MODAL (with Immatriculation) -->
+  <!-- LOADING CONFIRMATION MODAL (with Immatriculation, Transporteur, Langue) -->
   <div id="loadingModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-md w-full animate__animated animate__zoomIn">
       <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between">
@@ -930,10 +973,41 @@
       </div>
       <div class="p-5">
         <div id="loadingModalCmdInfo" class="mb-4"></div>
+        
+        <!-- Date de chargement -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">📅 Date de chargement</label>
+          <input type="date" id="loadingDate" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none text-lg">
+        </div>
+        
+        <!-- Transporteur -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚚 Nom du transporteur</label>
+          <input type="text" id="loadingTransporteur" placeholder="Ex: Transport Express, DHL, etc." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none text-lg">
+        </div>
+        
+        <!-- Immatriculation -->
         <div class="mb-4">
           <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🚛 Immatriculation du camion</label>
           <input type="text" id="loadingImmat" placeholder="Ex: AB-123-CD" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none text-lg font-mono">
         </div>
+        
+        <!-- Langue du message -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">🌐 Langue du message email</label>
+          <div class="flex gap-2">
+            <button type="button" onclick="setLoadingLanguage('fr')" id="langBtn-fr" class="flex-1 py-2 rounded-xl font-semibold text-sm transition-all gradient-ocean text-white">🇫🇷 Français</button>
+            <button type="button" onclick="setLoadingLanguage('en')" id="langBtn-en" class="flex-1 py-2 rounded-xl font-semibold text-sm transition-all bg-gray-100 dark:bg-slate-700">🇬🇧 English</button>
+            <button type="button" onclick="setLoadingLanguage('es')" id="langBtn-es" class="flex-1 py-2 rounded-xl font-semibold text-sm transition-all bg-gray-100 dark:bg-slate-700">🇪🇸 Español</button>
+          </div>
+        </div>
+        
+        <!-- Aperçu du message -->
+        <div class="mb-4 p-3 bg-gray-50 dark:bg-slate-700 rounded-xl text-sm">
+          <p class="font-semibold text-gray-600 dark:text-gray-400 mb-2">📧 Aperçu du message:</p>
+          <div id="loadingMessagePreview" class="text-gray-700 dark:text-gray-300 text-xs whitespace-pre-line"></div>
+        </div>
+        
         <div class="flex gap-3">
           <button type="button" onclick="closeLoadingModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
           <button type="button" onclick="confirmLoadingFinal()" class="flex-1 py-3 gradient-success text-white rounded-xl font-bold">✅ Confirmer</button>
@@ -1083,6 +1157,7 @@
     updateRecentActivity();
     updatePerformanceIndicators();
     updateRecords();
+    updateTransporteurs();
   }
 
   function updateReportKPIs() {
@@ -1402,6 +1477,145 @@
     document.getElementById('recordBestClient').textContent = topClient ? topClient[0] : '-';
     document.getElementById('recordBiggestDelivery').textContent = biggest.tonnes.toFixed(2) + ' T';
     document.getElementById('recordTopDestination').textContent = topDest ? `${paysEmojis[topDest[0]] || ''} ${paysNoms[topDest[0]] || topDest[0]}` : '-';
+  }
+
+  // ==================== TRANSPORTEURS ANALYTICS ====================
+  let transporteursChart = null;
+  
+  function updateTransporteurs() {
+    const filtered = getFilteredCmdsForReport();
+    
+    // Analyser les transporteurs
+    const transporteursData = {};
+    filtered.forEach(c => {
+      if (c.transporteur) {
+        if (!transporteursData[c.transporteur]) {
+          transporteursData[c.transporteur] = { 
+            commandes: 0, 
+            tonnes: 0, 
+            livrees: 0,
+            encours: 0 
+          };
+        }
+        transporteursData[c.transporteur].commandes++;
+        transporteursData[c.transporteur].tonnes += c.tonnes;
+        if (c.statut === 'LIVRÉE') transporteursData[c.transporteur].livrees++;
+        if (c.statut === 'CHARGÉE') transporteursData[c.transporteur].encours++;
+      }
+    });
+    
+    // Trier par tonnes
+    const sortedTransporteurs = Object.entries(transporteursData)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes);
+    
+    // Mettre à jour le graphique
+    const top5 = sortedTransporteurs.slice(0, 5);
+    const labels = top5.map(([name]) => name);
+    const tonnesData = top5.map(([, data]) => data.tonnes);
+    const deliveryRates = top5.map(([, data]) => 
+      data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0
+    );
+    
+    if (transporteursChart) transporteursChart.destroy();
+    
+    const ctx = document.getElementById('transporteursChart');
+    if (ctx) {
+      transporteursChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.length > 0 ? labels : ['Aucun transporteur'],
+          datasets: [{
+            label: 'Tonnes transportées',
+            data: tonnesData.length > 0 ? tonnesData : [0],
+            backgroundColor: [
+              'rgba(139, 92, 246, 0.8)',
+              'rgba(99, 102, 241, 0.8)',
+              'rgba(79, 70, 229, 0.8)',
+              'rgba(67, 56, 202, 0.8)',
+              'rgba(55, 48, 163, 0.8)'
+            ],
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+    
+    // Mettre à jour la liste top 5
+    const topList = document.getElementById('topTransporteursList');
+    if (topList) {
+      if (top5.length === 0) {
+        topList.innerHTML = `
+          <div class="text-center text-gray-400 py-8">
+            <span class="text-4xl">🚛</span>
+            <p class="mt-2">Aucun transporteur enregistré</p>
+            <p class="text-xs">Les transporteurs apparaissent lors du chargement des commandes</p>
+          </div>
+        `;
+      } else {
+        topList.innerHTML = top5.map(([name, data], i) => {
+          const rate = data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0;
+          const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+          return `
+            <div class="flex items-center justify-between p-3 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-xl">
+              <div class="flex items-center gap-3">
+                <span class="text-2xl">${medals[i]}</span>
+                <div>
+                  <p class="font-bold text-gray-800 dark:text-white">${name}</p>
+                  <p class="text-xs text-gray-500">${data.commandes} cmd • ${data.livrees} livrées</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="font-bold text-purple-600">${data.tonnes.toFixed(1)} T</p>
+                <p class="text-xs ${rate >= 80 ? 'text-emerald-500' : rate >= 50 ? 'text-amber-500' : 'text-gray-400'}">${rate}% livrées</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+    
+    // Mettre à jour le tableau détaillé
+    const tableBody = document.getElementById('transporteursTable');
+    if (tableBody) {
+      if (sortedTransporteurs.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center py-8 text-gray-400">
+              Aucune donnée de transporteur disponible
+            </td>
+          </tr>
+        `;
+      } else {
+        tableBody.innerHTML = sortedTransporteurs.map(([name, data]) => {
+          const rate = data.commandes > 0 ? Math.round((data.livrees / data.commandes) * 100) : 0;
+          const rateColor = rate >= 80 ? 'text-emerald-600' : rate >= 50 ? 'text-amber-600' : 'text-red-600';
+          const rateBg = rate >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30' : rate >= 50 ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-red-100 dark:bg-red-900/30';
+          
+          return `
+            <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-slate-700/50">
+              <td class="px-4 py-3 font-semibold">${name}</td>
+              <td class="px-4 py-3 text-center">${data.commandes}</td>
+              <td class="px-4 py-3 text-right font-bold text-purple-600">${data.tonnes.toFixed(2)} T</td>
+              <td class="px-4 py-3 text-center">${data.livrees}</td>
+              <td class="px-4 py-3 text-center">
+                <span class="px-2 py-1 rounded-full text-xs font-bold ${rateBg} ${rateColor}">${rate}%</span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
   }
 
   // ==================== PROFESSIONAL PDF EXPORT ====================
@@ -2679,10 +2893,101 @@
 
   // Variables pour le modal de chargement
   let currentLoadingCmd = null;
+  let currentLoadingLanguage = 'fr';
+  
+  // Messages multilingues pour le chargement
+  const loadingMessages = {
+    fr: {
+      subject: (ref, tonnes) => `✅ CHARGÉE - ${ref} - ${tonnes.toFixed(2)}T`,
+      body: (cmd, immat, transporteur, dateChargement) => `Bonjour ${cmd.client},
+
+🎉 VOTRE COMMANDE A ÉTÉ CHARGÉE!
+
+Référence: ${cmd.ref}
+Départ: ${cmd.point_depart}
+Destination: ${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}
+Tonnes: ${cmd.tonnes.toFixed(2)} T
+Camion: ${immat}
+Transporteur: ${transporteur}
+Date de chargement: ${dateChargement}
+
+🚚 Solana Logistique`
+    },
+    en: {
+      subject: (ref, tonnes) => `✅ LOADED - ${ref} - ${tonnes.toFixed(2)}T`,
+      body: (cmd, immat, transporteur, dateChargement) => `Hello ${cmd.client},
+
+🎉 YOUR ORDER HAS BEEN LOADED!
+
+Reference: ${cmd.ref}
+From: ${cmd.point_depart}
+To: ${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}
+Tonnes: ${cmd.tonnes.toFixed(2)} T
+Truck: ${immat}
+Carrier: ${transporteur}
+Loading date: ${dateChargement}
+
+🚚 Solana Logistique`
+    },
+    es: {
+      subject: (ref, tonnes) => `✅ CARGADA - ${ref} - ${tonnes.toFixed(2)}T`,
+      body: (cmd, immat, transporteur, dateChargement) => `Hola ${cmd.client},
+
+🎉 ¡SU PEDIDO HA SIDO CARGADO!
+
+Referencia: ${cmd.ref}
+Salida: ${cmd.point_depart}
+Destino: ${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}
+Toneladas: ${cmd.tonnes.toFixed(2)} T
+Camión: ${immat}
+Transportista: ${transporteur}
+Fecha de carga: ${dateChargement}
+
+🚚 Solana Logistique`
+    }
+  };
+  
+  function setLoadingLanguage(lang) {
+    currentLoadingLanguage = lang;
+    
+    // Mettre à jour les boutons
+    ['fr', 'en', 'es'].forEach(l => {
+      const btn = document.getElementById(`langBtn-${l}`);
+      if (btn) {
+        if (l === lang) {
+          btn.className = 'flex-1 py-2 rounded-xl font-semibold text-sm transition-all gradient-ocean text-white';
+        } else {
+          btn.className = 'flex-1 py-2 rounded-xl font-semibold text-sm transition-all bg-gray-100 dark:bg-slate-700';
+        }
+      }
+    });
+    
+    // Mettre à jour l'aperçu
+    updateLoadingMessagePreview();
+  }
+  
+  function updateLoadingMessagePreview() {
+    if (!currentLoadingCmd) return;
+    
+    const immat = document.getElementById('loadingImmat').value.trim() || '[immat]';
+    const transporteur = document.getElementById('loadingTransporteur').value.trim() || '[transporteur]';
+    const dateChargement = document.getElementById('loadingDate').value || new Date().toISOString().split('T')[0];
+    
+    const msg = loadingMessages[currentLoadingLanguage];
+    const preview = msg.body(currentLoadingCmd, immat, transporteur, formatDate(dateChargement));
+    
+    document.getElementById('loadingMessagePreview').textContent = preview;
+  }
+  
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  }
   
   function confirmerEmail(cmd) {
     // Ouvrir le modal pour demander l'immatriculation
     currentLoadingCmd = cmd;
+    currentLoadingLanguage = 'fr';
     
     document.getElementById('loadingModalCmdInfo').innerHTML = `
       <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 space-y-2">
@@ -2705,8 +3010,18 @@
       </div>
     `;
     
-    // Pré-remplir si déjà une immatriculation
+    // Pré-remplir les champs
     document.getElementById('loadingImmat').value = cmd.immat || '';
+    document.getElementById('loadingTransporteur').value = cmd.transporteur || '';
+    document.getElementById('loadingDate').value = new Date().toISOString().split('T')[0];
+    
+    // Réinitialiser la langue
+    setLoadingLanguage('fr');
+    
+    // Ajouter les listeners pour mise à jour preview
+    document.getElementById('loadingImmat').oninput = updateLoadingMessagePreview;
+    document.getElementById('loadingTransporteur').oninput = updateLoadingMessagePreview;
+    document.getElementById('loadingDate').onchange = updateLoadingMessagePreview;
     
     document.getElementById('loadingModal').classList.remove('hidden');
   }
@@ -2720,6 +3035,8 @@
     if (!currentLoadingCmd) return;
     
     const immat = document.getElementById('loadingImmat').value.trim();
+    const transporteur = document.getElementById('loadingTransporteur').value.trim();
+    const dateChargement = document.getElementById('loadingDate').value;
     
     if (!immat) {
       showToast('⚠️ Veuillez saisir l\'immatriculation', 'error');
@@ -2737,8 +3054,9 @@
     const updates = { 
       statut: 'CHARGÉE', 
       immat: immat,
-      nb_emails: (cmdToConfirm.nb_emails || 0) + 1,
-      date_chargement: new Date().toISOString().split('T')[0]
+      transporteur: transporteur,
+      date_chargement: dateChargement,
+      nb_emails: (cmdToConfirm.nb_emails || 0) + 1
     };
     
     const ok = await updateCmdDB(cmdToConfirm.ref, updates);
@@ -2751,12 +3069,15 @@
       }
       hideLoading();
       
+      // Obtenir le message dans la langue sélectionnée
+      const msg = loadingMessages[currentLoadingLanguage];
+      const sujet = msg.subject(cmdToConfirm.ref, cmdToConfirm.tonnes);
+      const message = msg.body(cmdToConfirm, immat, transporteur, formatDate(dateChargement));
+      
       // Ouvrir email
-      const sujet = `✅ CHARGÉE - ${cmdToConfirm.ref} - ${cmdToConfirm.tonnes.toFixed(2)}T`;
-      const message = `Bonjour ${cmdToConfirm.client},\n\n🎉 COMMANDE CHARGÉE!\n\nRéf: ${cmdToConfirm.ref}\nDépart: ${cmdToConfirm.point_depart}\nDestination: ${cmdToConfirm.pays}\nTonnes: ${cmdToConfirm.tonnes.toFixed(2)}T\nCamion: ${immat}`;
       window.open(`mailto:${cmdToConfirm.email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(message)}`, '_blank');
       
-      showToast('✅ Commande chargée avec immat: ' + immat);
+      showToast('✅ Commande chargée - ' + immat + (transporteur ? ' (' + transporteur + ')' : ''));
       currentLoadingCmd = null;
     } else {
       hideLoading();
@@ -3696,7 +4017,11 @@
   // ==================== MAP ====================
   function initMap() {
     map = L.map('map').setView([46.2276, 2.2137], 4);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    // Utiliser CartoDB au lieu d'OpenStreetMap (pas de restriction Referer)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', { 
+      attribution: '© CartoDB © OpenStreetMap',
+      maxZoom: 19
+    }).addTo(map);
     markersLayer = L.markerClusterGroup();
     map.addLayer(markersLayer);
     updateMapMarkers();
@@ -3717,7 +4042,8 @@
   function updateMapTiles() {
     if (!map) return;
     map.eachLayer(layer => { if (layer instanceof L.TileLayer) map.removeLayer(layer); });
-    L.tileLayer(isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+    // Utiliser CartoDB (pas de restriction Referer)
+    L.tileLayer(isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '© CartoDB', maxZoom: 19 }).addTo(map);
   }
 
   // ==================== CHARTS ====================
