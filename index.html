@@ -858,6 +858,9 @@
             <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl font-semibold shadow-lg text-sm">
               ➕ <span class="hidden sm:inline">Nouvelle</span>
             </button>
+            <button onclick="showImportModal()" class="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold shadow-lg text-sm">
+              📥 <span class="hidden sm:inline">Import CSV</span>
+            </button>
             <button onclick="logout()" class="p-2 gradient-danger text-white rounded-xl shadow-lg">🚪</button>
           </div>
         </div>
@@ -1088,6 +1091,135 @@
           <button type="submit" class="flex-1 py-3 gradient-ocean text-white rounded-xl font-bold">✨ Ajouter & Sync</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- IMPORT CSV MODAL -->
+  <div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate__animated animate__zoomIn">
+      <div class="p-5 border-b dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+        <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+          📥 Import CSV - Commandes en masse
+        </h3>
+        <button onclick="closeImportModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-xl text-2xl">✕</button>
+      </div>
+      
+      <div class="p-6">
+        <!-- Instructions -->
+        <div class="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-4 mb-6">
+          <h4 class="font-bold text-emerald-700 dark:text-emerald-300 mb-2">📋 Format du fichier CSV requis :</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">La première ligne doit contenir les en-têtes (colonnes obligatoires en gras)</p>
+          <div class="bg-white dark:bg-slate-700 rounded-lg p-3 font-mono text-xs overflow-x-auto">
+            <strong>ref,client,date,point_depart,pays,tonnes,email,statut,immat,transporteur,date_chargement,date_livraison</strong>
+          </div>
+        </div>
+        
+        <!-- Exemple -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">📝 Exemple de données :</h4>
+          <div class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 overflow-x-auto text-xs font-mono">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="border-b dark:border-gray-600">
+                  <th class="p-2">ref</th>
+                  <th class="p-2">client</th>
+                  <th class="p-2">date</th>
+                  <th class="p-2">pays</th>
+                  <th class="p-2">tonnes</th>
+                  <th class="p-2">statut</th>
+                  <th class="p-2">transporteur</th>
+                </tr>
+              </thead>
+              <tbody class="text-gray-600 dark:text-gray-400">
+                <tr>
+                  <td class="p-2">CMD-001</td>
+                  <td class="p-2">Client A</td>
+                  <td class="p-2">2026-01-05</td>
+                  <td class="p-2">ES</td>
+                  <td class="p-2">25.5</td>
+                  <td class="p-2">LIVRÉE</td>
+                  <td class="p-2">Transport Express</td>
+                </tr>
+                <tr>
+                  <td class="p-2">CMD-002</td>
+                  <td class="p-2">Client B</td>
+                  <td class="p-2">2026-01-10</td>
+                  <td class="p-2">PT</td>
+                  <td class="p-2">18.0</td>
+                  <td class="p-2">CHARGÉE</td>
+                  <td class="p-2">DHL</td>
+                </tr>
+                <tr>
+                  <td class="p-2">CMD-003</td>
+                  <td class="p-2">Client C</td>
+                  <td class="p-2">2026-01-15</td>
+                  <td class="p-2">IT</td>
+                  <td class="p-2">32.0</td>
+                  <td class="p-2">EN ATTENTE</td>
+                  <td class="p-2">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Codes pays -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">🌍 Codes pays courants :</h4>
+          <div class="grid grid-cols-4 md:grid-cols-8 gap-2 text-center text-sm">
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇫🇷 FR</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇪🇸 ES</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇵🇹 PT</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇮🇹 IT</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇩🇪 DE</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇬🇧 GB</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇲🇦 MA</div>
+            <div class="bg-gray-50 dark:bg-slate-700 rounded-lg p-2">🇸🇳 SN</div>
+          </div>
+        </div>
+        
+        <!-- Statuts -->
+        <div class="mb-6">
+          <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">📊 Statuts possibles :</h4>
+          <div class="flex gap-4 text-sm">
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-400"></span> EN ATTENTE</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-blue-500"></span> CHARGÉE</div>
+            <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> LIVRÉE</div>
+          </div>
+        </div>
+        
+        <!-- File input -->
+        <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center mb-6">
+          <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleCSVFile(event)">
+          <div class="text-5xl mb-3">📄</div>
+          <p class="text-gray-600 dark:text-gray-400 mb-3">Glissez votre fichier CSV ici ou</p>
+          <button onclick="document.getElementById('csvFileInput').click()" class="px-6 py-3 gradient-ocean text-white rounded-xl font-semibold shadow-lg">
+            Choisir un fichier CSV
+          </button>
+        </div>
+        
+        <!-- Download template -->
+        <div class="text-center mb-6">
+          <a href="template-commandes-solana.csv" download class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm hover:bg-gray-200 dark:hover:bg-slate-600 transition-all">
+            📥 Télécharger le template CSV (exemple)
+          </a>
+        </div>
+        
+        <!-- Preview zone -->
+        <div id="csvPreview" class="hidden mb-6">
+          <h4 class="font-semibold text-gray-700 dark:text-gray-300 mb-2">👀 Aperçu des données :</h4>
+          <div id="csvPreviewContent" class="bg-gray-50 dark:bg-slate-700 rounded-xl p-4 max-h-60 overflow-auto"></div>
+          <div id="csvStats" class="mt-3 text-sm text-gray-600 dark:text-gray-400"></div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-3" id="importActions" class="hidden">
+          <button onclick="closeImportModal()" class="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold">Annuler</button>
+          <button onclick="importCSVData()" id="importBtn" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold disabled:opacity-50" disabled>
+            📥 Importer les commandes
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -4572,6 +4704,262 @@ Fecha de carga: ${dateChargement}
   // ==================== SELECTION ====================
   function toggleSelect(ref) { if (selectedCmds.has(ref)) selectedCmds.delete(ref); else selectedCmds.add(ref); }
   function toggleSelectAll() { const allRefs = filteredCmds.map(c => c.ref); if (selectedCmds.size === allRefs.length) selectedCmds.clear(); else allRefs.forEach(r => selectedCmds.add(r)); maj(); }
+
+  // ==================== IMPORT CSV ====================
+  let csvImportData = [];
+  
+  function showImportModal() {
+    document.getElementById('importModal').classList.remove('hidden');
+    document.getElementById('csvPreview').classList.add('hidden');
+    document.getElementById('importBtn').disabled = true;
+    csvImportData = [];
+  }
+  
+  function closeImportModal() {
+    document.getElementById('importModal').classList.add('hidden');
+    csvImportData = [];
+  }
+  
+  function handleCSVFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const content = e.target.result;
+      parseCSV(content);
+    };
+    reader.readAsText(file);
+  }
+  
+  function parseCSV(content) {
+    const lines = content.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      showToast('❌ Le fichier CSV est vide ou mal formaté', 'error');
+      return;
+    }
+    
+    // Parser l'en-tête
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+    
+    // Vérifier les colonnes obligatoires
+    const requiredCols = ['ref', 'client', 'date', 'pays', 'tonnes'];
+    const missing = requiredCols.filter(col => !headers.includes(col));
+    if (missing.length > 0) {
+      showToast('❌ Colonnes manquantes: ' + missing.join(', '), 'error');
+      return;
+    }
+    
+    // Mapper les indices des colonnes
+    const colIndex = {
+      ref: headers.indexOf('ref'),
+      client: headers.indexOf('client'),
+      date: headers.indexOf('date'),
+      point_depart: headers.indexOf('point_depart'),
+      pays: headers.indexOf('pays'),
+      tonnes: headers.indexOf('tonnes'),
+      email: headers.indexOf('email'),
+      statut: headers.indexOf('statut'),
+      immat: headers.indexOf('immat'),
+      transporteur: headers.indexOf('transporteur'),
+      date_chargement: headers.indexOf('date_chargement'),
+      date_livraison: headers.indexOf('date_livraison')
+    };
+    
+    // Parser les données
+    csvImportData = [];
+    const errors = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      if (values.length < 5) continue;
+      
+      const row = i + 1;
+      const ref = values[colIndex.ref]?.trim();
+      const client = values[colIndex.client]?.trim();
+      const date = values[colIndex.date]?.trim();
+      const pays = values[colIndex.pays]?.trim().toUpperCase();
+      const tonnesStr = values[colIndex.tonnes]?.replace(',', '.').trim();
+      const tonnes = parseFloat(tonnesStr);
+      
+      // Validation
+      if (!ref || !client || !date || !pays || isNaN(tonnes)) {
+        errors.push(`Ligne ${row}: données invalides`);
+        continue;
+      }
+      
+      // Vérifier le code pays
+      if (!paysNoms[pays]) {
+        errors.push(`Ligne ${row}: code pays "${pays}" non reconnu`);
+        continue;
+      }
+      
+      // Normaliser le statut
+      let statut = (values[colIndex.statut]?.trim() || 'EN ATTENTE').toUpperCase();
+      if (statut === 'LIVREE' || statut === 'LIVRÉE' || statut === 'DELIVERED') statut = 'LIVRÉE';
+      else if (statut === 'CHARGEE' || statut === 'CHARGÉE' || statut === 'LOADED') statut = 'CHARGÉE';
+      else statut = 'EN ATTENTE';
+      
+      csvImportData.push({
+        ref,
+        client,
+        date,
+        point_depart: values[colIndex.point_depart]?.trim() || '',
+        pays,
+        tonnes,
+        email: values[colIndex.email]?.trim() || '',
+        statut,
+        immat: values[colIndex.immat]?.trim() || '',
+        transporteur: values[colIndex.transporteur]?.trim() || '',
+        date_chargement: values[colIndex.date_chargement]?.trim() || null,
+        date_livraison: values[colIndex.date_livraison]?.trim() || null,
+        nb_emails: 0
+      });
+    }
+    
+    if (csvImportData.length === 0) {
+      showToast('❌ Aucune donnée valide à importer', 'error');
+      return;
+    }
+    
+    // Afficher l'aperçu
+    showCSVPreview(errors);
+  }
+  
+  function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ';' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else if (char === ',' && !inQuotes) {
+        // Support aussi la virgule comme séparateur
+        if (current.includes(';')) {
+          // Si on a déjà des points-virgules, ignorer les virgules
+          current += char;
+        } else {
+          result.push(current);
+          current = '';
+        }
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+  
+  function showCSVPreview(errors) {
+    const previewDiv = document.getElementById('csvPreview');
+    const contentDiv = document.getElementById('csvPreviewContent');
+    const statsDiv = document.getElementById('csvStats');
+    
+    // Stats
+    const stats = {
+      total: csvImportData.length,
+      attente: csvImportData.filter(c => c.statut === 'EN ATTENTE').length,
+      chargee: csvImportData.filter(c => c.statut === 'CHARGÉE').length,
+      livree: csvImportData.filter(c => c.statut === 'LIVRÉE').length,
+      tonnes: csvImportData.reduce((s, c) => s + c.tonnes, 0)
+    };
+    
+    // Preview content (max 10 lignes)
+    const preview = csvImportData.slice(0, 10).map(c => `
+      <div class="flex items-center gap-2 py-1 text-xs">
+        <span class="font-mono w-20">${c.ref}</span>
+        <span class="flex-1">${c.client}</span>
+        <span>${paysEmojis[c.pays]} ${c.pays}</span>
+        <span class="font-bold">${c.tonnes}T</span>
+        <span class="px-2 py-0.5 rounded text-xs ${c.statut === 'LIVRÉE' ? 'bg-emerald-100 text-emerald-700' : c.statut === 'CHARGÉE' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}">${c.statut}</span>
+      </div>
+    `).join('');
+    
+    contentDiv.innerHTML = preview + (csvImportData.length > 10 ? `<div class="text-center text-gray-500 text-xs mt-2">... et ${csvImportData.length - 10} autres commandes</div>` : '');
+    
+    statsDiv.innerHTML = `
+      <div class="flex flex-wrap gap-4">
+        <span>📦 <strong>${stats.total}</strong> commandes</span>
+        <span>⚖️ <strong>${stats.tonnes.toFixed(2)}</strong> tonnes</span>
+        <span>⏳ <strong>${stats.attente}</strong> en attente</span>
+        <span>🚚 <strong>${stats.chargee}</strong> chargées</span>
+        <span>✅ <strong>${stats.livree}</strong> livrées</span>
+        ${errors.length > 0 ? `<span class="text-red-500">⚠️ ${errors.length} erreurs</span>` : ''}
+      </div>
+    `;
+    
+    previewDiv.classList.remove('hidden');
+    document.getElementById('importBtn').disabled = false;
+    
+    if (errors.length > 0) {
+      console.log('Erreurs CSV:', errors);
+    }
+  }
+  
+  async function importCSVData() {
+    if (csvImportData.length === 0) return;
+    
+    showLoading();
+    const importBtn = document.getElementById('importBtn');
+    importBtn.disabled = true;
+    importBtn.innerHTML = '⏳ Import en cours...';
+    
+    let imported = 0;
+    let duplicates = 0;
+    let errors = 0;
+    
+    // Importer par lots de 50
+    const batchSize = 50;
+    for (let i = 0; i < csvImportData.length; i += batchSize) {
+      const batch = csvImportData.slice(i, i + batchSize);
+      
+      // Filtrer les doublons
+      const newCmds = batch.filter(cmd => !cmds.find(c => c.ref === cmd.ref));
+      duplicates += batch.length - newCmds.length;
+      
+      if (newCmds.length > 0) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify(newCmds)
+          });
+          
+          if (res.ok) {
+            imported += newCmds.length;
+          } else {
+            errors += newCmds.length;
+          }
+        } catch (e) {
+          errors += newCmds.length;
+        }
+      }
+    }
+    
+    hideLoading();
+    
+    // Message de résultat
+    let message = `✅ ${imported} commandes importées!`;
+    if (duplicates > 0) message += ` ⚠️ ${duplicates} doublons ignorés`;
+    if (errors > 0) message += ` ❌ ${errors} erreurs`;
+    
+    showToast(message, errors > 0 ? 'warning' : 'success');
+    
+    closeImportModal();
+    await loadCmds();
+    
+    importBtn.innerHTML = '📥 Importer les commandes';
+  }
 
   // ==================== RECHERCHE PAYS ====================
   let allPaysOptions = [];
