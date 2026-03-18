@@ -1062,10 +1062,17 @@
             <input type="text" id="pointDepart" placeholder="76, 62..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 Pays</label>
-            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none">
-              <option value="">Sélectionner...</option>
-            </select>
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">🌍 Pays (recherche)</label>
+            <div class="relative">
+              <input type="text" id="paysSearchInput" placeholder="Rechercher un pays..." 
+                autocomplete="off"
+                class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-slate-700 dark:text-white focus:border-cyan-500 focus:outline-none"
+                oninput="filterPaysList()" onfocus="showPaysDropdown()">
+              <input type="hidden" id="paysIn">
+              <div id="paysDropdown" class="absolute z-50 w-full mt-1 bg-white dark:bg-slate-700 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto hidden">
+                <!-- Options générées dynamiquement -->
+              </div>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">⚖️ Tonnes</label>
@@ -1181,26 +1188,114 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4bWRhcWNkbGd4Y3lrcmJudnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjQwMjIsImV4cCI6MjA4NDc0MDAyMn0.N3wZiU6QDIYqkfCbsDoLaS7jXU7HCASQhwknqA-2rgQ';
   const BASE_URL = 'https://solana1france.github.io/solana-suivi-logistique';
 
+  // ==================== TOUS LES PAYS DU MONDE ====================
   const paysEmojis = {
-    SN: '🇸🇳', PT: '🇵🇹', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿',
-    ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', BE: '🇧🇪', NL: '🇳🇱',
-    GB: '🇬🇧', PL: '🇵🇱', RO: '🇷🇴', GR: '🇬🇷', FR: '🇫🇷'
+    // Europe
+    FR: '🇫🇷', DE: '🇩🇪', IT: '🇮🇹', ES: '🇪🇸', PT: '🇵🇹', NL: '🇳🇱', BE: '🇧🇪', LU: '🇱🇺', CH: '🇨🇭', AT: '🇦🇹',
+    GB: '🇬🇧', IE: '🇮🇪', PL: '🇵🇱', CZ: '🇨🇿', SK: '🇸🇰', HU: '🇭🇺', RO: '🇷🇴', BG: '🇧🇬', GR: '🇬🇷', CY: '🇨🇾',
+    MT: '🇲🇹', SI: '🇸🇮', HR: '🇭🇷', RS: '🇷🇸', BA: '🇧🇦', ME: '🇲🇪', MK: '🇲🇰', AL: '🇦🇱', XK: '🇽🇰', MD: '🇲🇩',
+    UA: '🇺🇦', BY: '🇧🇾', LT: '🇱🇹', LV: '🇱🇻', EE: '🇪🇪', FI: '🇫🇮', SE: '🇸🇪', NO: '🇳🇴', DK: '🇩🇰', IS: '🇮🇸',
+    // Afrique
+    SN: '🇸🇳', MA: '🇲🇦', TN: '🇹🇳', DZ: '🇩🇿', MR: '🇲🇷', ML: '🇲🇱', NE: '🇳🇪', TD: '🇹🇩', LY: '🇱🇾', EG: '🇪🇬',
+    SD: '🇸🇩', SS: '🇸🇸', ET: '🇪🇹', ER: '🇪🇷', DJ: '🇩🇯', SO: '🇸🇴', KE: '🇰🇪', UG: '🇺🇬', TZ: '🇹🇿', RW: '🇷🇼',
+    BI: '🇧🇮', CD: '🇨🇩', CG: '🇨🇬', CF: '🇨🇫', CM: '🇨🇲', GA: '🇬🇦', GQ: '🇬🇶', AO: '🇦🇴', ZM: '🇿🇲', MW: '🇲🇼',
+    MZ: '🇲🇿', ZW: '🇿🇼', BW: '🇧🇼', NA: '🇳🇦', ZA: '🇿🇦', LS: '🇱🇸', SZ: '🇸🇿', MG: '🇲🇬', MU: '🇲🇺', SC: '🇸🇨',
+    KM: '🇰🇲', CV: '🇨🇻', GW: '🇬🇼', GN: '🇬🇳', SL: '🇸🇱', LR: '🇱🇷', CI: '🇨🇮', GH: '🇬🇭', TG: '🇹🇬', BJ: '🇧🇯',
+    BF: '🇧🇫', NG: '🇳🇬', CM: '🇨🇲', GQ: '🇬🇶', GA: '🇬🇦', CG: '🇨🇬', CD: '🇨🇩',
+    // Asie
+    TR: '🇹🇷', RU: '🇷🇺', GE: '🇬🇪', AM: '🇦🇲', AZ: '🇦🇿', KZ: '🇰🇿', UZ: '🇺🇿', TM: '🇹🇲', KG: '🇰🇬', TJ: '🇹🇯',
+    CN: '🇨🇳', JP: '🇯🇵', KR: '🇰🇷', KP: '🇰🇵', TW: '🇹🇼', HK: '🇭🇰', MO: '🇲🇴', MN: '🇲🇳', VN: '🇻🇳', LA: '🇱🇦',
+    KH: '🇰🇭', TH: '🇹🇭', MM: '🇲🇲', MY: '🇲🇾', SG: '🇸🇬', ID: '🇮🇩', BN: '🇧🇳', PH: '🇵🇭', TL: '🇹🇱', IN: '🇮🇳',
+    PK: '🇵🇰', AF: '🇦🇫', NP: '🇳🇵', BT: '🇧🇹', BD: '🇧🇩', LK: '🇱🇰', MV: '🇲🇻', IR: '🇮🇷', IQ: '🇮🇶', SY: '🇸🇾',
+    LB: '🇱🇧', IL: '🇮🇱', PS: '🇵🇸', JO: '🇯🇴', SA: '🇸🇦', YE: '🇾🇪', OM: '🇴🇲', AE: '🇦🇪', QA: '🇶🇦', BH: '🇧🇭',
+    KW: '🇰🇼',
+    // Amériques
+    US: '🇺🇸', CA: '🇨🇦', MX: '🇲🇽', GT: '🇬🇹', BZ: '🇧🇿', SV: '🇸🇻', HN: '🇭🇳', NI: '🇳🇮', CR: '🇨🇷', PA: '🇵🇦',
+    CU: '🇨🇺', JM: '🇯🇲', HT: '🇭🇹', DO: '🇩🇴', PR: '🇵🇷', CO: '🇨🇴', VE: '🇻🇪', GY: '🇬🇾', SR: '🇸🇷', BR: '🇧🇷',
+    EC: '🇪🇨', PE: '🇵🇪', BO: '🇧🇴', PY: '🇵🇾', UY: '🇺🇾', AR: '🇦🇷', CL: '🇨🇱',
+    // Océanie
+    AU: '🇦🇺', NZ: '🇳🇿', PG: '🇵🇬', FJ: '🇫🇯', NC: '🇳🇨', PF: '🇵🇫', WS: '🇼🇸', TO: '🇹🇴', SB: '🇸🇧', VU: '🇻🇺'
   };
 
   const paysNoms = {
-    SN: 'Sénégal', PT: 'Portugal', MA: 'Maroc',
-    TN: 'Tunisie', DZ: 'Algérie', ES: 'Espagne',
-    IT: 'Italie', DE: 'Allemagne', BE: 'Belgique',
-    NL: 'Pays-Bas', GB: 'Royaume-Uni', PL: 'Pologne',
-    RO: 'Roumanie', GR: 'Grèce', FR: 'France'
+    // Europe
+    FR: 'France', DE: 'Allemagne', IT: 'Italie', ES: 'Espagne', PT: 'Portugal', NL: 'Pays-Bas', BE: 'Belgique', 
+    LU: 'Luxembourg', CH: 'Suisse', AT: 'Autriche', GB: 'Royaume-Uni', IE: 'Irlande', PL: 'Pologne', CZ: 'République Tchèque',
+    SK: 'Slovaquie', HU: 'Hongrie', RO: 'Roumanie', BG: 'Bulgarie', GR: 'Grèce', CY: 'Chypre', MT: 'Malte', SI: 'Slovénie',
+    HR: 'Croatie', RS: 'Serbie', BA: 'Bosnie-Herzégovine', ME: 'Monténégro', MK: 'Macédoine du Nord', AL: 'Albanie', 
+    XK: 'Kosovo', MD: 'Moldavie', UA: 'Ukraine', BY: 'Biélorussie', LT: 'Lituanie', LV: 'Lettonie', EE: 'Estonie',
+    FI: 'Finlande', SE: 'Suède', NO: 'Norvège', DK: 'Danemark', IS: 'Islande',
+    // Afrique
+    SN: 'Sénégal', MA: 'Maroc', TN: 'Tunisie', DZ: 'Algérie', MR: 'Mauritanie', ML: 'Mali', NE: 'Niger', TD: 'Tchad',
+    LY: 'Libye', EG: 'Égypte', SD: 'Soudan', SS: 'Soudan du Sud', ET: 'Éthiopie', ER: 'Érythrée', DJ: 'Djibouti',
+    SO: 'Somalie', KE: 'Kenya', UG: 'Ouganda', TZ: 'Tanzanie', RW: 'Rwanda', BI: 'Burundi', CD: 'RD Congo', CG: 'Congo',
+    CF: 'Centrafrique', CM: 'Cameroun', GA: 'Gabon', GQ: 'Guinée Équatoriale', AO: 'Angola', ZM: 'Zambie', MW: 'Malawi',
+    MZ: 'Mozambique', ZW: 'Zimbabwe', BW: 'Botswana', NA: 'Namibie', ZA: 'Afrique du Sud', LS: 'Lesotho', SZ: 'Eswatini',
+    MG: 'Madagascar', MU: 'Maurice', SC: 'Seychelles', KM: 'Comores', CV: 'Cap-Vert', GW: 'Guinée-Bissau', GN: 'Guinée',
+    SL: 'Sierra Leone', LR: 'Liberia', CI: 'Côte d\'Ivoire', GH: 'Ghana', TG: 'Togo', BJ: 'Bénin', BF: 'Burkina Faso',
+    NG: 'Nigeria',
+    // Asie
+    TR: 'Turquie', RU: 'Russie', GE: 'Géorgie', AM: 'Arménie', AZ: 'Azerbaïdjan', KZ: 'Kazakhstan', UZ: 'Ouzbékistan',
+    TM: 'Turkménistan', KG: 'Kirghizistan', TJ: 'Tadjikistan', CN: 'Chine', JP: 'Japon', KR: 'Corée du Sud', KP: 'Corée du Nord',
+    TW: 'Taïwan', HK: 'Hong Kong', MO: 'Macao', MN: 'Mongolie', VN: 'Vietnam', LA: 'Laos', KH: 'Cambodge', TH: 'Thaïlande',
+    MM: 'Myanmar', MY: 'Malaisie', SG: 'Singapour', ID: 'Indonésie', BN: 'Brunei', PH: 'Philippines', TL: 'Timor-Leste',
+    IN: 'Inde', PK: 'Pakistan', AF: 'Afghanistan', NP: 'Népal', BT: 'Bhoutan', BD: 'Bangladesh', LK: 'Sri Lanka',
+    MV: 'Maldives', IR: 'Iran', IQ: 'Irak', SY: 'Syrie', LB: 'Liban', IL: 'Israël', PS: 'Palestine', JO: 'Jordanie',
+    SA: 'Arabie Saoudite', YE: 'Yémen', OM: 'Oman', AE: 'Émirats Arabes Unis', QA: 'Qatar', BH: 'Bahreïn', KW: 'Koweït',
+    // Amériques
+    US: 'États-Unis', CA: 'Canada', MX: 'Mexique', GT: 'Guatemala', BZ: 'Belize', SV: 'Salvador', HN: 'Honduras',
+    NI: 'Nicaragua', CR: 'Costa Rica', PA: 'Panama', CU: 'Cuba', JM: 'Jamaïque', HT: 'Haïti', DO: 'République Dominicaine',
+    PR: 'Porto Rico', CO: 'Colombie', VE: 'Venezuela', GY: 'Guyana', SR: 'Suriname', BR: 'Brésil', EC: 'Équateur',
+    PE: 'Pérou', BO: 'Bolivie', PY: 'Paraguay', UY: 'Uruguay', AR: 'Argentine', CL: 'Chili',
+    // Océanie
+    AU: 'Australie', NZ: 'Nouvelle-Zélande', PG: 'Papouasie-Nouvelle-Guinée', FJ: 'Fidji', NC: 'Nouvelle-Calédonie',
+    PF: 'Polynésie Française', WS: 'Samoa', TO: 'Tonga', SB: 'Îles Salomon', VU: 'Vanuatu'
   };
 
   const paysCoords = {
-    SN: [14.6937, -17.4441], PT: [38.7223, -9.1393], MA: [33.5731, -7.5898],
-    TN: [36.8065, 10.1815], DZ: [36.7538, 3.0588], ES: [40.4168, -3.7038],
-    IT: [41.9028, 12.4964], DE: [52.5200, 13.4050], BE: [50.8503, 4.3517],
-    NL: [52.3676, 4.9041], GB: [51.5074, -0.1278], PL: [52.2297, 21.0122],
-    RO: [44.4268, 26.1025], GR: [37.9838, 23.7275], FR: [46.2276, 2.2137]
+    // Europe
+    FR: [46.2276, 2.2137], DE: [51.1657, 10.4515], IT: [41.8719, 12.5674], ES: [40.4637, -3.7492], PT: [39.3999, -8.2245],
+    NL: [52.1326, 5.2913], BE: [50.5039, 4.4699], LU: [49.8153, 6.1296], CH: [46.8182, 8.2275], AT: [47.5162, 14.5501],
+    GB: [55.3781, -3.4360], IE: [53.1424, -7.6921], PL: [51.9194, 19.1451], CZ: [49.8175, 15.4730], SK: [48.6690, 19.6990],
+    HU: [47.1625, 19.5033], RO: [45.9432, 24.9668], BG: [42.7339, 25.4858], GR: [39.0742, 21.8243], CY: [35.1264, 33.4299],
+    MT: [35.9375, 14.3754], SI: [46.1512, 14.9955], HR: [45.1000, 15.2000], RS: [44.0165, 21.0059], BA: [43.9159, 17.6791],
+    ME: [42.7087, 19.3744], MK: [41.5124, 21.7453], AL: [41.1533, 20.1683], XK: [42.6026, 20.9030], MD: [47.4116, 28.3699],
+    UA: [48.3794, 31.1656], BY: [53.7098, 27.9534], LT: [55.1694, 23.8813], LV: [56.8796, 24.6032], EE: [58.5953, 25.0136],
+    FI: [61.9241, 25.7482], SE: [60.1282, 18.6435], NO: [60.4720, 8.4689], DK: [56.2639, 9.5018], IS: [64.9631, -19.0208],
+    // Afrique
+    SN: [14.4974, -14.4524], MA: [31.7917, -7.0926], TN: [33.8869, 9.5375], DZ: [28.0339, 1.6596], MR: [21.0079, -10.9408],
+    ML: [17.5707, -3.9962], NE: [17.6078, 8.0817], TD: [15.4542, 18.7322], LY: [26.3351, 17.2283], EG: [26.8206, 30.8025],
+    SD: [12.8628, 30.2176], SS: [6.8770, 31.3070], ET: [9.1450, 40.4897], ER: [15.1794, 39.7823], DJ: [11.8251, 42.5903],
+    SO: [5.1521, 46.1996], KE: [-0.0236, 37.9062], UG: [1.3733, 32.2903], TZ: [-6.3690, 34.8888], RW: [-1.9403, 29.8739],
+    BI: [-3.3731, 29.9189], CD: [-4.0383, 21.7587], CG: [-0.2280, 15.8277], CF: [6.6111, 20.9394], CM: [7.3697, 12.3547],
+    GA: [-0.8037, 11.6094], GQ: [1.6508, 10.2679], AO: [-11.2027, 17.8739], ZM: [-13.1339, 27.8493], MW: [-13.2543, 34.3015],
+    MZ: [-18.6657, 35.5296], ZW: [-19.0154, 29.1549], BW: [-22.3285, 24.6849], NA: [-22.9576, 18.4904], ZA: [-30.5595, 22.9375],
+    LS: [-29.6100, 28.2336], SZ: [-26.5225, 31.4659], MG: [-18.7669, 46.8691], MU: [-20.3484, 57.5522], SC: [-4.6796, 55.4920],
+    KM: [-11.6455, 43.3333], CV: [16.5388, -23.0418], GW: [11.8037, -15.1804], GN: [9.9456, -9.6966], SL: [8.4606, -11.7799],
+    LR: [6.4281, -9.4295], CI: [7.5400, -5.5471], GH: [7.9465, -1.0232], TG: [8.6195, 0.8248], BJ: [9.3077, 2.3158],
+    BF: [12.2383, -1.5616], NG: [9.0820, 8.6753],
+    // Asie
+    TR: [38.9637, 35.2433], RU: [61.5240, 105.3188], GE: [42.3154, 43.3569], AM: [40.0691, 45.0382], AZ: [40.1431, 47.5769],
+    KZ: [48.0196, 66.9237], UZ: [41.3775, 64.5853], TM: [38.9697, 59.5563], KG: [41.2044, 74.7661], TJ: [38.8610, 71.2761],
+    CN: [35.8617, 104.1954], JP: [36.2048, 138.2529], KR: [35.9078, 127.7669], KP: [40.3399, 127.5101], TW: [23.6978, 120.9605],
+    HK: [22.3964, 114.1095], MO: [22.1987, 113.5439], MN: [46.8625, 103.8467], VN: [14.0583, 108.2772], LA: [19.8563, 102.4955],
+    KH: [12.5657, 104.9910], TH: [15.8700, 100.9925], MM: [21.9162, 95.9560], MY: [4.2105, 101.9758], SG: [1.3521, 103.8198],
+    ID: [-0.7893, 113.9213], BN: [4.5353, 114.7277], PH: [12.8797, 121.7740], TL: [-8.8742, 125.7275], IN: [20.5937, 78.9629],
+    PK: [30.3753, 69.3451], AF: [33.9391, 67.7100], NP: [28.3949, 84.1240], BT: [27.5142, 90.4336], BD: [23.6850, 90.3563],
+    LK: [7.8731, 80.7718], MV: [3.2028, 73.2207], IR: [32.4279, 53.6880], IQ: [33.2232, 43.6793], SY: [34.8021, 38.9968],
+    LB: [33.8547, 35.8623], IL: [31.0461, 34.8516], PS: [31.9522, 35.2332], JO: [30.5852, 36.2384], SA: [23.8859, 45.0792],
+    YE: [15.5527, 48.5164], OM: [21.4735, 55.9754], AE: [23.4241, 53.8474], QA: [25.3548, 51.1839], BH: [25.9304, 50.6378],
+    KW: [29.3117, 47.4818],
+    // Amériques
+    US: [37.0902, -95.7129], CA: [56.1304, -106.3468], MX: [23.6345, -102.5528], GT: [15.7835, -90.2308], BZ: [17.1899, -88.4976],
+    SV: [13.7942, -88.8965], HN: [15.2000, -86.2419], NI: [12.8654, -85.2072], CR: [9.7489, -83.7534], PA: [8.5380, -80.7821],
+    CU: [21.5218, -77.7812], JM: [18.1096, -77.2975], HT: [18.9712, -72.2852], DO: [18.7357, -70.1627], PR: [18.2208, -66.5901],
+    CO: [4.5709, -74.2973], VE: [6.4238, -66.5897], GY: [4.8604, -58.9302], SR: [3.9193, -56.0278], BR: [-14.2350, -51.9253],
+    EC: [-1.8312, -78.1834], PE: [-9.1900, -75.0152], BO: [-16.2902, -63.5887], PY: [-23.4425, -58.4438], UY: [-32.5228, -55.7658],
+    AR: [-38.4161, -63.6167], CL: [-35.6751, -71.5430],
+    // Océanie
+    AU: [-25.2744, 133.7751], NZ: [-40.9006, 174.8860], PG: [-6.3150, 143.9555], FJ: [-17.7134, 178.0650], NC: [-21.2959, 165.8920],
+    PF: [-17.6797, -149.4068], WS: [-13.7590, -172.1046], TO: [-21.1790, -175.1982], SB: [-9.6457, 160.1562], VU: [-15.3767, 166.9592]
   };
 
   // ==================== GLOBAL VARIABLES ====================
@@ -4478,19 +4573,121 @@ Fecha de carga: ${dateChargement}
   function toggleSelect(ref) { if (selectedCmds.has(ref)) selectedCmds.delete(ref); else selectedCmds.add(ref); }
   function toggleSelectAll() { const allRefs = filteredCmds.map(c => c.ref); if (selectedCmds.size === allRefs.length) selectedCmds.clear(); else allRefs.forEach(r => selectedCmds.add(r)); maj(); }
 
+  // ==================== RECHERCHE PAYS ====================
+  let allPaysOptions = [];
+  
+  function initPaysDropdown() {
+    // Créer la liste complète des pays triée par nom
+    allPaysOptions = Object.entries(paysNoms)
+      .map(([code, nom]) => ({
+        code,
+        nom,
+        emoji: paysEmojis[code] || '🏳️',
+        search: nom.toLowerCase()
+      }))
+      .sort((a, b) => a.nom.localeCompare(b.nom));
+    
+    // Initialiser le dropdown
+    const dropdown = document.getElementById('paysDropdown');
+    if (dropdown) {
+      renderPaysOptions(allPaysOptions);
+    }
+  }
+  
+  function renderPaysOptions(options) {
+    const dropdown = document.getElementById('paysDropdown');
+    if (!dropdown) return;
+    
+    if (options.length === 0) {
+      dropdown.innerHTML = '<div class="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm">Aucun pays trouvé</div>';
+      return;
+    }
+    
+    dropdown.innerHTML = options.map(p => 
+      `<div class="px-4 py-2 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 cursor-pointer flex items-center gap-2 text-sm" 
+            onclick="selectPays('${p.code}', '${p.emoji} ${p.nom}')">
+        <span class="text-lg">${p.emoji}</span>
+        <span class="dark:text-white">${p.nom}</span>
+        <span class="text-xs text-gray-400 ml-auto">${p.code}</span>
+      </div>`
+    ).join('');
+  }
+  
+  function showPaysDropdown() {
+    const dropdown = document.getElementById('paysDropdown');
+    const searchInput = document.getElementById('paysSearchInput');
+    if (dropdown) {
+      // Afficher tous les pays si le champ est vide
+      if (!searchInput.value.trim()) {
+        renderPaysOptions(allPaysOptions);
+      }
+      dropdown.classList.remove('hidden');
+    }
+  }
+  
+  function hidePaysDropdown() {
+    setTimeout(() => {
+      const dropdown = document.getElementById('paysDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }, 200);
+  }
+  
+  function filterPaysList() {
+    const searchInput = document.getElementById('paysSearchInput');
+    const dropdown = document.getElementById('paysDropdown');
+    
+    if (!searchInput || !dropdown) return;
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    if (!searchTerm) {
+      renderPaysOptions(allPaysOptions);
+    } else {
+      const filtered = allPaysOptions.filter(p => 
+        p.search.includes(searchTerm) || 
+        p.code.toLowerCase().includes(searchTerm)
+      );
+      renderPaysOptions(filtered);
+    }
+    
+    dropdown.classList.remove('hidden');
+  }
+  
+  function selectPays(code, displayName) {
+    const searchInput = document.getElementById('paysSearchInput');
+    const hiddenInput = document.getElementById('paysIn');
+    const dropdown = document.getElementById('paysDropdown');
+    
+    if (searchInput) searchInput.value = displayName;
+    if (hiddenInput) hiddenInput.value = code;
+    if (dropdown) dropdown.classList.add('hidden');
+  }
+  
+  // Fermer le dropdown quand on clique ailleurs
+  document.addEventListener('click', function(e) {
+    const container = e.target.closest('#paysSearchInput') || e.target.closest('#paysDropdown');
+    if (!container) {
+      const dropdown = document.getElementById('paysDropdown');
+      if (dropdown) dropdown.classList.add('hidden');
+    }
+  });
+
   // ==================== MODALS ====================
   function showAddModal() {
     document.getElementById('addModal').classList.remove('hidden');
     document.getElementById('dateIn').value = new Date().toISOString().split('T')[0];
-    const select = document.getElementById('paysIn');
-    select.innerHTML = '<option value="">Sélectionner...</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
+    // Réinitialiser le champ de recherche pays
+    document.getElementById('paysSearchInput').value = '';
+    document.getElementById('paysIn').value = '';
+    initPaysDropdown();
   }
   function closeAddModal() { document.getElementById('addModal').classList.add('hidden'); }
 
   // ==================== INIT ====================
   function initApp() {
     const countrySelect = document.getElementById('countryFilter');
-    countrySelect.innerHTML = '<option value="">Tous les pays</option>' + Object.entries(paysNoms).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
+    countrySelect.innerHTML = '<option value="">Tous les pays</option>' + Object.entries(paysNoms).sort((a,b) => a[1].localeCompare(b[1])).map(([code, nom]) => `<option value="${code}">${paysEmojis[code]} ${nom}</option>`).join('');
+    initPaysDropdown();
     loadCmds();
   }
 
