@@ -1864,279 +1864,920 @@
   }
 
   function exportPDFReport() {
-    showToast('📄 Génération du PDF...');
+    showToast('📄 Génération du rapport PDF professionnel...');
+    showLoading();
     
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
     
+    // ========== CALCULS DES DONNÉES ==========
     const filtered = getFilteredCmdsForReport();
     const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
     const charged = filtered.filter(c => c.statut === 'CHARGÉE').length;
     const pending = filtered.filter(c => c.statut === 'EN ATTENTE').length;
+    const tauxChargement = filtered.length > 0 ? ((charged / filtered.length) * 100) : 0;
     
-    // Calculs ABC
+    // Clients
     const clientVolumes = {};
-    filtered.forEach(c => { clientVolumes[c.client] = (clientVolumes[c.client] || 0) + c.tonnes; });
+    const clientCounts = {};
+    filtered.forEach(c => { 
+      clientVolumes[c.client] = (clientVolumes[c.client] || 0) + c.tonnes;
+      clientCounts[c.client] = (clientCounts[c.client] || 0) + 1;
+    });
     const sortedClients = Object.entries(clientVolumes).sort((a, b) => b[1] - a[1]);
+    const uniqueClients = Object.keys(clientVolumes).length;
     
     // Transporteurs
-    const transporters = getTopTransporters(10);
+    const transporters = getTopTransporters(15);
+    const transportersActifs = transporters.length;
     
-    let yPos = 20;
+    // Pays
+    const paysStats = {};
+    filtered.forEach(c => {
+      if (!paysStats[c.pays]) paysStats[c.pays] = { count: 0, tonnes: 0 };
+      paysStats[c.pays].count++;
+      paysStats[c.pays].tonnes += c.tonnes || 0;
+    });
+    const sortedPays = Object.entries(paysStats).sort((a, b) => b[1].tonnes - a[1].tonnes);
+    const uniquePays = Object.keys(paysStats).length;
     
-    // ===== EN-TÊTE =====
+    // ABC Analysis
+    let cumul = 0;
+    const abcClients = sortedClients.map((c, i) => {
+      cumul += c[1];
+      return {
+        name: c[0],
+        tonnes: c[1],
+        percent: totalTonnes > 0 ? (c[1] / totalTonnes) * 100 : 0,
+        cumulPercent: totalTonnes > 0 ? (cumul / totalTonnes) * 100 : 0,
+        classe: cumul <= totalTonnes * 0.8 ? 'A' : (cumul <= totalTonnes * 0.95 ? 'B' : 'C')
+      };
+    });
+    
+    const classeA = abcClients.filter(c => c.classe === 'A');
+    const classeB = abcClients.filter(c => c.classe === 'B');
+    const classeC = abcClients.filter(c => c.classe === 'C');
+    
+    // Supply Chain Metrics
+    const chargedCmds = filtered.filter(c => c.statut === 'CHARGÉE' && c.date_chargement);
+    let avgLeadTime = 0;
+    if (chargedCmds.length > 0) {
+      const totalDays = chargedCmds.reduce((sum, c) => {
+        const d1 = new Date(c.date);
+        const d2 = new Date(c.date_chargement);
+        return sum + Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+      }, 0);
+      avgLeadTime = totalDays / chargedCmds.length;
+    }
+    
+    // ========== PAGE 1: PAGE DE COUVERTURE ==========
+    // Background gradient
+    doc.setFillColor(0, 71, 171);
+    doc.rect(0, 0, 210, 297, 'F');
+    
+    // Decorative elements
     doc.setFillColor(0, 119, 182);
-    doc.rect(0, 0, 210, 35, 'F');
+    doc.rect(0, 80, 210, 8, 'F');
+    doc.rect(0, 200, 210, 8, 'F');
+    
+    // Logo circle
+    doc.setFillColor(255, 255, 255);
+    doc.circle(105, 140, 35, 'F');
+    doc.setFontSize(50);
+    doc.setTextColor(0, 71, 171);
+    doc.text('🚚', 105, 148, { align: 'center' });
+    
+    // Title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    doc.setFontSize(32);
     doc.setFont('helvetica', 'bold');
-    doc.text('SOLANA LOGISTIQUE', 105, 15, { align: 'center' });
-    doc.setFontSize(12);
+    doc.text('SOLANA LOGISTIQUE', 105, 55, { align: 'center' });
+    
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'normal');
-    doc.text('Rapport Analytique PRO', 105, 25, { align: 'center' });
-    doc.setFontSize(9);
-    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')} | Période: ${currentReportPeriod}`, 105, 32, { align: 'center' });
+    doc.text('RAPPORT ANALYTIQUE PROFESSIONNEL', 105, 110, { align: 'center' });
     
-    yPos = 45;
-    
-    // ===== SYNTHÈSE GÉNÉRALE =====
-    doc.setTextColor(0, 119, 182);
+    // Subtitle
     doc.setFontSize(14);
+    doc.text('Tableau de Bord Supply Chain', 105, 175, { align: 'center' });
+    doc.text('Analyse des Performances Logistiques', 105, 185, { align: 'center' });
+    
+    // Info box
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(40, 220, 130, 55, 5, 5, 'F');
+    
+    doc.setTextColor(0, 71, 171);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('SYNTHESE GENERALE', 15, yPos);
-    yPos += 3;
+    doc.text('INFORMATIONS DU RAPPORT', 105, 232, { align: 'center' });
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Date de génération: ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, 105, 245, { align: 'center' });
+    doc.text(`Période analysée: ${currentReportPeriod}`, 105, 253, { align: 'center' });
+    doc.text(`Nombre de commandes: ${filtered.length}`, 105, 261, { align: 'center' });
+    doc.text(`Volume total: ${totalTonnes.toFixed(2)} Tonnes`, 105, 269, { align: 'center' });
+    
+    // Footer
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(8);
+    doc.text('Projet de Fin d\'Études - Dashboard Logistique', 105, 290, { align: 'center' });
+    
+    // ========== PAGE 2: SOMMAIRE ==========
+    doc.addPage();
+    
+    // Header
+    doc.setFillColor(0, 71, 171);
+    doc.rect(0, 0, 210, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOMMAIRE', 105, 16, { align: 'center' });
+    
+    let y = 45;
+    
+    const sections = [
+      { num: '1', title: 'RÉSUMÉ EXÉCUTIF', page: '3' },
+      { num: '2', title: 'INDICATEURS CLÉS DE PERFORMANCE (KPIs)', page: '4' },
+      { num: '3', title: 'ANALYSE SUPPLY CHAIN', page: '5' },
+      { num: '4', title: 'ANALYSE DES TRANSPORTEURS', page: '6' },
+      { num: '5', title: 'ANALYSE ABC DES CLIENTS (MÉTHODE PARETO)', page: '7' },
+      { num: '6', title: 'ANALYSE GÉOGRAPHIQUE', page: '8' },
+      { num: '7', title: 'RECOMMANDATIONS STRATÉGIQUES', page: '9' },
+      { num: '8', title: 'LISTE DÉTAILLÉE DES COMMANDES', page: '10' }
+    ];
+    
+    sections.forEach((s, i) => {
+      // Number box
+      doc.setFillColor(0, 119, 182);
+      doc.roundedRect(20, y - 5, 12, 12, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(s.num, 26, y + 3, { align: 'center' });
+      
+      // Title
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(12);
+      doc.text(s.title, 40, y + 2);
+      
+      // Dots and page number
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(10);
+      doc.text('...................................................', 140, y + 2);
+      doc.text(s.page, 185, y + 2);
+      
+      y += 25;
+    });
+    
+    // Decorative line
+    doc.setDrawColor(0, 119, 182);
+    doc.setLineWidth(1);
+    doc.line(20, y + 10, 190, y + 10);
+    
+    // ========== PAGE 3: RÉSUMÉ EXÉCUTIF ==========
+    doc.addPage();
+    addPageHeader(doc, 'RÉSUMÉ EXÉCUTIF');
+    addPageFooter(doc, 3);
+    
+    y = 45;
+    
+    // Introduction
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const intro = `Ce rapport présente une analyse complète des performances logistiques de Solana Logistique sur la période ${currentReportPeriod}. Il couvre l'ensemble des flux de marchandises, les performances des transporteurs partenaires, ainsi qu'une analyse stratégique de la clientèle selon la méthode ABC de Pareto.`;
+    const introLines = doc.splitTextToSize(intro, 180);
+    doc.text(introLines, 15, y);
+    y += introLines.length * 5 + 10;
+    
+    // Executive KPIs in boxes
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('CHIFFRES CLÉS', 15, y);
+    y += 8;
+    
+    // KPI Row 1
+    const kpiBoxW = 85;
+    const kpiBoxH = 30;
+    
+    // Box 1 - Total Tonnes
+    doc.setFillColor(240, 249, 255);
+    doc.roundedRect(15, y, kpiBoxW, kpiBoxH, 3, 3, 'F');
     doc.setDrawColor(0, 119, 182);
     doc.setLineWidth(0.5);
-    doc.line(15, yPos, 195, yPos);
-    yPos += 10;
-    
-    // KPIs en boîtes
-    const kpiWidth = 42;
-    const kpiHeight = 20;
-    const kpiX = [15, 59, 103, 147];
-    
-    // Total Tonnes
-    doc.setFillColor(240, 249, 255);
-    doc.rect(kpiX[0], yPos, kpiWidth, kpiHeight, 'F');
-    doc.setDrawColor(0, 119, 182);
-    doc.rect(kpiX[0], yPos, kpiWidth, kpiHeight, 'S');
+    doc.roundedRect(15, y, kpiBoxW, kpiBoxH, 3, 3, 'S');
     doc.setTextColor(100, 100, 100);
-    doc.setFontSize(7);
-    doc.text('TOTAL TONNES', kpiX[0] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text('VOLUME TOTAL EXPÉDIÉ', 15 + kpiBoxW/2, y + 8, { align: 'center' });
     doc.setTextColor(0, 119, 182);
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${totalTonnes.toFixed(1)} T`, kpiX[0] + kpiWidth/2, yPos + 14, { align: 'center' });
+    doc.text(`${totalTonnes.toFixed(2)} T`, 15 + kpiBoxW/2, y + 20, { align: 'center' });
     
-    // En Attente
-    doc.setFillColor(254, 243, 199);
-    doc.rect(kpiX[1], yPos, kpiWidth, kpiHeight, 'F');
-    doc.setDrawColor(245, 158, 11);
-    doc.rect(kpiX[1], yPos, kpiWidth, kpiHeight, 'S');
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text('EN ATTENTE', kpiX[1] + kpiWidth/2, yPos + 6, { align: 'center' });
-    doc.setTextColor(245, 158, 11);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${pending}`, kpiX[1] + kpiWidth/2, yPos + 14, { align: 'center' });
-    
-    // Chargées
-    doc.setFillColor(209, 250, 229);
-    doc.rect(kpiX[2], yPos, kpiWidth, kpiHeight, 'F');
-    doc.setDrawColor(16, 185, 129);
-    doc.rect(kpiX[2], yPos, kpiWidth, kpiHeight, 'S');
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.text('CHARGEES', kpiX[2] + kpiWidth/2, yPos + 6, { align: 'center' });
-    doc.setTextColor(16, 185, 129);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${charged}`, kpiX[2] + kpiWidth/2, yPos + 14, { align: 'center' });
-    
-    // Taux
+    // Box 2 - Commandes
     doc.setFillColor(243, 232, 255);
-    doc.rect(kpiX[3], yPos, kpiWidth, kpiHeight, 'F');
+    doc.roundedRect(110, y, kpiBoxW, kpiBoxH, 3, 3, 'F');
     doc.setDrawColor(139, 92, 246);
-    doc.rect(kpiX[3], yPos, kpiWidth, kpiHeight, 'S');
+    doc.roundedRect(110, y, kpiBoxW, kpiBoxH, 3, 3, 'S');
     doc.setTextColor(100, 100, 100);
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('TAUX CHARGEMENT', kpiX[3] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.text('NOMBRE DE COMMANDES', 110 + kpiBoxW/2, y + 8, { align: 'center' });
     doc.setTextColor(139, 92, 246);
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${filtered.length > 0 ? Math.round((charged / filtered.length) * 100) : 0}%`, kpiX[3] + kpiWidth/2, yPos + 14, { align: 'center' });
+    doc.text(`${filtered.length}`, 110 + kpiBoxW/2, y + 20, { align: 'center' });
     
-    yPos += kpiHeight + 12;
+    y += kpiBoxH + 8;
     
-    // ===== SUPPLY CHAIN =====
-    doc.setTextColor(14, 165, 233);
-    doc.setFontSize(14);
+    // KPI Row 2
+    // Box 3 - Taux Chargement
+    doc.setFillColor(209, 250, 229);
+    doc.roundedRect(15, y, kpiBoxW, kpiBoxH, 3, 3, 'F');
+    doc.setDrawColor(16, 185, 129);
+    doc.roundedRect(15, y, kpiBoxW, kpiBoxH, 3, 3, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('TAUX DE CHARGEMENT', 15 + kpiBoxW/2, y + 8, { align: 'center' });
+    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('ANALYSE SUPPLY CHAIN', 15, yPos);
-    yPos += 3;
-    doc.setDrawColor(14, 165, 233);
-    doc.line(15, yPos, 195, yPos);
-    yPos += 8;
+    doc.text(`${tauxChargement.toFixed(1)}%`, 15 + kpiBoxW/2, y + 20, { align: 'center' });
     
-    // KPIs Supply Chain
-    const supplyKpis = [
-      ['Delai Moyen', document.getElementById('supplyLeadTime').textContent],
-      ['Volume Journalier', document.getElementById('supplyDailyVolume').textContent],
-      ['Taux Conversion', document.getElementById('supplyConversionRate').textContent],
-      ['Concentration', document.getElementById('supplyConcentration').textContent]
+    // Box 4 - Clients
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(110, y, kpiBoxW, kpiBoxH, 3, 3, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.roundedRect(110, y, kpiBoxW, kpiBoxH, 3, 3, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CLIENTS ACTIFS', 110 + kpiBoxW/2, y + 8, { align: 'center' });
+    doc.setTextColor(245, 158, 11);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${uniqueClients}`, 110 + kpiBoxW/2, y + 20, { align: 'center' });
+    
+    y += kpiBoxH + 12;
+    
+    // Status breakdown
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('RÉPARTITION DES STATUTS', 15, y);
+    y += 8;
+    
+    // Progress bar for loading rate
+    doc.setFillColor(230, 230, 230);
+    doc.roundedRect(15, y, 180, 15, 2, 2, 'F');
+    doc.setFillColor(16, 185, 129);
+    doc.roundedRect(15, y, 180 * (tauxChargement / 100), 15, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    if (tauxChargement > 10) {
+      doc.text(`${charged} CHARGÉES (${tauxChargement.toFixed(1)}%)`, 20, y + 10);
+    }
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${pending} EN ATTENTE (${(100 - tauxChargement).toFixed(1)}%)`, 150, y + 10);
+    
+    y += 25;
+    
+    // Key insights
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('POINTS CLÉS À RETENIR', 15, y);
+    y += 8;
+    
+    const insights = [
+      `• Volume moyen par commande: ${(totalTonnes / filtered.length).toFixed(2)} Tonnes`,
+      `• Couverture géographique: ${uniquePays} pays de destination`,
+      `• Réseau transporteurs: ${transportersActifs} partenaires actifs`,
+      `• Concentration client: ${classeA.length} clients stratégiques (Classe A) génèrent 80% du volume`,
+      `• Délai moyen de traitement: ${avgLeadTime.toFixed(1)} jours`
     ];
     
     doc.setFontSize(9);
-    const kpiWidth2 = 42;
-    const kpiX2 = [15, 59, 103, 147];
-    
-    supplyKpis.forEach((kpi, i) => {
-      doc.setFillColor(236, 254, 255);
-      doc.rect(kpiX2[i], yPos, kpiWidth2, 18, 'F');
-      doc.setDrawColor(14, 165, 233);
-      doc.rect(kpiX2[i], yPos, kpiWidth2, 18, 'S');
-      doc.setTextColor(100, 100, 100);
-      doc.setFontSize(7);
-      doc.text(kpi[0], kpiX2[i] + kpiWidth2/2, yPos + 6, { align: 'center' });
-      doc.setTextColor(8, 145, 178);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(kpi[1], kpiX2[i] + kpiWidth2/2, yPos + 13, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    insights.forEach(insight => {
+      doc.text(insight, 15, y);
+      y += 6;
     });
     
-    yPos += 25;
+    // ========== PAGE 4: KPIs DÉTAILLÉS ==========
+    doc.addPage();
+    addPageHeader(doc, 'INDICATEURS CLÉS DE PERFORMANCE');
+    addPageFooter(doc, 4);
     
-    // ===== TRANSPORTEURS =====
-    doc.setTextColor(249, 115, 22);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CLASSEMENT TRANSPORTEURS', 15, yPos);
-    yPos += 3;
-    doc.setDrawColor(249, 115, 22);
-    doc.line(15, yPos, 195, yPos);
-    yPos += 5;
+    y = 45;
     
-    if (transporters.length > 0) {
-      const transporterData = transporters.map((t, i) => [
-        (i + 1).toString(),
-        t[0],
-        t[1].count.toString(),
-        t[1].tonnes.toFixed(2) + ' T',
-        totalTonnes > 0 ? ((t[1].tonnes / totalTonnes) * 100).toFixed(1) + '%' : '0%'
-      ]);
-      
-      doc.autoTable({
-        startY: yPos,
-        head: [['Rang', 'Transporteur', 'Commandes', 'Tonnes', '% Volume']],
-        body: transporterData,
-        theme: 'striped',
-        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
-        columnStyles: {
-          0: { cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 70 },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 35, halign: 'right' },
-          4: { cellWidth: 25, halign: 'center' }
-        },
-        margin: { left: 15, right: 15 }
-      });
-      
-      yPos = doc.lastAutoTable.finalY + 10;
-    }
-    
-    // ===== ANALYSE ABC =====
-    if (yPos > 220) {
-      doc.addPage();
-      yPos = 20;
-    }
-    
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ANALYSE ABC CLIENTS (PARETO)', 15, yPos);
-    yPos += 3;
-    doc.setDrawColor(99, 102, 241);
-    doc.line(15, yPos, 195, yPos);
-    yPos += 8;
-    
-    // ABC Classes
-    const abcData = [
-      ['A - Strategiques', document.getElementById('abcClientsA').textContent, document.getElementById('abcVolumeA').textContent, [16, 185, 129]],
-      ['B - Importants', document.getElementById('abcClientsB').textContent, document.getElementById('abcVolumeB').textContent, [59, 130, 246]],
-      ['C - Standards', document.getElementById('abcClientsC').textContent, document.getElementById('abcVolumeC').textContent, [107, 114, 128]]
+    // KPI Grid
+    const gridKpis = [
+      { label: 'VOLUME TOTAL', value: `${totalTonnes.toFixed(2)} T`, color: [0, 119, 182], icon: '📦' },
+      { label: 'COMMANDES', value: `${filtered.length}`, color: [139, 92, 246], icon: '📋' },
+      { label: 'TAUX CHARGEMENT', value: `${tauxChargement.toFixed(1)}%`, color: [16, 185, 129], icon: '✅' },
+      { label: 'EN ATTENTE', value: `${pending}`, color: [245, 158, 11], icon: '⏳' },
+      { label: 'CLIENTS ACTIFS', value: `${uniqueClients}`, color: [236, 72, 153], icon: '👥' },
+      { label: 'PAYS DESSERVIS', value: `${uniquePays}`, color: [14, 165, 233], icon: '🌍' },
+      { label: 'TRANSPORTEURS', value: `${transportersActifs}`, color: [249, 115, 22], icon: '🚛' },
+      { label: 'DÉLAI MOYEN', value: `${avgLeadTime.toFixed(1)} j`, color: [99, 102, 241], icon: '⏱️' }
     ];
     
-    const abcWidth = 55;
-    const abcX = [20, 77, 134];
+    const kpiGridW = 42;
+    const kpiGridH = 35;
+    const kpiGridX = [15, 59, 103, 147];
     
-    abcData.forEach((cls, i) => {
-      doc.setFillColor(cls[3][0], cls[3][1], cls[3][2]);
-      doc.roundedRect(abcX[i], yPos, abcWidth, 22, 3, 3, 'F');
+    gridKpis.forEach((kpi, i) => {
+      const row = Math.floor(i / 4);
+      const col = i % 4;
+      const x = kpiGridX[col];
+      const yPosKpi = y + row * (kpiGridH + 5);
+      
+      doc.setFillColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+      doc.roundedRect(x, yPosKpi, kpiGridW, kpiGridH, 4, 4, 'F');
+      
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
-      doc.text('Classe ' + cls[0], abcX[i] + abcWidth/2, yPos + 6, { align: 'center' });
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text(cls[1] + ' clients', abcX[i] + abcWidth/2, yPos + 13, { align: 'center' });
-      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
-      doc.text('= ' + cls[2] + ' vol.', abcX[i] + abcWidth/2, yPos + 19, { align: 'center' });
+      doc.text(kpi.label, x + kpiGridW/2, yPosKpi + 10, { align: 'center' });
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + kpiGridW/2, yPosKpi + 24, { align: 'center' });
     });
     
-    yPos += 30;
+    y += 2 * (kpiGridH + 5) + 15;
     
-    // ===== TOP CLIENTS =====
-    doc.setTextColor(99, 102, 241);
-    doc.setFontSize(14);
+    // Performance metrics
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOP 10 CLIENTS', 15, yPos);
-    yPos += 3;
-    doc.setDrawColor(99, 102, 241);
-    doc.line(15, yPos, 195, yPos);
-    yPos += 5;
+    doc.setTextColor(0, 71, 171);
+    doc.text('MÉTRIQUES DE PERFORMANCE', 15, y);
+    y += 10;
     
-    if (sortedClients.length > 0) {
-      const topClientsData = sortedClients.slice(0, 10).map((c, i) => [
-        (i + 1).toString(),
-        c[0],
-        c[1].toFixed(2) + ' T',
-        totalTonnes > 0 ? ((c[1] / totalTonnes) * 100).toFixed(1) + '%' : '0%'
-      ]);
+    // Performance bars
+    const perfMetrics = [
+      { label: 'Taux de conversion commandes/chargées', value: tauxChargement, target: 90 },
+      { label: 'Diversification portefeuille clients', value: Math.min(uniqueClients * 5, 100), target: 80 },
+      { label: 'Couverture géographique', value: Math.min(uniquePays * 8, 100), target: 70 },
+      { label: 'Utilisation transporteurs', value: transportersActifs > 0 ? Math.min(100, (transportersActifs / 10) * 100) : 0, target: 60 }
+    ];
+    
+    perfMetrics.forEach(metric => {
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(metric.label, 15, y);
       
-      doc.autoTable({
-        startY: yPos,
-        head: [['Rang', 'Client', 'Tonnes', '% Total']],
-        body: topClientsData,
-        theme: 'striped',
-        headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
-        columnStyles: {
-          0: { cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 90 },
-          2: { cellWidth: 35, halign: 'right' },
-          3: { cellWidth: 25, halign: 'center' }
-        },
-        margin: { left: 15, right: 15 }
-      });
+      // Background bar
+      doc.setFillColor(230, 230, 230);
+      doc.roundedRect(15, y + 3, 180, 8, 2, 2, 'F');
       
-      yPos = doc.lastAutoTable.finalY + 10;
+      // Value bar
+      const barColor = metric.value >= metric.target ? [16, 185, 129] : (metric.value >= metric.target * 0.7 ? [245, 158, 11] : [239, 68, 68]);
+      doc.setFillColor(barColor[0], barColor[1], barColor[2]);
+      doc.roundedRect(15, y + 3, 180 * (metric.value / 100), 8, 2, 2, 'F');
+      
+      // Value text
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      if (metric.value > 15) {
+        doc.text(`${metric.value.toFixed(0)}%`, 20 + 180 * (metric.value / 100) - 15, y + 8);
+      }
+      
+      y += 18;
+    });
+    
+    // ========== PAGE 5: ANALYSE SUPPLY CHAIN ==========
+    doc.addPage();
+    addPageHeader(doc, 'ANALYSE SUPPLY CHAIN');
+    addPageFooter(doc, 5);
+    
+    y = 45;
+    
+    // Supply Chain KPIs
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text('INDICATEURS DE PERFORMANCE SUPPLY CHAIN', 15, y);
+    y += 10;
+    
+    const supplyKpis = [
+      { label: 'Délai Moyen de Traitement', value: `${avgLeadTime.toFixed(1)} jours`, desc: 'Temps entre commande et chargement' },
+      { label: 'Volume Journalier Moyen', value: `${(totalTonnes / 30).toFixed(2)} T/jour`, desc: 'Moyenne sur 30 jours' },
+      { label: 'Taux de Conversion', value: `${tauxChargement.toFixed(1)}%`, desc: 'Commandes chargées / total' },
+      { label: 'Volume Moyen/Commande', value: `${(totalTonnes / filtered.length).toFixed(2)} T`, desc: 'Tonnes par expédition' }
+    ];
+    
+    supplyKpis.forEach((kpi, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 15 + col * 95;
+      const yPosKpi = y + row * 40;
+      
+      doc.setFillColor(236, 254, 255);
+      doc.roundedRect(x, yPosKpi, 90, 35, 4, 4, 'F');
+      doc.setDrawColor(14, 165, 233);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(x, yPosKpi, 90, 35, 4, 4, 'S');
+      
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(kpi.label, x + 45, yPosKpi + 10, { align: 'center' });
+      
+      doc.setTextColor(8, 145, 178);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi.value, x + 45, yPosKpi + 22, { align: 'center' });
+      
+      doc.setTextColor(150, 150, 150);
+      doc.setFontSize(7);
+      doc.text(kpi.desc, x + 45, yPosKpi + 30, { align: 'center' });
+    });
+    
+    y += 90;
+    
+    // Trend analysis
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('ANALYSE DES TENDANCES', 15, y);
+    y += 10;
+    
+    // Monthly breakdown
+    const monthlyData = {};
+    filtered.forEach(c => {
+      const month = c.date ? c.date.substring(0, 7) : 'Inconnu';
+      monthlyData[month] = (monthlyData[month] || 0) + c.tonnes;
+    });
+    const sortedMonths = Object.entries(monthlyData).sort((a, b) => a[0].localeCompare(b[0]));
+    
+    if (sortedMonths.length > 0) {
+      const bestMonth = sortedMonths.reduce((a, b) => b[1] > a[1] ? b : a);
+      const worstMonth = sortedMonths.reduce((a, b) => b[1] < a[1] ? b : a);
+      
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`• Meilleur mois: ${bestMonth[0]} avec ${bestMonth[1].toFixed(2)} T`, 15, y);
+      y += 6;
+      doc.text(`• Mois le plus faible: ${worstMonth[0]} avec ${worstMonth[1].toFixed(2)} T`, 15, y);
+      y += 6;
+      doc.text(`• Écart de performance: ${((bestMonth[1] - worstMonth[1]) / worstMonth[1] * 100).toFixed(1)}%`, 15, y);
+      y += 6;
+      doc.text(`• Nombre de mois d'activité: ${sortedMonths.length}`, 15, y);
     }
     
-    // ===== PIED DE PAGE =====
-    doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Solana Logistique PRO - Rapport genere automatiquement', 105, 285, { align: 'center' });
-    doc.text(`Ce document contient ${filtered.length} commande(s) | Total: ${totalTonnes.toFixed(2)} tonnes`, 105, 290, { align: 'center' });
+    // ========== PAGE 6: ANALYSE TRANSPORTEURS ==========
+    doc.addPage();
+    addPageHeader(doc, 'ANALYSE DES TRANSPORTEURS');
+    addPageFooter(doc, 6);
     
-    // Sauvegarder
-    doc.save(`Solana_Rapport_PRO_${new Date().toISOString().split('T')[0]}.pdf`);
-    showToast('✅ PDF exporté avec succès!');
+    y = 45;
+    
+    // Transporter ranking
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(249, 115, 22);
+    doc.text('CLASSEMENT DES TRANSPORTEURS PARTENAIRES', 15, y);
+    y += 10;
+    
+    if (transporters.length > 0) {
+      const transporterData = transporters.slice(0, 12).map((t, i) => {
+        const percent = totalTonnes > 0 ? ((t[1].tonnes / totalTonnes) * 100) : 0;
+        const avgTonnes = t[1].count > 0 ? t[1].tonnes / t[1].count : 0;
+        return [
+          (i + 1).toString(),
+          t[0],
+          t[1].count.toString(),
+          t[1].tonnes.toFixed(2),
+          percent.toFixed(1) + '%',
+          avgTonnes.toFixed(2)
+        ];
+      });
+      
+      doc.autoTable({
+        startY: y,
+        head: [['Rang', 'Transporteur', 'Cmdes', 'Tonnes', '% Vol', 'Moy T/cmd']],
+        body: transporterData,
+        theme: 'grid',
+        headStyles: { 
+          fillColor: [249, 115, 22], 
+          textColor: 255, 
+          fontSize: 8,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: { 
+          fontSize: 7,
+          cellPadding: 3
+        },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 25, halign: 'center' },
+          5: { cellWidth: 25, halign: 'center' }
+        },
+        margin: { left: 15, right: 15 },
+        alternateRowStyles: { fillColor: [255, 247, 237] }
+      });
+      
+      y = doc.lastAutoTable.finalY + 15;
+    }
+    
+    // Top 3 transporter highlight
+    if (transporters.length >= 3) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 71, 171);
+      doc.text('TOP 3 TRANSPORTEURS - PODIUM', 15, y);
+      y += 10;
+      
+      const podium = [
+        { transporter: transporters[0], pos: 1, color: [255, 215, 0] },
+        { transporter: transporters[1], pos: 2, color: [192, 192, 192] },
+        { transporter: transporters[2], pos: 3, color: [205, 127, 50] }
+      ];
+      
+      podium.forEach((p, i) => {
+        const x = 20 + i * 65;
+        doc.setFillColor(p.color[0], p.color[1], p.color[2]);
+        doc.roundedRect(x, y, 60, 40, 4, 4, 'F');
+        
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`#${p.pos}`, x + 30, y + 10, { align: 'center' });
+        
+        doc.setFontSize(8);
+        const name = p.transporter[0].length > 15 ? p.transporter[0].substring(0, 15) + '...' : p.transporter[0];
+        doc.text(name, x + 30, y + 20, { align: 'center' });
+        
+        doc.setFontSize(12);
+        doc.text(`${p.transporter[1].tonnes.toFixed(1)} T`, x + 30, y + 32, { align: 'center' });
+      });
+    }
+    
+    // ========== PAGE 7: ANALYSE ABC ==========
+    doc.addPage();
+    addPageHeader(doc, 'ANALYSE ABC DES CLIENTS (PARETO)');
+    addPageFooter(doc, 7);
+    
+    y = 45;
+    
+    // ABC explanation
+    doc.setFillColor(240, 249, 255);
+    doc.roundedRect(15, y, 180, 25, 3, 3, 'F');
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PRINCIPE DE LA MÉTHODE ABC (PARETO):', 20, y + 8);
+    doc.text('• Classe A: 20% des clients génèrent 80% du volume - Clients stratégiques', 20, y + 15);
+    doc.text('• Classe B: 30% suivants génèrent 15% du volume - Clients importants', 20, y + 22);
+    y += 32;
+    
+    // ABC Classes summary
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('RÉPARTITION DES CLIENTS PAR CLASSE', 15, y);
+    y += 10;
+    
+    const abcClasses = [
+      { classe: 'A', label: 'STRATÉGIQUES', clients: classeA, color: [16, 185, 129], action: 'Fidélisation prioritaire' },
+      { classe: 'B', label: 'IMPORTANTS', clients: classeB, color: [59, 130, 246], action: 'Développement commercial' },
+      { classe: 'C', label: 'STANDARDS', clients: classeC, color: [107, 114, 128], action: 'Automatisation des processus' }
+    ];
+    
+    abcClasses.forEach(cls => {
+      const classTonnes = cls.clients.reduce((s, c) => s + c.tonnes, 0);
+      const classPercent = totalTonnes > 0 ? (classTonnes / totalTonnes) * 100 : 0;
+      
+      doc.setFillColor(cls.color[0], cls.color[1], cls.color[2]);
+      doc.roundedRect(15, y, 180, 28, 3, 3, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`CLASSE ${cls.classe} - ${cls.label}`, 25, y + 10);
+      
+      doc.setFontSize(10);
+      doc.text(`${cls.clients.length} clients = ${classPercent.toFixed(1)}% du volume`, 25, y + 18);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Action recommandée: ${cls.action}`, 25, y + 24);
+      
+      y += 33;
+    });
+    
+    y += 5;
+    
+    // Top 10 clients table
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('TOP 15 CLIENTS AVEC CLASSIFICATION', 15, y);
+    y += 8;
+    
+    const topClientsData = abcClients.slice(0, 15).map((c, i) => [
+      (i + 1).toString(),
+      c.name,
+      c.tonnes.toFixed(2) + ' T',
+      c.percent.toFixed(1) + '%',
+      c.cumulPercent.toFixed(1) + '%',
+      c.classe
+    ]);
+    
+    doc.autoTable({
+      startY: y,
+      head: [['Rang', 'Client', 'Tonnes', '% Vol', 'Cumul', 'Classe']],
+      body: topClientsData,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [99, 102, 241], 
+        textColor: 255, 
+        fontSize: 8,
+        fontStyle: 'bold'
+      },
+      bodyStyles: { 
+        fontSize: 7,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 30, halign: 'right' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 15, halign: 'center' }
+      },
+      margin: { left: 15, right: 15 },
+      didParseCell: function(data) {
+        if (data.column.index === 5 && data.section === 'body') {
+          const classe = data.cell.raw;
+          if (classe === 'A') data.cell.styles.textColor = [16, 185, 129];
+          else if (classe === 'B') data.cell.styles.textColor = [59, 130, 246];
+          else data.cell.styles.textColor = [107, 114, 128];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+    
+    // ========== PAGE 8: ANALYSE GÉOGRAPHIQUE ==========
+    doc.addPage();
+    addPageHeader(doc, 'ANALYSE GÉOGRAPHIQUE');
+    addPageFooter(doc, 8);
+    
+    y = 45;
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(14, 165, 233);
+    doc.text('RÉPARTITION PAR PAYS DE DESTINATION', 15, y);
+    y += 10;
+    
+    const paysTableData = sortedPays.slice(0, 15).map((p, i) => {
+      const avgT = p[1].count > 0 ? p[1].tonnes / p[1].count : 0;
+      const percent = totalTonnes > 0 ? (p[1].tonnes / totalTonnes) * 100 : 0;
+      return [
+        (i + 1).toString(),
+        p[0],
+        paysNoms[p[0]] || p[0],
+        p[1].count.toString(),
+        p[1].tonnes.toFixed(2),
+        percent.toFixed(1) + '%',
+        avgT.toFixed(2) + ' T'
+      ];
+    });
+    
+    doc.autoTable({
+      startY: y,
+      head: [['Rang', 'Code', 'Pays Destination', 'Cmdes', 'Tonnes', '% Vol', 'Moyenne']],
+      body: paysTableData,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [14, 165, 233], 
+        textColor: 255, 
+        fontSize: 8,
+        fontStyle: 'bold'
+      },
+      bodyStyles: { 
+        fontSize: 7,
+        cellPadding: 3
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 15, halign: 'center' },
+        2: { cellWidth: 55 },
+        3: { cellWidth: 22, halign: 'center' },
+        4: { cellWidth: 28, halign: 'right' },
+        5: { cellWidth: 20, halign: 'center' },
+        6: { cellWidth: 25, halign: 'center' }
+      },
+      margin: { left: 15, right: 15 },
+      alternateRowStyles: { fillColor: [240, 249, 255] }
+    });
+    
+    y = doc.lastAutoTable.finalY + 15;
+    
+    // Geographic insights
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 71, 171);
+    doc.text('INSIGHTS GÉOGRAPHIQUES', 15, y);
+    y += 8;
+    
+    const top3PaysTonnes = sortedPays.slice(0, 3).reduce((s, p) => s + p[1].tonnes, 0);
+    const concentrationGeo = totalTonnes > 0 ? (top3PaysTonnes / totalTonnes) * 100 : 0;
+    
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`• Top 3 destinations: ${sortedPays.slice(0, 3).map(p => paysNoms[p[0]] || p[0]).join(', ')}`, 15, y);
+    y += 6;
+    doc.text(`• Concentration géographique (Top 3): ${concentrationGeo.toFixed(1)}% du volume`, 15, y);
+    y += 6;
+    doc.text(`• Diversification: ${uniquePays} pays desservis`, 15, y);
+    
+    // ========== PAGE 9: RECOMMANDATIONS ==========
+    doc.addPage();
+    addPageHeader(doc, 'RECOMMANDATIONS STRATÉGIQUES');
+    addPageFooter(doc, 9);
+    
+    y = 45;
+    
+    const recommendations = [
+      {
+        title: 'FIDÉLISATION CLIENTS CLASSE A',
+        description: 'Mettre en place un programme de fidélité personnalisé pour les ' + classeA.length + ' clients stratégiques qui génèrent 80% du volume.',
+        impact: 'HIGH',
+        color: [16, 185, 129]
+      },
+      {
+        title: 'DÉVELOPPEMENT TRANSPORTEURS',
+        description: 'Diversifier le panel transporteurs pour réduire la dépendance aux 3 premiers qui représentent ' + (transporters.length >= 3 ? ((transporters[0][1].tonnes + transporters[1][1].tonnes + transporters[2][1].tonnes) / totalTonnes * 100).toFixed(0) : 0) + '% du volume.',
+        impact: 'MEDIUM',
+        color: [245, 158, 11]
+      },
+      {
+        title: 'RÉDUCTION DÉLAI TRAITEMENT',
+        description: 'Optimiser le délai moyen de ' + avgLeadTime.toFixed(1) + ' jours en améliorant le processus de chargement.',
+        impact: 'HIGH',
+        color: [16, 185, 129]
+      },
+      {
+        title: 'EXPANSION GÉOGRAPHIQUE',
+        description: 'Explorer de nouveaux marchés pour réduire la concentration géographique actuelle.',
+        impact: 'MEDIUM',
+        color: [245, 158, 11]
+      },
+      {
+        title: 'AUTOMATISATION CLASSE C',
+        description: 'Automatiser la gestion des ' + classeC.length + ' clients standards pour optimiser les ressources.',
+        impact: 'LOW',
+        color: [107, 114, 128]
+      }
+    ];
+    
+    recommendations.forEach((rec, i) => {
+      doc.setFillColor(rec.color[0], rec.color[1], rec.color[2]);
+      doc.roundedRect(15, y, 5, 35, 2, 2, 'F');
+      
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(22, y, 173, 35, 3, 3, 'F');
+      
+      doc.setTextColor(40, 40, 40);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(rec.title, 27, y + 10);
+      
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const descLines = doc.splitTextToSize(rec.description, 160);
+      doc.text(descLines, 27, y + 18);
+      
+      // Impact badge
+      const impactColors = { HIGH: [16, 185, 129], MEDIUM: [245, 158, 11], LOW: [107, 114, 128] };
+      doc.setFillColor(impactColors[rec.impact][0], impactColors[rec.impact][1], impactColors[rec.impact][2]);
+      doc.roundedRect(160, y + 5, 30, 10, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text(rec.impact, 175, y + 11, { align: 'center' });
+      
+      y += 42;
+    });
+    
+    // ========== PAGE 10+: LISTE COMMANDES ==========
+    doc.addPage();
+    addPageHeader(doc, 'LISTE DÉTAILLÉE DES COMMANDES');
+    addPageFooter(doc, 10);
+    
+    y = 45;
+    
+    // Summary
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total: ${filtered.length} commandes | Volume: ${totalTonnes.toFixed(2)} T | Taux de chargement: ${tauxChargement.toFixed(1)}%`, 15, y);
+    y += 10;
+    
+    const commandesData = filtered.map(c => [
+      c.ref || '-',
+      c.client || '-',
+      c.date || '-',
+      paysNoms[c.pays] || c.pays || '-',
+      (c.tonnes || 0).toFixed(2) + ' T',
+      c.statut === 'CHARGÉE' ? 'CHARGÉE' : 'ATTENTE',
+      c.transporteur || '-'
+    ]);
+    
+    doc.autoTable({
+      startY: y,
+      head: [['Réf', 'Client', 'Date', 'Pays', 'Tonnes', 'Statut', 'Transporteur']],
+      body: commandesData,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [0, 71, 171], 
+        textColor: 255, 
+        fontSize: 7,
+        fontStyle: 'bold'
+      },
+      bodyStyles: { 
+        fontSize: 6,
+        cellPadding: 2
+      },
+      columnStyles: {
+        0: { cellWidth: 20 },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 22, halign: 'right' },
+        5: { cellWidth: 20, halign: 'center' },
+        6: { cellWidth: 35 }
+      },
+      margin: { left: 10, right: 10 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell: function(data) {
+        if (data.column.index === 5 && data.section === 'body') {
+          if (data.cell.raw === 'CHARGÉE') {
+            data.cell.styles.textColor = [16, 185, 129];
+            data.cell.styles.fontStyle = 'bold';
+          } else {
+            data.cell.styles.textColor = [245, 158, 11];
+          }
+        }
+      }
+    });
+    
+    // Update page numbers for all pages
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addPageFooter(doc, i, totalPages);
+    }
+    
+    hideLoading();
+    
+    // Save
+    doc.save(`Solana_Rapport_Professionnel_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('✅ Rapport PDF professionnel exporté avec succès!');
+  }
+  
+  // Helper function: Add page header
+  function addPageHeader(doc, title) {
+    doc.setFillColor(0, 71, 171);
+    doc.rect(0, 0, 210, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', 15, 10);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(title, 105, 17, { align: 'center' });
+  }
+  
+  // Helper function: Add page footer
+  function addPageFooter(doc, pageNum, totalPages) {
+    doc.setDrawColor(0, 71, 171);
+    doc.setLineWidth(0.5);
+    doc.line(15, 285, 195, 285);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Solana Logistique PRO - Rapport généré automatiquement', 15, 291);
+    doc.text(`Page ${pageNum}${totalPages ? '/' + totalPages : ''}`, 195, 291, { align: 'right' });
   }
 
   // ==================== EXPORT COMMANDES EXCEL ====================
