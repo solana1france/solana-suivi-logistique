@@ -9,8 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   
-  <!-- html2pdf for PDF export -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   
   <!-- Leaflet Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -1865,7 +1866,9 @@
   function exportPDFReport() {
     showToast('📄 Génération du PDF...');
     
-    // Créer le contenu HTML pour le PDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    
     const filtered = getFilteredCmdsForReport();
     const totalTonnes = filtered.reduce((s, c) => s + c.tonnes, 0);
     const charged = filtered.filter(c => c.statut === 'CHARGÉE').length;
@@ -1877,159 +1880,263 @@
     const sortedClients = Object.entries(clientVolumes).sort((a, b) => b[1] - a[1]);
     
     // Transporteurs
-    const transporters = getTopTransporters(5);
+    const transporters = getTopTransporters(10);
     
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #0077b6; padding-bottom: 20px;">
-          <h1 style="color: #0077b6; margin: 0; font-size: 28px;">🚚 SOLANA LOGISTIQUE</h1>
-          <h2 style="color: #333; margin: 10px 0 0 0; font-size: 18px;">Rapport Analytique PRO</h2>
-          <p style="color: #666; margin: 5px 0;">Date: ${new Date().toLocaleDateString('fr-FR')} | Période: ${currentReportPeriod}</p>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #0077b6; border-bottom: 2px solid #0077b6; padding-bottom: 5px;">📊 Synthèse Générale</h3>
-          <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;">
-            <div style="flex: 1; min-width: 150px; background: #f0f9ff; padding: 15px; border-radius: 10px; text-align: center;">
-              <p style="margin: 0; color: #666; font-size: 12px;">TOTAL TONNES</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #0077b6;">${totalTonnes.toFixed(1)} T</p>
-            </div>
-            <div style="flex: 1; min-width: 150px; background: #fef3c7; padding: 15px; border-radius: 10px; text-align: center;">
-              <p style="margin: 0; color: #666; font-size: 12px;">EN ATTENTE</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #f59e0b;">${pending}</p>
-            </div>
-            <div style="flex: 1; min-width: 150px; background: #d1fae5; padding: 15px; border-radius: 10px; text-align: center;">
-              <p style="margin: 0; color: #666; font-size: 12px;">CHARGÉES</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #10b981;">${charged}</p>
-            </div>
-            <div style="flex: 1; min-width: 150px; background: #f3e8ff; padding: 15px; border-radius: 10px; text-align: center;">
-              <p style="margin: 0; color: #666; font-size: 12px;">TAUX CHARGEMENT</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #8b5cf6;">${filtered.length > 0 ? Math.round((charged / filtered.length) * 100) : 0}%</p>
-            </div>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #0077b6; border-bottom: 2px solid #0077b6; padding-bottom: 5px;">🔗 Analyse Supply Chain</h3>
-          <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;">
-            <div style="flex: 1; min-width: 150px; background: #ecfeff; padding: 15px; border-radius: 10px;">
-              <p style="margin: 0; color: #666; font-size: 12px;">DÉLAI MOYEN TRAITEMENT</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; color: #0891b2;">${document.getElementById('supplyLeadTime').textContent}</p>
-            </div>
-            <div style="flex: 1; min-width: 150px; background: #ecfeff; padding: 15px; border-radius: 10px;">
-              <p style="margin: 0; color: #666; font-size: 12px;">VOLUME JOURNALIER</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; color: #0891b2;">${document.getElementById('supplyDailyVolume').textContent}</p>
-            </div>
-            <div style="flex: 1; min-width: 150px; background: #ecfeff; padding: 15px; border-radius: 10px;">
-              <p style="margin: 0; color: #666; font-size: 12px;">INDICE CONCENTRATION</p>
-              <p style="margin: 5px 0 0 0; font-size: 20px; font-weight: bold; color: #0891b2;">${document.getElementById('supplyConcentration').textContent}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #0077b6; border-bottom: 2px solid #0077b6; padding-bottom: 5px;">🚚 Top Transporteurs</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-              <tr style="background: #f97316; color: white;">
-                <th style="padding: 10px; text-align: left;">Rang</th>
-                <th style="padding: 10px; text-align: left;">Transporteur</th>
-                <th style="padding: 10px; text-align: right;">Commandes</th>
-                <th style="padding: 10px; text-align: right;">Tonnes</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${transporters.map((t, i) => `
-                <tr style="background: ${i % 2 === 0 ? '#fff7ed' : 'white'};">
-                  <td style="padding: 8px;">${i + 1}</td>
-                  <td style="padding: 8px; font-weight: bold;">${t[0]}</td>
-                  <td style="padding: 8px; text-align: right;">${t[1].count}</td>
-                  <td style="padding: 8px; text-align: right; color: #f97316; font-weight: bold;">${t[1].tonnes.toFixed(2)} T</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #0077b6; border-bottom: 2px solid #0077b6; padding-bottom: 5px;">📊 Analyse ABC Clients (Pareto)</h3>
-          <div style="display: flex; gap: 15px; margin-top: 15px;">
-            <div style="flex: 1; background: linear-gradient(135deg, #10b981, #059669); padding: 15px; border-radius: 10px; color: white;">
-              <p style="margin: 0; font-size: 12px;">CLASSE A (Stratégiques)</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">${document.getElementById('abcClientsA').textContent} clients</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px;">= ${document.getElementById('abcVolumeA').textContent} du volume</p>
-            </div>
-            <div style="flex: 1; background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 15px; border-radius: 10px; color: white;">
-              <p style="margin: 0; font-size: 12px;">CLASSE B (Importants)</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">${document.getElementById('abcClientsB').textContent} clients</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px;">= ${document.getElementById('abcVolumeB').textContent} du volume</p>
-            </div>
-            <div style="flex: 1; background: linear-gradient(135deg, #6b7280, #4b5563); padding: 15px; border-radius: 10px; color: white;">
-              <p style="margin: 0; font-size: 12px;">CLASSE C (Standards)</p>
-              <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">${document.getElementById('abcClientsC').textContent} clients</p>
-              <p style="margin: 5px 0 0 0; font-size: 14px;">= ${document.getElementById('abcVolumeC').textContent} du volume</p>
-            </div>
-          </div>
-        </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #0077b6; border-bottom: 2px solid #0077b6; padding-bottom: 5px;">🏆 Top 5 Clients</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-              <tr style="background: #6366f1; color: white;">
-                <th style="padding: 10px; text-align: left;">Rang</th>
-                <th style="padding: 10px; text-align: left;">Client</th>
-                <th style="padding: 10px; text-align: right;">Tonnes</th>
-                <th style="padding: 10px; text-align: right;">% Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sortedClients.slice(0, 5).map((c, i) => `
-                <tr style="background: ${i % 2 === 0 ? '#eef2ff' : 'white'};">
-                  <td style="padding: 8px;">${i + 1}</td>
-                  <td style="padding: 8px; font-weight: bold;">${c[0]}</td>
-                  <td style="padding: 8px; text-align: right;">${c[1].toFixed(2)} T</td>
-                  <td style="padding: 8px; text-align: right; color: #6366f1; font-weight: bold;">${totalTonnes > 0 ? ((c[1] / totalTonnes) * 100).toFixed(1) : 0}%</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;">
-          <p>🚚 Solana Logistique PRO - Rapport généré automatiquement</p>
-          <p>Projet Fin d'Études - Dashboard Logistique</p>
-        </div>
-      </div>
-    `;
+    let yPos = 20;
     
-    const element = document.createElement('div');
-    element.innerHTML = htmlContent;
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    document.body.appendChild(element);
+    // ===== EN-TÊTE =====
+    doc.setFillColor(0, 119, 182);
+    doc.rect(0, 0, 210, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', 105, 15, { align: 'center' });
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Rapport Analytique PRO', 105, 25, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')} | Période: ${currentReportPeriod}`, 105, 32, { align: 'center' });
     
-    const opt = {
-      margin: [10, 10, 15, 10],
-      filename: `Solana_Rapport_PRO_${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 900
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
+    yPos = 45;
     
-    html2pdf().set(opt).from(element).save().then(() => {
-      document.body.removeChild(element);
-      showToast('✅ PDF exporté avec succès!');
-    }).catch(err => {
-      document.body.removeChild(element);
-      showToast('❌ Erreur PDF: ' + err.message, 'error');
+    // ===== SYNTHÈSE GÉNÉRALE =====
+    doc.setTextColor(0, 119, 182);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SYNTHESE GENERALE', 15, yPos);
+    yPos += 3;
+    doc.setDrawColor(0, 119, 182);
+    doc.setLineWidth(0.5);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 10;
+    
+    // KPIs en boîtes
+    const kpiWidth = 42;
+    const kpiHeight = 20;
+    const kpiX = [15, 59, 103, 147];
+    
+    // Total Tonnes
+    doc.setFillColor(240, 249, 255);
+    doc.rect(kpiX[0], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(0, 119, 182);
+    doc.rect(kpiX[0], yPos, kpiWidth, kpiHeight, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.text('TOTAL TONNES', kpiX[0] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.setTextColor(0, 119, 182);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${totalTonnes.toFixed(1)} T`, kpiX[0] + kpiWidth/2, yPos + 14, { align: 'center' });
+    
+    // En Attente
+    doc.setFillColor(254, 243, 199);
+    doc.rect(kpiX[1], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.rect(kpiX[1], yPos, kpiWidth, kpiHeight, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('EN ATTENTE', kpiX[1] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.setTextColor(245, 158, 11);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${pending}`, kpiX[1] + kpiWidth/2, yPos + 14, { align: 'center' });
+    
+    // Chargées
+    doc.setFillColor(209, 250, 229);
+    doc.rect(kpiX[2], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(16, 185, 129);
+    doc.rect(kpiX[2], yPos, kpiWidth, kpiHeight, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CHARGEES', kpiX[2] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${charged}`, kpiX[2] + kpiWidth/2, yPos + 14, { align: 'center' });
+    
+    // Taux
+    doc.setFillColor(243, 232, 255);
+    doc.rect(kpiX[3], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(139, 92, 246);
+    doc.rect(kpiX[3], yPos, kpiWidth, kpiHeight, 'S');
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('TAUX CHARGEMENT', kpiX[3] + kpiWidth/2, yPos + 6, { align: 'center' });
+    doc.setTextColor(139, 92, 246);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${filtered.length > 0 ? Math.round((charged / filtered.length) * 100) : 0}%`, kpiX[3] + kpiWidth/2, yPos + 14, { align: 'center' });
+    
+    yPos += kpiHeight + 12;
+    
+    // ===== SUPPLY CHAIN =====
+    doc.setTextColor(14, 165, 233);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ANALYSE SUPPLY CHAIN', 15, yPos);
+    yPos += 3;
+    doc.setDrawColor(14, 165, 233);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 8;
+    
+    // KPIs Supply Chain
+    const supplyKpis = [
+      ['Delai Moyen', document.getElementById('supplyLeadTime').textContent],
+      ['Volume Journalier', document.getElementById('supplyDailyVolume').textContent],
+      ['Taux Conversion', document.getElementById('supplyConversionRate').textContent],
+      ['Concentration', document.getElementById('supplyConcentration').textContent]
+    ];
+    
+    doc.setFontSize(9);
+    const kpiWidth2 = 42;
+    const kpiX2 = [15, 59, 103, 147];
+    
+    supplyKpis.forEach((kpi, i) => {
+      doc.setFillColor(236, 254, 255);
+      doc.rect(kpiX2[i], yPos, kpiWidth2, 18, 'F');
+      doc.setDrawColor(14, 165, 233);
+      doc.rect(kpiX2[i], yPos, kpiWidth2, 18, 'S');
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(7);
+      doc.text(kpi[0], kpiX2[i] + kpiWidth2/2, yPos + 6, { align: 'center' });
+      doc.setTextColor(8, 145, 178);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(kpi[1], kpiX2[i] + kpiWidth2/2, yPos + 13, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
     });
+    
+    yPos += 25;
+    
+    // ===== TRANSPORTEURS =====
+    doc.setTextColor(249, 115, 22);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLASSEMENT TRANSPORTEURS', 15, yPos);
+    yPos += 3;
+    doc.setDrawColor(249, 115, 22);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 5;
+    
+    if (transporters.length > 0) {
+      const transporterData = transporters.map((t, i) => [
+        (i + 1).toString(),
+        t[0],
+        t[1].count.toString(),
+        t[1].tonnes.toFixed(2) + ' T',
+        totalTonnes > 0 ? ((t[1].tonnes / totalTonnes) * 100).toFixed(1) + '%' : '0%'
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [['Rang', 'Transporteur', 'Commandes', 'Tonnes', '% Volume']],
+        body: transporterData,
+        theme: 'striped',
+        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 70 },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 35, halign: 'right' },
+          4: { cellWidth: 25, halign: 'center' }
+        },
+        margin: { left: 15, right: 15 }
+      });
+      
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+    
+    // ===== ANALYSE ABC =====
+    if (yPos > 220) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    doc.setTextColor(99, 102, 241);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ANALYSE ABC CLIENTS (PARETO)', 15, yPos);
+    yPos += 3;
+    doc.setDrawColor(99, 102, 241);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 8;
+    
+    // ABC Classes
+    const abcData = [
+      ['A - Strategiques', document.getElementById('abcClientsA').textContent, document.getElementById('abcVolumeA').textContent, [16, 185, 129]],
+      ['B - Importants', document.getElementById('abcClientsB').textContent, document.getElementById('abcVolumeB').textContent, [59, 130, 246]],
+      ['C - Standards', document.getElementById('abcClientsC').textContent, document.getElementById('abcVolumeC').textContent, [107, 114, 128]]
+    ];
+    
+    const abcWidth = 55;
+    const abcX = [20, 77, 134];
+    
+    abcData.forEach((cls, i) => {
+      doc.setFillColor(cls[3][0], cls[3][1], cls[3][2]);
+      doc.roundedRect(abcX[i], yPos, abcWidth, 22, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text('Classe ' + cls[0], abcX[i] + abcWidth/2, yPos + 6, { align: 'center' });
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(cls[1] + ' clients', abcX[i] + abcWidth/2, yPos + 13, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('= ' + cls[2] + ' vol.', abcX[i] + abcWidth/2, yPos + 19, { align: 'center' });
+    });
+    
+    yPos += 30;
+    
+    // ===== TOP CLIENTS =====
+    doc.setTextColor(99, 102, 241);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOP 10 CLIENTS', 15, yPos);
+    yPos += 3;
+    doc.setDrawColor(99, 102, 241);
+    doc.line(15, yPos, 195, yPos);
+    yPos += 5;
+    
+    if (sortedClients.length > 0) {
+      const topClientsData = sortedClients.slice(0, 10).map((c, i) => [
+        (i + 1).toString(),
+        c[0],
+        c[1].toFixed(2) + ' T',
+        totalTonnes > 0 ? ((c[1] / totalTonnes) * 100).toFixed(1) + '%' : '0%'
+      ]);
+      
+      doc.autoTable({
+        startY: yPos,
+        head: [['Rang', 'Client', 'Tonnes', '% Total']],
+        body: topClientsData,
+        theme: 'striped',
+        headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 90 },
+          2: { cellWidth: 35, halign: 'right' },
+          3: { cellWidth: 25, halign: 'center' }
+        },
+        margin: { left: 15, right: 15 }
+      });
+      
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+    
+    // ===== PIED DE PAGE =====
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('Solana Logistique PRO - Rapport genere automatiquement', 105, 285, { align: 'center' });
+    doc.text(`Ce document contient ${filtered.length} commande(s) | Total: ${totalTonnes.toFixed(2)} tonnes`, 105, 290, { align: 'center' });
+    
+    // Sauvegarder
+    doc.save(`Solana_Rapport_PRO_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('✅ PDF exporté avec succès!');
   }
 
   // ==================== EXPORT COMMANDES EXCEL ====================
@@ -2220,6 +2327,9 @@
     
     showToast('📄 Génération du PDF...');
     
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape pour plus de colonnes
+    
     const totalTonnes = filteredCmds.reduce((s, c) => s + (c.tonnes || 0), 0);
     const enAttente = filteredCmds.filter(c => c.statut === 'EN ATTENTE');
     const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE');
@@ -2227,146 +2337,155 @@
     // Déterminer le filtre actif
     let filterLabel = 'Toutes les commandes';
     if (currentStatusFilter === 'EN ATTENTE') filterLabel = 'Commandes en attente';
-    else if (currentStatusFilter === 'CHARGÉE') filterLabel = 'Commandes chargées';
+    else if (currentStatusFilter === 'CHARGÉE') filterLabel = 'Commandes chargees';
     
-    // Générer les lignes du tableau avec pagination
-    const generateTableRows = (cmds, maxRows = 50) => {
-      const rows = cmds.slice(0, maxRows);
-      let html = rows.map((c, i) => `
-        <tr style="background: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.client || ''}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.ref || ''}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.date || ''}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.point_depart || '-'}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${paysEmojis[c.pays] || ''} ${paysNoms[c.pays] || c.pays || ''}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #059669; font-size: 10px;">${(c.tonnes || 0).toFixed(2)} T</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${c.statut === 'CHARGÉE' ? '✅' : '⏳'}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.transporteur || '-'}</td>
-          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.immat || '-'}</td>
-        </tr>
-      `).join('');
-      
-      if (cmds.length > maxRows) {
-        html += `<tr><td colspan="9" style="padding: 10px; text-align: center; color: #666; font-style: italic;">... et ${cmds.length - maxRows} autres commandes (voir export Excel pour la liste complète)</td></tr>`;
-      }
-      
-      return html;
-    };
+    let yPos = 15;
     
-    const htmlContent = `
-      <div style="font-family: Arial, sans-serif; padding: 15px; max-width: 850px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #0077b6; padding-bottom: 12px;">
-          <h1 style="color: #0077b6; margin: 0; font-size: 22px;">🚚 SOLANA LOGISTIQUE</h1>
-          <h2 style="color: #333; margin: 6px 0 0 0; font-size: 14px;">Liste des Commandes</h2>
-          <p style="color: #666; margin: 4px 0; font-size: 11px;">${filterLabel} | Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
-        </div>
-        
-        <!-- Résumé KPIs -->
-        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 100px; background: #f0f9ff; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #0077b6;">
-            <p style="margin: 0; color: #666; font-size: 9px;">TOTAL TONNES</p>
-            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #0077b6;">${totalTonnes.toFixed(2)} T</p>
-          </div>
-          <div style="flex: 1; min-width: 100px; background: #fef3c7; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #f59e0b;">
-            <p style="margin: 0; color: #666; font-size: 9px;">EN ATTENTE</p>
-            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #f59e0b;">${enAttente.length}</p>
-          </div>
-          <div style="flex: 1; min-width: 100px; background: #d1fae5; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #10b981;">
-            <p style="margin: 0; color: #666; font-size: 9px;">CHARGÉES</p>
-            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #10b981;">${chargees.length}</p>
-          </div>
-          <div style="flex: 1; min-width: 100px; background: #f3e8ff; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #8b5cf6;">
-            <p style="margin: 0; color: #666; font-size: 9px;">TAUX</p>
-            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #8b5cf6;">${filteredCmds.length > 0 ? Math.round((chargees.length / filteredCmds.length) * 100) : 0}%</p>
-          </div>
-        </div>
-        
-        <!-- Tableau des commandes -->
-        <div style="margin-bottom: 15px;">
-          <h3 style="color: #333; font-size: 12px; margin: 0 0 8px 0;">📋 Détail des commandes (${filteredCmds.length})</h3>
-          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
-            <thead>
-              <tr style="background: linear-gradient(135deg, #0077b6, #00b4d8); color: white;">
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Client</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Réf</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Date</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Départ</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Pays</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: right; font-size: 9px;">Tonnes</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: center; font-size: 9px;">St</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Transporteur</th>
-                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Immat</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${generateTableRows(filteredCmds)}
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- Statistiques -->
-        <div style="margin-bottom: 15px; display: flex; gap: 15px;">
-          <div style="flex: 1;">
-            <h4 style="color: #0077b6; font-size: 11px; margin: 0 0 5px 0;">🏆 Top 3 Clients</h4>
-            ${(() => {
-              const cv = {};
-              filteredCmds.forEach(c => cv[c.client] = (cv[c.client] || 0) + (c.tonnes || 0));
-              return Object.entries(cv).sort((a,b) => b[1]-a[1]).slice(0,3).map((c, i) => 
-                `<p style="margin: 2px 0; font-size: 10px;">${i+1}. ${c[0]}: ${c[1].toFixed(2)} T</p>`
-              ).join('');
-            })()}
-          </div>
-          <div style="flex: 1;">
-            <h4 style="color: #f97316; font-size: 11px; margin: 0 0 5px 0;">🚚 Top 3 Transporteurs</h4>
-            ${(() => {
-              const ts = {};
-              filteredCmds.filter(c => c.transporteur).forEach(c => {
-                if (!ts[c.transporteur]) ts[c.transporteur] = { count: 0, tonnes: 0 };
-                ts[c.transporteur].count++;
-                ts[c.transporteur].tonnes += c.tonnes || 0;
-              });
-              return Object.entries(ts).sort((a,b) => b[1].tonnes-a[1].tonnes).slice(0,3).map((t, i) => 
-                `<p style="margin: 2px 0; font-size: 10px;">${i+1}. ${t[0]}: ${t[1].tonnes.toFixed(2)} T</p>`
-              ).join('');
-            })()}
-          </div>
-        </div>
-        
-        <!-- Pied de page -->
-        <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 9px;">
-          <p>🚚 Solana Logistique PRO - Export automatique</p>
-          <p>Ce document contient ${filteredCmds.length} commande(s) | Total: ${totalTonnes.toFixed(2)} tonnes</p>
-        </div>
-      </div>
-    `;
+    // ===== EN-TÊTE =====
+    doc.setFillColor(0, 119, 182);
+    doc.rect(0, 0, 297, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SOLANA LOGISTIQUE', 148.5, 10, { align: 'center' });
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Liste des Commandes', 148.5, 18, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(`${filterLabel} | Genere le ${new Date().toLocaleDateString('fr-FR')} a ${new Date().toLocaleTimeString('fr-FR')}`, 148.5, 24, { align: 'center' });
     
-    const element = document.createElement('div');
-    element.innerHTML = htmlContent;
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    document.body.appendChild(element);
+    yPos = 35;
     
-    const opt = {
-      margin: [8, 8, 12, 8],
-      filename: `Solana_Commandes_${currentStatusFilter === 'all' ? 'Toutes' : currentStatusFilter.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 900
+    // ===== KPIs RÉSUMÉ =====
+    const kpiWidth = 55;
+    const kpiHeight = 16;
+    const kpiX = [25, 85, 145, 205];
+    
+    // Total Tonnes
+    doc.setFillColor(240, 249, 255);
+    doc.rect(kpiX[0], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(0, 119, 182);
+    doc.setLineWidth(0.5);
+    doc.line(kpiX[0], yPos, kpiX[0], yPos + kpiHeight);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.text('TOTAL TONNES', kpiX[0] + kpiWidth/2, yPos + 5, { align: 'center' });
+    doc.setTextColor(0, 119, 182);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${totalTonnes.toFixed(2)} T`, kpiX[0] + kpiWidth/2, yPos + 11, { align: 'center' });
+    
+    // En Attente
+    doc.setFillColor(254, 243, 199);
+    doc.rect(kpiX[1], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(245, 158, 11);
+    doc.line(kpiX[1], yPos, kpiX[1], yPos + kpiHeight);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('EN ATTENTE', kpiX[1] + kpiWidth/2, yPos + 5, { align: 'center' });
+    doc.setTextColor(245, 158, 11);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${enAttente.length}`, kpiX[1] + kpiWidth/2, yPos + 11, { align: 'center' });
+    
+    // Chargées
+    doc.setFillColor(209, 250, 229);
+    doc.rect(kpiX[2], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(16, 185, 129);
+    doc.line(kpiX[2], yPos, kpiX[2], yPos + kpiHeight);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CHARGEES', kpiX[2] + kpiWidth/2, yPos + 5, { align: 'center' });
+    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${chargees.length}`, kpiX[2] + kpiWidth/2, yPos + 11, { align: 'center' });
+    
+    // Taux
+    doc.setFillColor(243, 232, 255);
+    doc.rect(kpiX[3], yPos, kpiWidth, kpiHeight, 'F');
+    doc.setDrawColor(139, 92, 246);
+    doc.line(kpiX[3], yPos, kpiX[3], yPos + kpiHeight);
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text('TAUX CHARGEMENT', kpiX[3] + kpiWidth/2, yPos + 5, { align: 'center' });
+    doc.setTextColor(139, 92, 246);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${filteredCmds.length > 0 ? Math.round((chargees.length / filteredCmds.length) * 100) : 0}%`, kpiX[3] + kpiWidth/2, yPos + 11, { align: 'center' });
+    
+    yPos += kpiHeight + 10;
+    
+    // ===== TABLEAU DES COMMANDES =====
+    const tableData = filteredCmds.map(c => [
+      c.client || '',
+      c.ref || '',
+      c.date || '',
+      c.point_depart || '-',
+      (paysNoms[c.pays] || c.pays || '-'),
+      (c.tonnes || 0).toFixed(2) + ' T',
+      c.statut === 'CHARGÉE' ? 'CHARGE' : 'ATTENTE',
+      c.transporteur || '-',
+      c.immat || '-'
+    ]);
+    
+    doc.autoTable({
+      startY: yPos,
+      head: [['Client', 'Reference', 'Date', 'Depart', 'Pays', 'Tonnes', 'Statut', 'Transporteur', 'Immat']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: [0, 119, 182], 
+        textColor: 255, 
+        fontSize: 7,
+        fontStyle: 'bold'
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
-    
-    html2pdf().set(opt).from(element).save().then(() => {
-      document.body.removeChild(element);
-      showToast('✅ PDF exporté avec succès!');
-    }).catch(err => {
-      document.body.removeChild(element);
-      showToast('❌ Erreur PDF', 'error');
+      bodyStyles: { 
+        fontSize: 6,
+        cellPadding: 2
+      },
+      columnStyles: {
+        0: { cellWidth: 40 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 30 },
+        5: { cellWidth: 22, halign: 'right' },
+        6: { cellWidth: 18, halign: 'center' },
+        7: { cellWidth: 40 },
+        8: { cellWidth: 25 }
+      },
+      margin: { left: 10, right: 10 },
+      didDrawCell: function(data) {
+        // Colorer le statut
+        if (data.column.index === 6 && data.section === 'body') {
+          const status = data.cell.raw;
+          if (status === 'CHARGE') {
+            doc.setTextColor(16, 185, 129);
+          } else {
+            doc.setTextColor(245, 158, 11);
+          }
+        }
+      }
     });
+    
+    // ===== PIED DE PAGE =====
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Solana Logistique PRO - Page ${i}/${pageCount}`, 148.5, 205, { align: 'center' });
+      doc.text(`Total: ${filteredCmds.length} commande(s) | ${totalTonnes.toFixed(2)} tonnes`, 148.5, 210, { align: 'center' });
+    }
+    
+    // Sauvegarder
+    const filterName = currentStatusFilter === 'all' ? 'Toutes' : currentStatusFilter.replace(' ', '_');
+    doc.save(`Solana_Commandes_${filterName}_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast('✅ PDF exporté avec succès!');
   }
 
   // ==================== LOGIN ====================
