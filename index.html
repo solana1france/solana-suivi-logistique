@@ -830,8 +830,9 @@
               <span class="text-sm font-medium">Tout sélectionner</span>
             </label>
           </div>
-          <div class="flex gap-2">
-            <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors">📥 Export Excel</button>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors shadow-lg">📥 Export Excel</button>
+            <button onclick="exportCommandsPDF()" class="px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors shadow-lg">📄 Export PDF</button>
           </div>
         </div>
         
@@ -2004,14 +2005,359 @@
     
     const element = document.createElement('div');
     element.innerHTML = htmlContent;
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
     document.body.appendChild(element);
     
     const opt = {
-      margin: 10,
+      margin: [10, 10, 15, 10],
       filename: `Solana_Rapport_PRO_${new Date().toISOString().split('T')[0]}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 900
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      document.body.removeChild(element);
+      showToast('✅ PDF exporté avec succès!');
+    }).catch(err => {
+      document.body.removeChild(element);
+      showToast('❌ Erreur PDF: ' + err.message, 'error');
+    });
+  }
+
+  // ==================== EXPORT COMMANDES EXCEL ====================
+  function exportExcel() {
+    if (filteredCmds.length === 0) {
+      showToast('⚠️ Aucune commande à exporter', 'error');
+      return;
+    }
+    
+    showLoading();
+    const wb = XLSX.utils.book_new();
+    
+    // ===== FEUILLE 1: COMMANDES COMPLÈTES =====
+    const commandesHeaders = [
+      'Client', 'Référence', 'Date Commande', 'Point Départ', 'Code Pays', 'Pays Destination',
+      'Tonnes', 'Statut', 'Transporteur', 'Immatriculation', 'Date Chargement', 
+      'Email Client', 'Nb Emails'
+    ];
+    
+    const commandesData = [commandesHeaders];
+    
+    filteredCmds.forEach(c => {
+      commandesData.push([
+        c.client || '',
+        c.ref || '',
+        c.date || '',
+        c.point_depart || '',
+        c.pays || '',
+        paysNoms[c.pays] || c.pays || '',
+        typeof c.tonnes === 'number' ? c.tonnes : parseFloat(c.tonnes) || 0,
+        c.statut || 'EN ATTENTE',
+        c.transporteur || '',
+        c.immat || '',
+        c.date_chargement || '',
+        c.email || '',
+        c.nb_emails || 0
+      ]);
+    });
+    
+    const ws1 = XLSX.utils.aoa_to_sheet(commandesData);
+    
+    // Largeurs de colonnes professionnelles
+    ws1['!cols'] = [
+      { wch: 22 }, // Client
+      { wch: 15 }, // Référence
+      { wch: 14 }, // Date Commande
+      { wch: 12 }, // Point Départ
+      { wch: 8 },  // Code Pays
+      { wch: 18 }, // Pays Destination
+      { wch: 10 }, // Tonnes
+      { wch: 14 }, // Statut
+      { wch: 22 }, // Transporteur
+      { wch: 14 }, // Immatriculation
+      { wch: 14 }, // Date Chargement
+      { wch: 28 }, // Email Client
+      { wch: 10 }  // Nb Emails
+    ];
+    
+    XLSX.utils.book_append_sheet(wb, ws1, 'Commandes');
+    
+    // ===== FEUILLE 2: RÉSUMÉ STATISTIQUES =====
+    const totalTonnes = filteredCmds.reduce((s, c) => s + (c.tonnes || 0), 0);
+    const enAttente = filteredCmds.filter(c => c.statut === 'EN ATTENTE');
+    const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE');
+    const clients = [...new Set(filteredCmds.map(c => c.client))];
+    const pays = [...new Set(filteredCmds.map(c => c.pays))];
+    const transporteurs = [...new Set(filteredCmds.filter(c => c.transporteur).map(c => c.transporteur))];
+    
+    const resumeData = [
+      ['╔══════════════════════════════════════════════════════════════╗'],
+      ['║         SOLANA LOGISTIQUE - EXPORT COMMANDES                 ║'],
+      ['╚══════════════════════════════════════════════════════════════╝'],
+      [],
+      ['Date d\'export:', new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })],
+      ['Heure:', new Date().toLocaleTimeString('fr-FR')],
+      ['Filtre appliqué:', currentStatusFilter === 'all' ? 'Toutes les commandes' : currentStatusFilter],
+      [],
+      ['═══════════════════════════════════════════════════════════════'],
+      ['                    RÉSUMÉ GÉNÉRAL'],
+      ['═══════════════════════════════════════════════════════════════'],
+      [],
+      ['Nombre total de commandes:', filteredCmds.length],
+      ['Volume total:', totalTonnes.toFixed(3) + ' Tonnes'],
+      ['Commandes EN ATTENTE:', enAttente.length + ' (' + (filteredCmds.length > 0 ? ((enAttente.length / filteredCmds.length) * 100).toFixed(1) : 0) + '%)'],
+      ['Commandes CHARGÉES:', chargees.length + ' (' + (filteredCmds.length > 0 ? ((chargees.length / filteredCmds.length) * 100).toFixed(1) : 0) + '%)'],
+      ['Taux de conversion:', (filteredCmds.length > 0 ? ((chargees.length / filteredCmds.length) * 100).toFixed(1) : 0) + '%'],
+      ['Clients uniques:', clients.length],
+      ['Pays destinations:', pays.length],
+      ['Transporteurs actifs:', transporteurs.length],
+      [],
+      ['═══════════════════════════════════════════════════════════════'],
+      ['                    TOP 10 CLIENTS'],
+      ['═══════════════════════════════════════════════════════════════'],
+      [],
+      ['Rang', 'Client', 'Tonnes', '% Volume', 'Nb Commandes'],
+    ];
+    
+    const clientVolumes = {};
+    const clientCounts = {};
+    filteredCmds.forEach(c => { 
+      clientVolumes[c.client] = (clientVolumes[c.client] || 0) + (c.tonnes || 0);
+      clientCounts[c.client] = (clientCounts[c.client] || 0) + 1;
+    });
+    
+    const topClients = Object.entries(clientVolumes)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    
+    topClients.forEach((c, i) => {
+      const percent = totalTonnes > 0 ? ((c[1] / totalTonnes) * 100).toFixed(2) : 0;
+      resumeData.push([i + 1, c[0], c[1].toFixed(3) + ' T', percent + '%', clientCounts[c[0]]]);
+    });
+    
+    resumeData.push(
+      [],
+      ['═══════════════════════════════════════════════════════════════'],
+      ['                 TOP 10 TRANSPORTEURS'],
+      ['═══════════════════════════════════════════════════════════════'],
+      [],
+      ['Rang', 'Transporteur', 'Commandes', 'Tonnes', '% Volume']
+    );
+    
+    const transStats = {};
+    filteredCmds.filter(c => c.transporteur).forEach(c => {
+      if (!transStats[c.transporteur]) transStats[c.transporteur] = { count: 0, tonnes: 0 };
+      transStats[c.transporteur].count++;
+      transStats[c.transporteur].tonnes += c.tonnes || 0;
+    });
+    
+    Object.entries(transStats)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes)
+      .slice(0, 10)
+      .forEach((t, i) => {
+        const percent = totalTonnes > 0 ? ((t[1].tonnes / totalTonnes) * 100).toFixed(2) : 0;
+        resumeData.push([i + 1, t[0], t[1].count, t[1].tonnes.toFixed(3) + ' T', percent + '%']);
+      });
+    
+    const ws2 = XLSX.utils.aoa_to_sheet(resumeData);
+    ws2['!cols'] = [{ wch: 6 }, { wch: 28 }, { wch: 14 }, { wch: 12 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Résumé');
+    
+    // ===== FEUILLE 3: STATISTIQUES PAR PAYS =====
+    const paysData = [
+      ['Rang', 'Code', 'Pays Destination', 'Commandes', 'Tonnes', '% Total', 'Moyenne T/cmd']
+    ];
+    
+    const paysStats = {};
+    filteredCmds.forEach(c => {
+      if (!paysStats[c.pays]) paysStats[c.pays] = { count: 0, tonnes: 0 };
+      paysStats[c.pays].count++;
+      paysStats[c.pays].tonnes += c.tonnes || 0;
+    });
+    
+    Object.entries(paysStats)
+      .sort((a, b) => b[1].tonnes - a[1].tonnes)
+      .forEach(([pays, stats], i) => {
+        const percent = totalTonnes > 0 ? ((stats.tonnes / totalTonnes) * 100).toFixed(2) : 0;
+        const avgTonnage = stats.count > 0 ? (stats.tonnes / stats.count).toFixed(3) : 0;
+        paysData.push([
+          i + 1,
+          pays,
+          paysNoms[pays] || pays,
+          stats.count,
+          stats.tonnes.toFixed(3),
+          percent + '%',
+          avgTonnage + ' T'
+        ]);
+      });
+    
+    const ws3 = XLSX.utils.aoa_to_sheet(paysData);
+    ws3['!cols'] = [{ wch: 6 }, { wch: 8 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Stats Pays');
+    
+    hideLoading();
+    
+    const filterName = currentStatusFilter === 'all' ? 'Toutes' : currentStatusFilter.replace(' ', '_');
+    const filename = `Solana_Export_${filterName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    showToast('📥 Export Excel réussi! (' + filteredCmds.length + ' commandes)');
+  }
+
+  // ==================== EXPORT COMMANDES PDF ====================
+  function exportCommandsPDF() {
+    if (filteredCmds.length === 0) {
+      showToast('⚠️ Aucune commande à exporter', 'error');
+      return;
+    }
+    
+    showToast('📄 Génération du PDF...');
+    
+    const totalTonnes = filteredCmds.reduce((s, c) => s + (c.tonnes || 0), 0);
+    const enAttente = filteredCmds.filter(c => c.statut === 'EN ATTENTE');
+    const chargees = filteredCmds.filter(c => c.statut === 'CHARGÉE');
+    
+    // Déterminer le filtre actif
+    let filterLabel = 'Toutes les commandes';
+    if (currentStatusFilter === 'EN ATTENTE') filterLabel = 'Commandes en attente';
+    else if (currentStatusFilter === 'CHARGÉE') filterLabel = 'Commandes chargées';
+    
+    // Générer les lignes du tableau avec pagination
+    const generateTableRows = (cmds, maxRows = 50) => {
+      const rows = cmds.slice(0, maxRows);
+      let html = rows.map((c, i) => `
+        <tr style="background: ${i % 2 === 0 ? '#f9fafb' : 'white'};">
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.client || ''}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.ref || ''}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.date || ''}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.point_depart || '-'}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${paysEmojis[c.pays] || ''} ${paysNoms[c.pays] || c.pays || ''}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: right; font-weight: bold; color: #059669; font-size: 10px;">${(c.tonnes || 0).toFixed(2)} T</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; text-align: center; font-size: 10px;">${c.statut === 'CHARGÉE' ? '✅' : '⏳'}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.transporteur || '-'}</td>
+          <td style="padding: 6px; border: 1px solid #e5e7eb; font-size: 10px;">${c.immat || '-'}</td>
+        </tr>
+      `).join('');
+      
+      if (cmds.length > maxRows) {
+        html += `<tr><td colspan="9" style="padding: 10px; text-align: center; color: #666; font-style: italic;">... et ${cmds.length - maxRows} autres commandes (voir export Excel pour la liste complète)</td></tr>`;
+      }
+      
+      return html;
+    };
+    
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 15px; max-width: 850px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 3px solid #0077b6; padding-bottom: 12px;">
+          <h1 style="color: #0077b6; margin: 0; font-size: 22px;">🚚 SOLANA LOGISTIQUE</h1>
+          <h2 style="color: #333; margin: 6px 0 0 0; font-size: 14px;">Liste des Commandes</h2>
+          <p style="color: #666; margin: 4px 0; font-size: 11px;">${filterLabel} | Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+        </div>
+        
+        <!-- Résumé KPIs -->
+        <div style="margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 100px; background: #f0f9ff; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #0077b6;">
+            <p style="margin: 0; color: #666; font-size: 9px;">TOTAL TONNES</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #0077b6;">${totalTonnes.toFixed(2)} T</p>
+          </div>
+          <div style="flex: 1; min-width: 100px; background: #fef3c7; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #f59e0b;">
+            <p style="margin: 0; color: #666; font-size: 9px;">EN ATTENTE</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #f59e0b;">${enAttente.length}</p>
+          </div>
+          <div style="flex: 1; min-width: 100px; background: #d1fae5; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #10b981;">
+            <p style="margin: 0; color: #666; font-size: 9px;">CHARGÉES</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #10b981;">${chargees.length}</p>
+          </div>
+          <div style="flex: 1; min-width: 100px; background: #f3e8ff; padding: 10px; border-radius: 6px; text-align: center; border-left: 3px solid #8b5cf6;">
+            <p style="margin: 0; color: #666; font-size: 9px;">TAUX</p>
+            <p style="margin: 2px 0 0 0; font-size: 18px; font-weight: bold; color: #8b5cf6;">${filteredCmds.length > 0 ? Math.round((chargees.length / filteredCmds.length) * 100) : 0}%</p>
+          </div>
+        </div>
+        
+        <!-- Tableau des commandes -->
+        <div style="margin-bottom: 15px;">
+          <h3 style="color: #333; font-size: 12px; margin: 0 0 8px 0;">📋 Détail des commandes (${filteredCmds.length})</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #0077b6, #00b4d8); color: white;">
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Client</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Réf</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Date</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Départ</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Pays</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: right; font-size: 9px;">Tonnes</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: center; font-size: 9px;">St</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Transporteur</th>
+                <th style="padding: 8px 4px; border: 1px solid #0077b6; text-align: left; font-size: 9px;">Immat</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${generateTableRows(filteredCmds)}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Statistiques -->
+        <div style="margin-bottom: 15px; display: flex; gap: 15px;">
+          <div style="flex: 1;">
+            <h4 style="color: #0077b6; font-size: 11px; margin: 0 0 5px 0;">🏆 Top 3 Clients</h4>
+            ${(() => {
+              const cv = {};
+              filteredCmds.forEach(c => cv[c.client] = (cv[c.client] || 0) + (c.tonnes || 0));
+              return Object.entries(cv).sort((a,b) => b[1]-a[1]).slice(0,3).map((c, i) => 
+                `<p style="margin: 2px 0; font-size: 10px;">${i+1}. ${c[0]}: ${c[1].toFixed(2)} T</p>`
+              ).join('');
+            })()}
+          </div>
+          <div style="flex: 1;">
+            <h4 style="color: #f97316; font-size: 11px; margin: 0 0 5px 0;">🚚 Top 3 Transporteurs</h4>
+            ${(() => {
+              const ts = {};
+              filteredCmds.filter(c => c.transporteur).forEach(c => {
+                if (!ts[c.transporteur]) ts[c.transporteur] = { count: 0, tonnes: 0 };
+                ts[c.transporteur].count++;
+                ts[c.transporteur].tonnes += c.tonnes || 0;
+              });
+              return Object.entries(ts).sort((a,b) => b[1].tonnes-a[1].tonnes).slice(0,3).map((t, i) => 
+                `<p style="margin: 2px 0; font-size: 10px;">${i+1}. ${t[0]}: ${t[1].tonnes.toFixed(2)} T</p>`
+              ).join('');
+            })()}
+          </div>
+        </div>
+        
+        <!-- Pied de page -->
+        <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 9px;">
+          <p>🚚 Solana Logistique PRO - Export automatique</p>
+          <p>Ce document contient ${filteredCmds.length} commande(s) | Total: ${totalTonnes.toFixed(2)} tonnes</p>
+        </div>
+      </div>
+    `;
+    
+    const element = document.createElement('div');
+    element.innerHTML = htmlContent;
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    document.body.appendChild(element);
+    
+    const opt = {
+      margin: [8, 8, 12, 8],
+      filename: `Solana_Commandes_${currentStatusFilter === 'all' ? 'Toutes' : currentStatusFilter.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        windowWidth: 900
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
     
     html2pdf().set(opt).from(element).save().then(() => {
@@ -2672,20 +3018,6 @@
     hideLoading();
     showToast(`✅ ${imported} commandes importées!`);
   }
-
-  // ==================== EXPORT ====================
-  function exportExcel() {
-    showLoading();
-    const wb = XLSX.utils.book_new();
-    const data = [['Client', 'Référence', 'Date', 'Départ', 'Pays', 'Tonnes', 'Statut', 'Transporteur', 'Immat', 'Email']];
-    filteredCmds.forEach(c => data.push([c.client, c.ref, c.date, c.point_depart, paysNoms[c.pays] || c.pays, c.tonnes, c.statut, c.transporteur || '', c.immat || '', c.email]));
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
-    hideLoading();
-    XLSX.writeFile(wb, `Solana_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
-    showToast('📥 Export Excel réussi!');
-  }
-
   // ==================== INIT ====================
   function initApp() {
     loadCmds();
@@ -2693,9 +3025,9 @@
   }
 
   function populatePaysSelect() {
-    const select = document.getElementById('paysIn');
+    const select = document.getElementById("paysIn");
     if (select) {
-      select.innerHTML = '<option value="">Sélectionner...</option>' + Object.keys(paysNoms).sort().map(p => `<option value="${p}">${paysEmojis[p] || ''} ${paysNoms[p]}</option>`).join('');
+      select.innerHTML = '<option value="">Sélectionner...</option>' + Object.keys(paysNoms).sort().map(p => '<option value="' + p + '">' + (paysEmojis[p] || '') + ' ' + paysNoms[p] + '</option>').join('');
     }
   }
 
