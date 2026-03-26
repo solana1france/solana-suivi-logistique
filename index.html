@@ -830,6 +830,9 @@
               <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" class="w-5 h-5 rounded">
               <span class="text-sm font-medium">Tout sélectionner</span>
             </label>
+            <button onclick="deleteAllCommands()" class="px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors shadow-lg">
+              🗑️ Supprimer tout
+            </button>
           </div>
           <div class="flex gap-2 flex-wrap">
             <button onclick="exportExcel()" class="px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors shadow-lg">📥 Export Excel</button>
@@ -3149,6 +3152,49 @@
     } catch {}
   }
 
+  async function deleteAllCommands() {
+    // Demander confirmation
+    const totalCmds = cmds.length;
+    if (totalCmds === 0) {
+      showToast('Aucune commande a supprimer', 'error');
+      return;
+    }
+    
+    const confirmation = confirm(`⚠️ ATTENTION!\n\nVous allez supprimer TOUTES les ${totalCmds} commandes.\n\nCette action est IRREVERSIBLE!\n\nEtes-vous sur de vouloir continuer?`);
+    
+    if (!confirmation) return;
+    
+    // Double confirmation
+    const confirmation2 = confirm(`⚠️ DERNIERE CONFIRMATION!\n\nToutes les ${totalCmds} commandes vont etre supprimees definitivement.\n\nTapez OK pour confirmer.`);
+    
+    if (!confirmation2) return;
+    
+    showLoading();
+    
+    try {
+      // Supprimer toutes les commandes
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=ref`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' }
+      });
+      
+      if (res.ok) {
+        cmds = [];
+        filteredCmds = [];
+        selectedCmds.clear();
+        await loadCmds();
+        hideLoading();
+        showToast(`${totalCmds} commandes supprimees!`);
+      } else {
+        hideLoading();
+        showToast('Erreur lors de la suppression', 'error');
+      }
+    } catch (e) {
+      hideLoading();
+      showToast('Erreur de connexion', 'error');
+    }
+  }
+
   // ==================== ACTIONS ====================
   async function ajouterCmd(e) {
     e.preventDefault();
@@ -3701,8 +3747,6 @@
       const headerLine = lines[0];
       const headers = headerLine.split(';').map(h => h.toLowerCase().trim());
       
-      console.log('Headers:', headers);
-      
       // Find column indices
       const idx = {
         client: headers.indexOf('client'),
@@ -3718,6 +3762,8 @@
       };
       
       csvImportData = [];
+      let skippedEmpty = 0;
+      let skippedRecalib = 0;
       
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -3726,11 +3772,30 @@
         const values = line.split(';');
         
         // Get client and ref
-        const client = values[idx.client]?.trim() || '';
-        const ref = values[idx.ref]?.trim() || '';
+        let client = values[idx.client]?.trim() || '';
+        let ref = values[idx.ref]?.trim() || '';
         
-        // Skip empty rows
-        if (!client && !ref) continue;
+        // Skip completely empty rows
+        if (!client && !ref) {
+          skippedEmpty++;
+          continue;
+        }
+        
+        // Skip RECALIB rows
+        if (ref === 'RECALIB' || client === 'RECALIB') {
+          skippedRecalib++;
+          continue;
+        }
+        
+        // Generate ref if missing
+        if (!ref) {
+          ref = `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        }
+        
+        // Generate client if missing
+        if (!client) {
+          client = 'CLIENT INCONNU';
+        }
         
         // Get pays and parse department
         let pays = values[idx.pays]?.trim().toUpperCase() || '';
@@ -3742,7 +3807,15 @@
           if (match && franceDepartements[match[1]]) {
             departement = match[1];
             pays = 'FR';
+          } else if (match) {
+            departement = match[1];
+            pays = 'FR';
           }
+        }
+        
+        // Default to FR if no pays
+        if (!pays) {
+          pays = 'FR';
         }
         
         // Get tonnes
@@ -3765,7 +3838,8 @@
             date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
           }
         }
-        if (!date) {
+        // Handle invalid dates
+        if (!date || date.includes('RECALIB') || date === '0') {
           date = new Date().toISOString().split('T')[0];
         }
         
@@ -3780,7 +3854,7 @@
           ref,
           date,
           point_depart,
-          pays: pays || 'FR',
+          pays,
           departement,
           tonnes,
           email: '',
@@ -3792,20 +3866,22 @@
         });
       }
       
-      console.log('Parsed data:', csvImportData.length, 'rows');
-      
       if (csvImportData.length === 0) { 
         showToast('Aucune donnee valide trouvee', 'error'); 
         return; 
       }
       
+      let statsMsg = csvImportData.length + ' commandes a importer';
+      if (skippedEmpty > 0) statsMsg += ` (${skippedEmpty} lignes vides ignorees)`;
+      if (skippedRecalib > 0) statsMsg += ` (${skippedRecalib} lignes RECALIB ignorees)`;
+      
       document.getElementById('csvPreviewContent').innerHTML = 
         '<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Dept</th><th>Tonnes</th></tr></thead><tbody>' + 
-        csvImportData.slice(0, 5).map(d => 
-          `<tr><td>${d.ref}</td><td>${d.client}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`
+        csvImportData.slice(0, 10).map(d => 
+          `<tr><td>${d.ref.substring(0,15)}${d.ref.length > 15 ? '...' : ''}</td><td>${d.client.substring(0,15)}${d.client.length > 15 ? '...' : ''}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`
         ).join('') + 
-        '</tbody></table>';
-      document.getElementById('csvStats').innerHTML = csvImportData.length + ' commandes a importer';
+        '</tbody></table><p class="text-xs text-gray-500 mt-2">Affichage de 10 sur ' + csvImportData.length + ' lignes</p>';
+      document.getElementById('csvStats').innerHTML = statsMsg;
       document.getElementById('csvPreview').classList.remove('hidden');
       document.getElementById('importBtn').disabled = false;
     };
@@ -3823,34 +3899,53 @@
     
     let imported = 0;
     let errors = 0;
+    let duplicates = 0;
     let errorMsg = '';
     
+    // Get existing refs from cmds to avoid duplicates
+    const existingRefs = new Set(cmds.map(c => c.ref));
+    
+    // Track refs we're about to import to avoid duplicates within the import
+    const importedRefs = new Set();
+    
     for (const cmd of dataToImport) {
-      // Skip invalid rows - need at least ref and client
+      // Make sure we have ref and client
       if (!cmd.ref || !cmd.client) {
         errors++;
         continue;
       }
       
+      // Handle duplicate refs - add suffix
+      let finalRef = cmd.ref;
+      if (existingRefs.has(cmd.ref) || importedRefs.has(cmd.ref)) {
+        // Add unique suffix
+        const suffix = '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+        finalRef = cmd.ref + suffix;
+        duplicates++;
+      }
+      importedRefs.add(finalRef);
+      
+      const cmdToSave = { ...cmd, ref: finalRef };
+      
       try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-          body: JSON.stringify([cmd])
+          body: JSON.stringify([cmdToSave])
         });
         
         if (res.ok) {
           imported++;
+          existingRefs.add(finalRef);
         } else {
           errors++;
           const errText = await res.text();
           if (!errorMsg && errText) {
             errorMsg = errText;
-            // Check for specific errors
             if (errText.includes('departement') || errText.includes('column') || errText.includes('does not exist')) {
               errorMsg = '⚠️ La colonne "departement" n\'existe pas dans Supabase. Allez dans Supabase > Table "commandes" > Add column > departement (type: text)';
-            } else if (errText.includes('duplicate') || errText.includes('already exists')) {
-              errorMsg = '⚠️ Référence déjà existante dans la base de données';
+            } else if (errText.includes('duplicate') || errText.includes('already exists') || errText.includes('unique')) {
+              errorMsg = '⚠️ Référence déjà existante';
             }
           }
         }
@@ -3867,12 +3962,14 @@
     await loadCmds();
     hideLoading();
     
+    let message = `${imported} commandes importées!`;
+    if (duplicates > 0) message += ` (${duplicates} doublons renommés)`;
+    if (errors > 0) message += ` - ${errors} erreurs`;
+    
     if (errors > 0 && errorMsg) {
-      showToast(`${imported} importées, ${errors} erreurs. ${errorMsg}`, 'error');
-    } else if (errors > 0) {
-      showToast(`${imported} importées, ${errors} erreurs`, 'error');
+      showToast(message + ' - ' + errorMsg, 'error');
     } else {
-      showToast(`${imported} commandes importées!`);
+      showToast(message);
     }
   }
   // ==================== INIT ====================
@@ -3945,4 +4042,3 @@
 </script>
 </body>
 </html>
-
