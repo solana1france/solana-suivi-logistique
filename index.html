@@ -305,18 +305,7 @@
           </div>
           
           <!-- KPIs Supply Chain -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="supply-card bg-white rounded-2xl p-4 shadow-lg">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-500 uppercase font-semibold">Délai Moyen Traitement</p>
-                  <p class="text-2xl font-black text-cyan-600" id="supplyLeadTime">0 j</p>
-                </div>
-                <div class="w-12 h-12 gradient-supply rounded-xl flex items-center justify-center text-2xl">⏱️</div>
-              </div>
-              <p class="text-xs text-gray-400 mt-2">Temps entre commande et chargement</p>
-            </div>
-            
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="supply-card bg-white rounded-2xl p-4 shadow-lg">
               <div class="flex items-center justify-between">
                 <div>
@@ -1366,21 +1355,6 @@
     const filtered = getFilteredCmdsForReport();
     const charged = filtered.filter(c => c.statut === 'CHARGÉE' && c.date_chargement);
     
-    // Délai moyen de traitement
-    let totalLeadTime = 0;
-    let leadTimeCount = 0;
-    charged.forEach(c => {
-      const orderDate = new Date(c.date);
-      const loadingDate = new Date(c.date_chargement);
-      const diffDays = Math.floor((loadingDate - orderDate) / (1000 * 60 * 60 * 24));
-      if (diffDays >= 0) {
-        totalLeadTime += diffDays;
-        leadTimeCount++;
-      }
-    });
-    const avgLeadTime = leadTimeCount > 0 ? Math.round(totalLeadTime / leadTimeCount) : 0;
-    document.getElementById('supplyLeadTime').textContent = avgLeadTime + ' j';
-    
     // Volume journalier moyen
     const daysDiff = currentReportPeriod === 'all' ? 365 : 
       currentReportPeriod === 'week' ? 7 :
@@ -1954,7 +1928,6 @@
       ['En attente', filtered.filter(c => c.statut === 'EN ATTENTE').length],
       [],
       ['=== SUPPLY CHAIN ==='],
-      ['Délai moyen traitement', document.getElementById('supplyLeadTime').textContent],
       ['Volume journalier moyen', document.getElementById('supplyDailyVolume').textContent],
       ['Taux de conversion', document.getElementById('supplyConversionRate').textContent],
       ['Indice concentration', document.getElementById('supplyConcentration').textContent],
@@ -2052,13 +2025,20 @@
     doc.rect(0, 100, 210, 3, 'F');
     doc.rect(0, 195, 210, 3, 'F');
     
-    // Logo box
+    // Logo box - Style professionnel
     doc.setFillColor(59, 130, 246);
     doc.roundedRect(80, 40, 50, 50, 8, 8, 'F');
+    
+    // Logo S stylisé
     doc.setFillColor(255, 255, 255);
-    doc.setFontSize(28);
+    doc.setFontSize(32);
     doc.setFont('helvetica', 'bold');
-    doc.text('SL', 105, 72, { align: 'center' });
+    doc.text('S', 105, 73, { align: 'center' });
+    
+    // Accent sous le S
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(2);
+    doc.line(92, 78, 118, 78);
     
     // Titre principal
     doc.setTextColor(255, 255, 255);
@@ -2700,13 +2680,13 @@
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 210, 28, 'F');
     
-    // Logo box
+    // Logo box - Style professionnel
     doc.setFillColor(59, 130, 246);
     doc.roundedRect(10, 6, 16, 16, 3, 3, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('SL', 18, 16, { align: 'center' });
+    doc.text('S', 18, 17, { align: 'center' });
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
@@ -4053,3 +4033,4 @@
 </script>
 </body>
 </html>
+
