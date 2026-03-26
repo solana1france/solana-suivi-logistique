@@ -3697,121 +3697,114 @@
       
       if (lines.length < 2) { showToast('Fichier vide', 'error'); return; }
       
-      const headers = lines[0].split(/[;,]/).map(h => h.toLowerCase().trim());
-      const colIndex = {
-        ref: headers.indexOf('ref'),
+      // Parse header
+      const headerLine = lines[0];
+      const headers = headerLine.split(';').map(h => h.toLowerCase().trim());
+      
+      console.log('Headers:', headers);
+      
+      // Find column indices
+      const idx = {
         client: headers.indexOf('client'),
-        date: headers.indexOf('date'),
-        point_depart: headers.indexOf('point_depart'),
+        ref: headers.indexOf('ref'),
         pays: headers.indexOf('pays'),
-        departement: headers.indexOf('departement'),
         tonnes: headers.indexOf('tonnes'),
-        email: headers.indexOf('email'),
-        statut: headers.indexOf('statut'),
-        immat: headers.indexOf('immat'),
-        transporteur: headers.indexOf('transporteur') >= 0 ? headers.indexOf('transporteur') : headers.indexOf('transport'),
+        transporteur: headers.indexOf('transporteur'),
+        point_depart: headers.indexOf('point_depart'),
         date_chargement: headers.indexOf('date_chargement'),
-        nb_emails: headers.indexOf('nb_emails')
+        statut: headers.indexOf('statut'),
+        email: headers.indexOf('email'),
+        immat: headers.indexOf('immat')
       };
       
       csvImportData = [];
+      
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(/[;,]/);
-        if (values.length < 5) continue;
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const values = line.split(';');
+        
+        // Get client and ref
+        const client = values[idx.client]?.trim() || '';
+        const ref = values[idx.ref]?.trim() || '';
         
         // Skip empty rows
-        if (!values[colIndex.ref]?.trim() && !values[colIndex.client]?.trim()) continue;
+        if (!client && !ref) continue;
         
-        let pays = values[colIndex.pays]?.trim().toUpperCase();
+        // Get pays and parse department
+        let pays = values[idx.pays]?.trim().toUpperCase() || '';
         let departement = '';
         
-        // Parse FR-XX format (e.g., FR-76, FR-10, FR-62)
-        if (pays && pays.startsWith('FR-')) {
-          const deptMatch = pays.match(/^FR-(\d{2,3})$/);
-          if (deptMatch) {
-            departement = deptMatch[1];
-            // Validate department code exists
-            if (!franceDepartements[departement]) {
-              departement = '';
-            }
+        // Parse FR-XX format
+        if (pays.startsWith('FR-')) {
+          const match = pays.match(/^FR-(\d{2,3})$/);
+          if (match && franceDepartements[match[1]]) {
+            departement = match[1];
             pays = 'FR';
           }
         }
-        // Handle France with separate departement column
-        else if (pays === 'FR' && colIndex.departement >= 0) {
-          departement = values[colIndex.departement]?.trim() || '';
-          if (!franceDepartements[departement]) {
-            departement = '';
-          }
-        }
-        // Try to match country name
-        else if (pays && pays.length > 2 && !pays.startsWith('FR')) {
-          pays = Object.keys(paysNoms).find(k => paysNoms[k].toUpperCase().includes(pays)) || pays;
-        }
         
-        let statut = (values[colIndex.statut] || 'EN ATTENTE').toUpperCase();
-        if (statut.includes('CHARG') || statut === 'CHARGÉES' || statut === 'CHARGEES') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
+        // Get tonnes
+        const tonnesStr = values[idx.tonnes]?.trim().replace(',', '.') || '0';
+        const tonnes = parseFloat(tonnesStr) || 0;
         
-        // Parse date - use date_chargement if date column doesn't exist
-        let date = '';
-        let dateChargement = '';
-        
-        // Get date from date column or date_chargement
-        if (colIndex.date >= 0 && values[colIndex.date]?.trim()) {
-          date = values[colIndex.date].trim();
-        } else if (colIndex.date_chargement >= 0 && values[colIndex.date_chargement]?.trim()) {
-          date = values[colIndex.date_chargement].trim();
-          dateChargement = date;
+        // Get statut
+        let statut = values[idx.statut]?.trim().toLowerCase() || 'attente';
+        if (statut.includes('charg')) {
+          statut = 'CHARGÉE';
+        } else {
+          statut = 'EN ATTENTE';
         }
         
-        // Parse date - handle DD.MM.YYYY format
+        // Get date from date_chargement
+        let date = values[idx.date_chargement]?.trim() || '';
         if (date && date.includes('.')) {
           const parts = date.split('.');
           if (parts.length === 3) {
             date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
           }
         }
-        
-        // Parse date_chargement for storage
-        if (colIndex.date_chargement >= 0 && values[colIndex.date_chargement]?.trim()) {
-          dateChargement = values[colIndex.date_chargement].trim();
-          if (dateChargement.includes('.')) {
-            const parts = dateChargement.split('.');
-            if (parts.length === 3) {
-              dateChargement = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-          }
+        if (!date) {
+          date = new Date().toISOString().split('T')[0];
         }
         
-        // Parse transporteur
-        let transporteur = values[colIndex.transporteur]?.trim() || '';
+        // Get transporteur
+        const transporteur = values[idx.transporteur]?.trim() || '';
         
-        // Parse tonnes
-        let tonnes = parseFloat(values[colIndex.tonnes]?.replace(',', '.')) || 0;
-        
-        // Skip rows with 0 tonnes and no pays
-        if (tonnes === 0 && !pays) continue;
+        // Get point_depart
+        const point_depart = values[idx.point_depart]?.trim() || '';
         
         csvImportData.push({
-          ref: values[colIndex.ref]?.trim(),
-          client: values[colIndex.client]?.trim(),
-          date: date || new Date().toISOString().split('T')[0], // Default to today if no date
-          point_depart: values[colIndex.point_depart]?.trim() || '',
-          pays: pays || 'FR', // Default to France if no pays
+          client,
+          ref,
+          date,
+          point_depart,
+          pays: pays || 'FR',
           departement,
-          tonnes: tonnes,
-          email: values[colIndex.email]?.trim() || '',
+          tonnes,
+          email: '',
           statut,
-          immat: values[colIndex.immat]?.trim() || '',
-          transporteur: transporteur,
-          date_chargement: dateChargement || null,
-          nb_emails: parseInt(values[colIndex.nb_emails]) || 0
+          immat: '',
+          transporteur,
+          date_chargement: date,
+          nb_emails: 0
         });
       }
       
-      if (csvImportData.length === 0) { showToast('Aucune donnee valide', 'error'); return; }
+      console.log('Parsed data:', csvImportData.length, 'rows');
       
-      document.getElementById('csvPreviewContent').innerHTML = `<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Dept</th><th>Tonnes</th></tr></thead><tbody>${csvImportData.slice(0, 5).map(d => `<tr><td>${d.ref}</td><td>${d.client}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`).join('')}</tbody></table>`;
+      if (csvImportData.length === 0) { 
+        showToast('Aucune donnee valide trouvee', 'error'); 
+        return; 
+      }
+      
+      document.getElementById('csvPreviewContent').innerHTML = 
+        '<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Dept</th><th>Tonnes</th></tr></thead><tbody>' + 
+        csvImportData.slice(0, 5).map(d => 
+          `<tr><td>${d.ref}</td><td>${d.client}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`
+        ).join('') + 
+        '</tbody></table>';
       document.getElementById('csvStats').innerHTML = csvImportData.length + ' commandes a importer';
       document.getElementById('csvPreview').classList.remove('hidden');
       document.getElementById('importBtn').disabled = false;
@@ -3821,14 +3814,18 @@
 
   async function importCSVData() {
     if (csvImportData.length === 0) return;
+    
+    // IMPORTANT: Sauvegarder les données AVANT de fermer le modal (qui réinitialise csvImportData)
+    const dataToImport = [...csvImportData];
+    
     showLoading();
-    closeImportModal();
+    document.getElementById('importModal').classList.add('hidden');
     
     let imported = 0;
     let errors = 0;
     let errorMsg = '';
     
-    for (const cmd of csvImportData) {
+    for (const cmd of dataToImport) {
       // Skip invalid rows - need at least ref and client
       if (!cmd.ref || !cmd.client) {
         errors++;
@@ -3861,6 +3858,11 @@
         errors++;
       }
     }
+    
+    // Reset after import
+    csvImportData = [];
+    document.getElementById('csvPreview').classList.add('hidden');
+    document.getElementById('importBtn').disabled = true;
     
     await loadCmds();
     hideLoading();
@@ -3943,3 +3945,4 @@
 </script>
 </body>
 </html>
+
