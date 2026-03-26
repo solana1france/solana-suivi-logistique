@@ -3172,22 +3172,33 @@
     showLoading();
     
     try {
-      // Supprimer toutes les commandes
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?select=ref`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' }
-      });
+      // Supprimer toutes les commandes une par une (plus fiable)
+      let deleted = 0;
+      let errors = 0;
       
-      if (res.ok) {
-        cmds = [];
-        filteredCmds = [];
-        selectedCmds.clear();
-        await loadCmds();
-        hideLoading();
-        showToast(`${totalCmds} commandes supprimees!`);
+      for (const cmd of cmds) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes?ref=eq.${encodeURIComponent(cmd.ref)}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+          });
+          if (res.ok) deleted++;
+          else errors++;
+        } catch {
+          errors++;
+        }
+      }
+      
+      cmds = [];
+      filteredCmds = [];
+      selectedCmds.clear();
+      await loadCmds();
+      hideLoading();
+      
+      if (errors === 0) {
+        showToast(`${deleted} commandes supprimees!`);
       } else {
-        hideLoading();
-        showToast('Erreur lors de la suppression', 'error');
+        showToast(`${deleted} supprimees, ${errors} erreurs`, 'error');
       }
     } catch (e) {
       hideLoading();
