@@ -935,8 +935,14 @@
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">🌍 Pays</label>
-            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none" onchange="updateDepartementSelect()">
               <option value="">Sélectionner...</option>
+            </select>
+          </div>
+          <div id="departementContainer" class="hidden">
+            <label class="block text-sm font-semibold text-gray-700 mb-1">📍 Département</label>
+            <select id="departementIn" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+              <option value="">France (général)</option>
             </select>
           </div>
           <div>
@@ -960,17 +966,17 @@
   <div id="importModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
       <div class="p-5 border-b flex items-center justify-between sticky top-0 bg-white z-10">
-        <h3 class="text-xl font-bold text-gray-800">📥 Import CSV</h3>
-        <button onclick="closeImportModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">✕</button>
+        <h3 class="text-xl font-bold text-gray-800">Import CSV</h3>
+        <button onclick="closeImportModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">X</button>
       </div>
       <div class="p-6">
         <div class="bg-emerald-50 rounded-xl p-4 mb-6">
-          <h4 class="font-bold text-emerald-700 mb-2">📋 Format CSV requis (en-têtes):</h4>
-          <code class="text-xs bg-white p-2 rounded block mb-2">ref,client,date,point_depart,pays,tonnes,email,statut,immat,transporteur,date_chargement,nb_emails</code>
+          <h4 class="font-bold text-emerald-700 mb-2">Format CSV requis (en-tetes):</h4>
+          <code class="text-xs bg-white p-2 rounded block mb-2">ref,client,date,point_depart,pays,departement,tonnes,email,statut,immat,transporteur,date_chargement,nb_emails</code>
           <div class="mt-3 text-xs text-emerald-600 space-y-1">
             <p><strong>Champs obligatoires:</strong> ref, client, date, pays, tonnes</p>
-            <p><strong>Champs optionnels:</strong> point_depart, email, statut (EN ATTENTE/CHARGÉE), immat, transporteur, date_chargement, nb_emails</p>
-            <p><strong>Note:</strong> Si statut=CHARGÉE, vous pouvez inclure immat, transporteur et date_chargement</p>
+            <p><strong>Champs optionnels:</strong> point_depart, departement (pour France: 76, 13, etc.), email, statut (EN ATTENTE/CHARGEE), immat, transporteur, date_chargement, nb_emails</p>
+            <p><strong>Note France:</strong> Utilisez le code departement (ex: 76 pour Seine-Maritime, 13 pour Bouches-du-Rhone)</p>
           </div>
         </div>
         <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
@@ -1106,6 +1112,125 @@
     US: [37.0902, -95.7129], CA: [56.1304, -106.3468], BR: [-14.2350, -51.9253], CN: [35.8617, 104.1954],
     JP: [36.2048, 138.2529], AE: [23.4241, 53.8474]
   };
+
+  // Départements français avec coordonnées
+  const franceDepartements = {
+    '01': { nom: 'Ain', coords: [46.0667, 5.3500], region: 'Auvergne-Rhône-Alpes' },
+    '02': { nom: 'Aisne', coords: [49.4000, 3.4667], region: 'Hauts-de-France' },
+    '03': { nom: 'Allier', coords: [46.4333, 3.4167], region: 'Auvergne-Rhône-Alpes' },
+    '04': { nom: 'Alpes-de-Haute-Provence', coords: [44.1000, 6.2333], region: 'PACA' },
+    '05': { nom: 'Hautes-Alpes', coords: [44.6500, 6.2500], region: 'PACA' },
+    '06': { nom: 'Alpes-Maritimes', coords: [43.9333, 7.1167], region: 'PACA' },
+    '07': { nom: 'Ardèche', coords: [44.7500, 4.4167], region: 'Auvergne-Rhône-Alpes' },
+    '08': { nom: 'Ardennes', coords: [49.6167, 4.7333], region: 'Grand Est' },
+    '09': { nom: 'Ariège', coords: [42.9333, 1.4167], region: 'Occitanie' },
+    '10': { nom: 'Aube', coords: [48.3167, 4.0833], region: 'Grand Est' },
+    '11': { nom: 'Aude', coords: [43.1167, 2.3500], region: 'Occitanie' },
+    '12': { nom: 'Aveyron', coords: [44.2833, 2.5833], region: 'Occitanie' },
+    '13': { nom: 'Bouches-du-Rhône', coords: [43.5333, 5.0500], region: 'PACA' },
+    '14': { nom: 'Calvados', coords: [49.1000, -0.3667], region: 'Normandie' },
+    '15': { nom: 'Cantal', coords: [45.0500, 2.6667], region: 'Auvergne-Rhône-Alpes' },
+    '16': { nom: 'Charente', coords: [45.7500, 0.1500], region: 'Nouvelle-Aquitaine' },
+    '17': { nom: 'Charente-Maritime', coords: [45.7500, -0.7833], region: 'Nouvelle-Aquitaine' },
+    '18': { nom: 'Cher', coords: [47.0833, 2.4000], region: 'Centre-Val de Loire' },
+    '19': { nom: 'Corrèze', coords: [45.3500, 1.8667], region: 'Nouvelle-Aquitaine' },
+    '21': { nom: "Côte-d'Or", coords: [47.4167, 4.7500], region: 'Bourgogne-Franche-Comté' },
+    '22': { nom: "Côtes-d'Armor", coords: [48.4500, -2.8500], region: 'Bretagne' },
+    '23': { nom: 'Creuse', coords: [46.0833, 2.0667], region: 'Nouvelle-Aquitaine' },
+    '24': { nom: 'Dordogne', coords: [45.1500, 0.7167], region: 'Nouvelle-Aquitaine' },
+    '25': { nom: 'Doubs', coords: [47.2500, 6.3333], region: 'Bourgogne-Franche-Comté' },
+    '26': { nom: 'Drôme', coords: [44.7167, 5.0833], region: 'Auvergne-Rhône-Alpes' },
+    '27': { nom: 'Eure', coords: [49.0833, 1.1500], region: 'Normandie' },
+    '28': { nom: 'Eure-et-Loir', coords: [48.2167, 1.5000], region: 'Centre-Val de Loire' },
+    '29': { nom: 'Finistère', coords: [48.3500, -4.1000], region: 'Bretagne' },
+    '30': { nom: 'Gard', coords: [43.9833, 4.3000], region: 'Occitanie' },
+    '31': { nom: 'Haute-Garonne', coords: [43.3000, 1.2667], region: 'Occitanie' },
+    '32': { nom: 'Gers', coords: [43.7000, 0.4167], region: 'Occitanie' },
+    '33': { nom: 'Gironde', coords: [44.8333, -0.5667], region: 'Nouvelle-Aquitaine' },
+    '34': { nom: 'Hérault', coords: [43.5833, 3.4167], region: 'Occitanie' },
+    '35': { nom: 'Ille-et-Vilaine', coords: [48.1167, -1.6833], region: 'Bretagne' },
+    '36': { nom: 'Indre', coords: [46.8167, 1.7000], region: 'Centre-Val de Loire' },
+    '37': { nom: 'Indre-et-Loire', coords: [47.2500, 0.6833], region: 'Centre-Val de Loire' },
+    '38': { nom: 'Isère', coords: [45.2167, 5.5500], region: 'Auvergne-Rhône-Alpes' },
+    '39': { nom: 'Jura', coords: [46.7500, 5.6333], region: 'Bourgogne-Franche-Comté' },
+    '40': { nom: 'Landes', coords: [43.9333, -0.9333], region: 'Nouvelle-Aquitaine' },
+    '41': { nom: 'Loir-et-Cher', coords: [47.5833, 1.4333], region: 'Centre-Val de Loire' },
+    '42': { nom: 'Loire', coords: [45.7500, 4.1833], region: 'Auvergne-Rhône-Alpes' },
+    '43': { nom: 'Haute-Loire', coords: [45.1333, 3.8500], region: 'Auvergne-Rhône-Alpes' },
+    '44': { nom: 'Loire-Atlantique', coords: [47.2833, -1.7000], region: 'Pays de la Loire' },
+    '45': { nom: 'Loiret', coords: [47.9167, 2.3667], region: 'Centre-Val de Loire' },
+    '46': { nom: 'Lot', coords: [44.6000, 1.8833], region: 'Occitanie' },
+    '47': { nom: 'Lot-et-Garonne', coords: [44.3500, 0.4833], region: 'Nouvelle-Aquitaine' },
+    '48': { nom: 'Lozère', coords: [44.5167, 3.5000], region: 'Occitanie' },
+    '49': { nom: 'Maine-et-Loire', coords: [47.3833, -0.5500], region: 'Pays de la Loire' },
+    '50': { nom: 'Manche', coords: [49.0000, -1.2000], region: 'Normandie' },
+    '51': { nom: 'Marne', coords: [48.9667, 4.3000], region: 'Grand Est' },
+    '52': { nom: 'Haute-Marne', coords: [48.1167, 5.1333], region: 'Grand Est' },
+    '53': { nom: 'Mayenne', coords: [48.1333, -0.7500], region: 'Pays de la Loire' },
+    '54': { nom: 'Meurthe-et-Moselle', coords: [48.7500, 6.1500], region: 'Grand Est' },
+    '55': { nom: 'Meuse', coords: [49.0000, 5.3833], region: 'Grand Est' },
+    '56': { nom: 'Morbihan', coords: [47.7500, -2.8167], region: 'Bretagne' },
+    '57': { nom: 'Moselle', coords: [49.0000, 6.6000], region: 'Grand Est' },
+    '58': { nom: 'Nièvre', coords: [47.1333, 3.5000], region: 'Bourgogne-Franche-Comté' },
+    '59': { nom: 'Nord', coords: [50.4167, 3.0833], region: 'Hauts-de-France' },
+    '60': { nom: 'Oise', coords: [49.4167, 2.4167], region: 'Hauts-de-France' },
+    '61': { nom: 'Orne', coords: [48.6333, 0.0833], region: 'Normandie' },
+    '62': { nom: 'Pas-de-Calais', coords: [50.5167, 2.3000], region: 'Hauts-de-France' },
+    '63': { nom: 'Puy-de-Dôme', coords: [45.7167, 3.0833], region: 'Auvergne-Rhône-Alpes' },
+    '64': { nom: 'Pyrénées-Atlantiques', coords: [43.3000, -0.3667], region: 'Nouvelle-Aquitaine' },
+    '65': { nom: 'Hautes-Pyrénées', coords: [43.0500, 0.1500], region: 'Occitanie' },
+    '66': { nom: 'Pyrénées-Orientales', coords: [42.6000, 2.6000], region: 'Occitanie' },
+    '67': { nom: 'Bas-Rhin', coords: [48.6333, 7.5000], region: 'Grand Est' },
+    '68': { nom: 'Haut-Rhin', coords: [47.9500, 7.1500], region: 'Grand Est' },
+    '69': { nom: 'Rhône', coords: [45.7667, 4.8333], region: 'Auvergne-Rhône-Alpes' },
+    '70': { nom: 'Haute-Saône', coords: [47.6167, 6.0833], region: 'Bourgogne-Franche-Comté' },
+    '71': { nom: 'Saône-et-Loire', coords: [46.6500, 4.5833], region: 'Bourgogne-Franche-Comté' },
+    '72': { nom: 'Sarthe', coords: [47.9500, 0.2167], region: 'Pays de la Loire' },
+    '73': { nom: 'Savoie', coords: [45.4500, 6.4000], region: 'Auvergne-Rhône-Alpes' },
+    '74': { nom: 'Haute-Savoie', coords: [46.0500, 6.4000], region: 'Auvergne-Rhône-Alpes' },
+    '75': { nom: 'Paris', coords: [48.8566, 2.3522], region: 'Île-de-France' },
+    '76': { nom: 'Seine-Maritime', coords: [49.7000, 0.9500], region: 'Normandie' },
+    '77': { nom: 'Seine-et-Marne', coords: [48.6000, 2.8500], region: 'Île-de-France' },
+    '78': { nom: 'Yvelines', coords: [48.8000, 1.9500], region: 'Île-de-France' },
+    '79': { nom: 'Deux-Sèvres', coords: [46.5833, -0.3333], region: 'Nouvelle-Aquitaine' },
+    '80': { nom: 'Somme', coords: [49.9000, 2.3000], region: 'Hauts-de-France' },
+    '81': { nom: 'Tarn', coords: [43.9333, 2.1500], region: 'Occitanie' },
+    '82': { nom: 'Tarn-et-Garonne', coords: [43.9500, 1.4167], region: 'Occitanie' },
+    '83': { nom: 'Var', coords: [43.4667, 6.3500], region: 'PACA' },
+    '84': { nom: 'Vaucluse', coords: [44.0500, 5.0500], region: 'PACA' },
+    '85': { nom: 'Vendée', coords: [46.6833, -1.4333], region: 'Pays de la Loire' },
+    '86': { nom: 'Vienne', coords: [46.6667, 0.5500], region: 'Nouvelle-Aquitaine' },
+    '87': { nom: 'Haute-Vienne', coords: [45.8667, 1.2500], region: 'Nouvelle-Aquitaine' },
+    '88': { nom: 'Vosges', coords: [48.2000, 6.4500], region: 'Grand Est' },
+    '89': { nom: 'Yonne', coords: [47.8500, 3.5667], region: 'Bourgogne-Franche-Comté' },
+    '90': { nom: 'Territoire de Belfort', coords: [47.6333, 6.9333], region: 'Bourgogne-Franche-Comté' },
+    '91': { nom: 'Essonne', coords: [48.5167, 2.3000], region: 'Île-de-France' },
+    '92': { nom: 'Hauts-de-Seine', coords: [48.8500, 2.2500], region: 'Île-de-France' },
+    '93': { nom: 'Seine-Saint-Denis', coords: [48.9167, 2.4500], region: 'Île-de-France' },
+    '94': { nom: 'Val-de-Marne', coords: [48.8000, 2.4500], region: 'Île-de-France' },
+    '95': { nom: "Val-d'Oise", coords: [49.0500, 2.1500], region: 'Île-de-France' },
+    '971': { nom: 'Guadeloupe', coords: [16.2500, -61.5833], region: 'DOM-TOM' },
+    '972': { nom: 'Martinique', coords: [14.6667, -61.0000], region: 'DOM-TOM' },
+    '973': { nom: 'Guyane', coords: [3.9333, -53.1250], region: 'DOM-TOM' },
+    '974': { nom: 'La Réunion', coords: [-21.1150, 55.5367], region: 'DOM-TOM' },
+    '976': { nom: 'Mayotte', coords: [-12.8333, 45.1667], region: 'DOM-TOM' }
+  };
+
+  // Fonction pour obtenir les coordonnées d'un département ou pays
+  function getCoords(pays, departement = null) {
+    if (pays === 'FR' && departement && franceDepartements[departement]) {
+      return franceDepartements[departement].coords;
+    }
+    return paysCoords[pays] || null;
+  }
+
+  // Fonction pour obtenir le nom complet de la destination
+  function getDestinationName(pays, departement = null) {
+    if (pays === 'FR' && departement && franceDepartements[departement]) {
+      return franceDepartements[departement].nom + ' (' + departement + ')';
+    }
+    return paysNoms[pays] || pays;
+  }
 
   // ==================== GLOBALS ====================
   let cmds = [];
@@ -2618,7 +2743,7 @@
     
     // ===== FEUILLE 1: COMMANDES COMPLÈTES =====
     const commandesHeaders = [
-      'Client', 'Référence', 'Date Commande', 'Point Départ', 'Code Pays', 'Pays Destination',
+      'Client', 'Reference', 'Date Commande', 'Point Depart', 'Code Pays', 'Pays Destination', 'Departement',
       'Tonnes', 'Statut', 'Transporteur', 'Immatriculation', 'Date Chargement', 
       'Email Client', 'Nb Emails'
     ];
@@ -2632,7 +2757,8 @@
         c.date || '',
         c.point_depart || '',
         c.pays || '',
-        paysNoms[c.pays] || c.pays || '',
+        getDestinationName(c.pays, c.departement),
+        c.departement || '',
         typeof c.tonnes === 'number' ? c.tonnes : parseFloat(c.tonnes) || 0,
         c.statut || 'EN ATTENTE',
         c.transporteur || '',
@@ -3027,12 +3153,17 @@
   async function ajouterCmd(e) {
     e.preventDefault();
     showLoading();
+    
+    const pays = document.getElementById('paysIn').value;
+    const departement = pays === 'FR' ? document.getElementById('departementIn').value : '';
+    
     const n = {
       client: document.getElementById('clientIn').value.trim(),
       ref: document.getElementById('refIn').value.trim(),
       date: document.getElementById('dateIn').value,
       point_depart: document.getElementById('pointDepart').value.trim(),
-      pays: document.getElementById('paysIn').value,
+      pays: pays,
+      departement: departement,
       tonnes: parseFloat(document.getElementById('tonnesIn').value),
       immat: '',
       email: document.getElementById('emailIn').value.trim(),
@@ -3041,7 +3172,7 @@
     };
     if (cmds.find(c => c.ref === n.ref)) {
       hideLoading();
-      showToast('⚠️ Référence déjà existante!', 'error');
+      showToast('Référence déjà existante!', 'error');
       return;
     }
     const ok = await saveCmd(n);
@@ -3049,9 +3180,9 @@
     if (ok) {
       closeAddModal();
       await loadCmds();
-      showToast('✅ Commande ajoutée!');
+      showToast('Commande ajoutée!');
     } else {
-      showToast('❌ Erreur', 'error');
+      showToast('Erreur', 'error');
     }
   }
 
@@ -3289,16 +3420,31 @@
   function updateMapMarkers() {
     if (!markersLayer) return;
     markersLayer.clearLayers();
+    
     filteredCmds.forEach(c => {
-      if (paysCoords[c.pays]) {
+      // Use department coordinates for France, otherwise use country coordinates
+      const coords = getCoords(c.pays, c.departement);
+      
+      if (coords) {
         const color = c.statut === 'CHARGÉE' ? '#10b981' : '#f59e0b';
+        
+        // Create label based on whether it's a department or country
+        let markerLabel = paysEmojis[c.pays] || '📦';
+        let popupDestination = paysNoms[c.pays] || c.pays;
+        
+        if (c.pays === 'FR' && c.departement && franceDepartements[c.departement]) {
+          markerLabel = c.departement; // Show department code
+          popupDestination = franceDepartements[c.departement].nom + ' (' + c.departement + ')';
+        }
+        
         const icon = L.divIcon({
           className: 'custom-marker',
-          html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:14px;border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${paysEmojis[c.pays] || '📦'}</div>`,
+          html: `<div style="background:${color};width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:${c.pays === 'FR' && c.departement ? '10px' : '14px'};border:2px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);font-weight:bold;">${markerLabel}</div>`,
           iconSize: [30, 30]
         });
-        L.marker(paysCoords[c.pays], { icon })
-          .bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T<br><span style="color:${color}">${c.statut}</span>`)
+        
+        L.marker(coords, { icon })
+          .bindPopup(`<b>${c.client}</b><br>${c.ref}<br>${c.tonnes.toFixed(2)}T<br>Destination: ${popupDestination}<br><span style="color:${color};font-weight:bold">${c.statut}</span>`)
           .addTo(markersLayer);
       }
     });
@@ -3341,7 +3487,7 @@
 
   function renderTable() {
     if (filteredCmds.length === 0) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun résultat</td></tr>';
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400">Aucun resultat</td></tr>';
       return;
     }
     document.getElementById('tableBody').innerHTML = filteredCmds.map(c => `
@@ -3351,7 +3497,7 @@
         <td class="px-4 py-3 font-mono text-sm">${c.ref}</td>
         <td class="px-4 py-3 text-sm">${c.date}</td>
         <td class="px-4 py-3 text-sm">${c.point_depart}</td>
-        <td class="px-4 py-3">${paysEmojis[c.pays] || ''} ${paysNoms[c.pays] || c.pays}</td>
+        <td class="px-4 py-3">${paysEmojis[c.pays] || ''} ${getDestinationName(c.pays, c.departement)}</td>
         <td class="px-4 py-3 text-right font-bold text-emerald-600">${c.tonnes.toFixed(2)}</td>
         <td class="px-4 py-3">${getStatusBadge(c.statut)}</td>
         <td class="px-4 py-3 text-center">${getActionButtons(c)}</td>
@@ -3361,7 +3507,7 @@
 
   function renderCards() {
     if (filteredCmds.length === 0) {
-      document.getElementById('cardsContainer').innerHTML = '<p class="text-center text-gray-400 py-12 col-span-full">Aucun résultat</p>';
+      document.getElementById('cardsContainer').innerHTML = '<p class="text-center text-gray-400 py-12 col-span-full">Aucun resultat</p>';
       return;
     }
     document.getElementById('cardsContainer').innerHTML = filteredCmds.map(c => `
@@ -3374,7 +3520,7 @@
           <p class="text-sm text-gray-500 mb-2">${c.ref}</p>
           <div class="flex items-center gap-2 text-sm mb-2">
             <span>${paysEmojis[c.pays] || ''}</span>
-            <span>${paysNoms[c.pays] || c.pays}</span>
+            <span>${getDestinationName(c.pays, c.departement)}</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-2xl font-black text-emerald-600">${c.tonnes.toFixed(2)} T</span>
@@ -3532,7 +3678,7 @@
       const text = e.target.result;
       const lines = text.split('\n').filter(l => l.trim());
       
-      if (lines.length < 2) { showToast('❌ Fichier vide', 'error'); return; }
+      if (lines.length < 2) { showToast('Fichier vide', 'error'); return; }
       
       const headers = lines[0].split(/[;,]/).map(h => h.toLowerCase().trim());
       const colIndex = {
@@ -3541,6 +3687,7 @@
         date: headers.indexOf('date'),
         point_depart: headers.indexOf('point_depart'),
         pays: headers.indexOf('pays'),
+        departement: headers.indexOf('departement'),
         tonnes: headers.indexOf('tonnes'),
         email: headers.indexOf('email'),
         statut: headers.indexOf('statut'),
@@ -3561,12 +3708,23 @@
         let statut = (values[colIndex.statut] || 'EN ATTENTE').toUpperCase();
         if (statut === 'CHARGEE' || statut === 'CHARGÉE') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
         
+        // Handle department for France
+        let departement = '';
+        if (pays === 'FR' && colIndex.departement >= 0) {
+          departement = values[colIndex.departement]?.trim() || '';
+          // Validate department code exists
+          if (!franceDepartements[departement]) {
+            departement = '';
+          }
+        }
+        
         csvImportData.push({
           ref: values[colIndex.ref]?.trim(),
           client: values[colIndex.client]?.trim(),
           date: values[colIndex.date]?.trim(),
           point_depart: values[colIndex.point_depart]?.trim() || '',
           pays,
+          departement,
           tonnes: parseFloat(values[colIndex.tonnes]?.replace(',', '.')) || 0,
           email: values[colIndex.email]?.trim() || '',
           statut,
@@ -3577,10 +3735,10 @@
         });
       }
       
-      if (csvImportData.length === 0) { showToast('❌ Aucune donnée valide', 'error'); return; }
+      if (csvImportData.length === 0) { showToast('Aucune donnee valide', 'error'); return; }
       
-      document.getElementById('csvPreviewContent').innerHTML = `<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Tonnes</th></tr></thead><tbody>${csvImportData.slice(0, 5).map(d => `<tr><td>${d.ref}</td><td>${d.client}</td><td>${d.pays}</td><td>${d.tonnes}</td></tr>`).join('')}</tbody></table>`;
-      document.getElementById('csvStats').innerHTML = `📊 ${csvImportData.length} commandes à importer`;
+      document.getElementById('csvPreviewContent').innerHTML = `<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Dept</th><th>Tonnes</th></tr></thead><tbody>${csvImportData.slice(0, 5).map(d => `<tr><td>${d.ref}</td><td>${d.client}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`).join('')}</tbody></table>`;
+      document.getElementById('csvStats').innerHTML = csvImportData.length + ' commandes a importer';
       document.getElementById('csvPreview').classList.remove('hidden');
       document.getElementById('importBtn').disabled = false;
     };
@@ -3614,6 +3772,56 @@
     const select = document.getElementById("paysIn");
     if (select) {
       select.innerHTML = '<option value="">Sélectionner...</option>' + Object.keys(paysNoms).sort().map(p => '<option value="' + p + '">' + (paysEmojis[p] || '') + ' ' + paysNoms[p] + '</option>').join('');
+    }
+  }
+
+  // Update department selector based on country selection
+  function updateDepartementSelect() {
+    const paysSelect = document.getElementById('paysIn');
+    const deptContainer = document.getElementById('departementContainer');
+    const deptSelect = document.getElementById('departementIn');
+    
+    if (!paysSelect || !deptContainer || !deptSelect) return;
+    
+    const selectedPays = paysSelect.value;
+    
+    if (selectedPays === 'FR') {
+      // Show department selector for France
+      deptContainer.classList.remove('hidden');
+      
+      // Populate departments sorted by region then by name
+      const depts = Object.entries(franceDepartements)
+        .sort((a, b) => {
+          // Sort by region first, then by department name
+          if (a[1].region !== b[1].region) {
+            return a[1].region.localeCompare(b[1].region);
+          }
+          return a[1].nom.localeCompare(b[1].nom);
+        });
+      
+      let currentRegion = '';
+      let options = '<option value="">🇫🇷 France (général)</option>';
+      
+      depts.forEach(([code, data]) => {
+        if (data.region !== currentRegion) {
+          if (currentRegion !== '') {
+            options += '</optgroup>';
+          }
+          options += '<optgroup label="' + data.region + '">';
+          currentRegion = data.region;
+        }
+        options += '<option value="' + code + '">' + code + ' - ' + data.nom + '</option>';
+      });
+      
+      if (currentRegion !== '') {
+        options += '</optgroup>';
+      }
+      
+      deptSelect.innerHTML = options;
+    } else {
+      // Hide department selector for other countries
+      deptContainer.classList.add('hidden');
+      deptSelect.value = '';
     }
   }
 
