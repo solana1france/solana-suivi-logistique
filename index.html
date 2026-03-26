@@ -970,26 +970,12 @@
         <button onclick="closeImportModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">X</button>
       </div>
       <div class="p-6">
-        <!-- Supabase Departement Warning -->
-        <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
-          <h4 class="font-bold text-amber-700 mb-2">⚠️ Configuration Supabase requise</h4>
-          <p class="text-xs text-amber-600 mb-2">Si vous voyez une erreur "column does not exist", ajoutez la colonne departement dans Supabase:</p>
-          <ol class="text-xs text-amber-600 space-y-1 list-decimal list-inside">
-            <li>Allez sur <strong>Supabase Dashboard</strong> > Table Editor > <strong>commandes</strong></li>
-            <li>Cliquez sur <strong>"Add column"</strong></li>
-            <li>Nom: <code class="bg-white px-1 rounded">departement</code>, Type: <code class="bg-white px-1 rounded">text</code></li>
-            <li>Décochez "Not null" (nullable = true)</li>
-            <li>Cliquez <strong>"Save"</strong></li>
-          </ol>
-        </div>
-        
         <div class="bg-emerald-50 rounded-xl p-4 mb-6">
-          <h4 class="font-bold text-emerald-700 mb-2">Format CSV requis (en-tetes):</h4>
-          <code class="text-xs bg-white p-2 rounded block mb-2">ref,client,date,point_depart,pays,departement,tonnes,email,statut,immat,transporteur,date_chargement,nb_emails</code>
+          <h4 class="font-bold text-emerald-700 mb-2">Format CSV accepte:</h4>
+          <code class="text-xs bg-white p-2 rounded block mb-2">client;ref;pays;tonnes;transporteur;point_depart;date_chargement;statut;email;immat</code>
           <div class="mt-3 text-xs text-emerald-600 space-y-1">
-            <p><strong>Champs obligatoires:</strong> ref, client, date, pays, tonnes</p>
-            <p><strong>Champs optionnels:</strong> point_depart, departement (pour France: 76, 13, etc.), email, statut (EN ATTENTE/CHARGEE), immat, transporteur, date_chargement, nb_emails</p>
-            <p><strong>Note France:</strong> Utilisez FR-XX (ex: FR-76, FR-62) ou le code departement seul (76, 62)</p>
+            <p><strong>Champs obligatoires:</strong> ref, client, pays (ou date_chargement comme date)</p>
+            <p><strong>Note France:</strong> Utilisez FR-XX (ex: FR-76, FR-62) pour les departements</p>
             <p><strong>Note Transport:</strong> Les colonnes "transport" et "transporteur" sont acceptees</p>
           </div>
         </div>
@@ -3733,6 +3719,9 @@
         const values = lines[i].split(/[;,]/);
         if (values.length < 5) continue;
         
+        // Skip empty rows
+        if (!values[colIndex.ref]?.trim() && !values[colIndex.client]?.trim()) continue;
+        
         let pays = values[colIndex.pays]?.trim().toUpperCase();
         let departement = '';
         
@@ -3761,10 +3750,21 @@
         }
         
         let statut = (values[colIndex.statut] || 'EN ATTENTE').toUpperCase();
-        if (statut === 'CHARGEE' || statut === 'CHARGÉE' || statut === 'CHARGÉES' || statut === 'CHARGEES') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
+        if (statut.includes('CHARG') || statut === 'CHARGÉES' || statut === 'CHARGEES') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
+        
+        // Parse date - use date_chargement if date column doesn't exist
+        let date = '';
+        let dateChargement = '';
+        
+        // Get date from date column or date_chargement
+        if (colIndex.date >= 0 && values[colIndex.date]?.trim()) {
+          date = values[colIndex.date].trim();
+        } else if (colIndex.date_chargement >= 0 && values[colIndex.date_chargement]?.trim()) {
+          date = values[colIndex.date_chargement].trim();
+          dateChargement = date;
+        }
         
         // Parse date - handle DD.MM.YYYY format
-        let date = values[colIndex.date]?.trim() || '';
         if (date && date.includes('.')) {
           const parts = date.split('.');
           if (parts.length === 3) {
@@ -3772,26 +3772,39 @@
           }
         }
         
+        // Parse date_chargement for storage
+        if (colIndex.date_chargement >= 0 && values[colIndex.date_chargement]?.trim()) {
+          dateChargement = values[colIndex.date_chargement].trim();
+          if (dateChargement.includes('.')) {
+            const parts = dateChargement.split('.');
+            if (parts.length === 3) {
+              dateChargement = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+        }
+        
         // Parse transporteur
         let transporteur = values[colIndex.transporteur]?.trim() || '';
-        // Also check for TRANSPORT column if transporteur is empty
-        if (!transporteur && headers.indexOf('transport') >= 0) {
-          transporteur = values[headers.indexOf('transport')]?.trim() || '';
-        }
+        
+        // Parse tonnes
+        let tonnes = parseFloat(values[colIndex.tonnes]?.replace(',', '.')) || 0;
+        
+        // Skip rows with 0 tonnes and no pays
+        if (tonnes === 0 && !pays) continue;
         
         csvImportData.push({
           ref: values[colIndex.ref]?.trim(),
           client: values[colIndex.client]?.trim(),
-          date: date,
+          date: date || new Date().toISOString().split('T')[0], // Default to today if no date
           point_depart: values[colIndex.point_depart]?.trim() || '',
-          pays,
+          pays: pays || 'FR', // Default to France if no pays
           departement,
-          tonnes: parseFloat(values[colIndex.tonnes]?.replace(',', '.')) || 0,
+          tonnes: tonnes,
           email: values[colIndex.email]?.trim() || '',
           statut,
           immat: values[colIndex.immat]?.trim() || '',
           transporteur: transporteur,
-          date_chargement: values[colIndex.date_chargement]?.trim() || null,
+          date_chargement: dateChargement || null,
           nb_emails: parseInt(values[colIndex.nb_emails]) || 0
         });
       }
@@ -3816,30 +3829,36 @@
     let errorMsg = '';
     
     for (const cmd of csvImportData) {
-      if (cmd.ref && cmd.client && cmd.date && cmd.pays && cmd.tonnes > 0) {
-        try {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            body: JSON.stringify([cmd])
-          });
-          
-          if (res.ok) {
-            imported++;
-          } else {
-            errors++;
-            const errText = await res.text();
-            if (!errorMsg && errText) {
-              errorMsg = errText;
-              // Check if departement column is missing
-              if (errText.includes('departement') || errText.includes('column') || errText.includes('does not exist')) {
-                errorMsg = '⚠️ La colonne "departement" n\'existe pas dans Supabase. Allez dans Supabase > Table "commandes" > Add column > departement (type: text, nullable: true)';
-              }
+      // Skip invalid rows - need at least ref and client
+      if (!cmd.ref || !cmd.client) {
+        errors++;
+        continue;
+      }
+      
+      try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify([cmd])
+        });
+        
+        if (res.ok) {
+          imported++;
+        } else {
+          errors++;
+          const errText = await res.text();
+          if (!errorMsg && errText) {
+            errorMsg = errText;
+            // Check for specific errors
+            if (errText.includes('departement') || errText.includes('column') || errText.includes('does not exist')) {
+              errorMsg = '⚠️ La colonne "departement" n\'existe pas dans Supabase. Allez dans Supabase > Table "commandes" > Add column > departement (type: text)';
+            } else if (errText.includes('duplicate') || errText.includes('already exists')) {
+              errorMsg = '⚠️ Référence déjà existante dans la base de données';
             }
           }
-        } catch (e) {
-          errors++;
         }
+      } catch (e) {
+        errors++;
       }
     }
     
