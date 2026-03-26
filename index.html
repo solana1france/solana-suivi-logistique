@@ -970,13 +970,27 @@
         <button onclick="closeImportModal()" class="p-2 hover:bg-gray-100 rounded-xl text-2xl">X</button>
       </div>
       <div class="p-6">
+        <!-- Supabase Departement Warning -->
+        <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 mb-6">
+          <h4 class="font-bold text-amber-700 mb-2">⚠️ Configuration Supabase requise</h4>
+          <p class="text-xs text-amber-600 mb-2">Si vous voyez une erreur "column does not exist", ajoutez la colonne departement dans Supabase:</p>
+          <ol class="text-xs text-amber-600 space-y-1 list-decimal list-inside">
+            <li>Allez sur <strong>Supabase Dashboard</strong> > Table Editor > <strong>commandes</strong></li>
+            <li>Cliquez sur <strong>"Add column"</strong></li>
+            <li>Nom: <code class="bg-white px-1 rounded">departement</code>, Type: <code class="bg-white px-1 rounded">text</code></li>
+            <li>Décochez "Not null" (nullable = true)</li>
+            <li>Cliquez <strong>"Save"</strong></li>
+          </ol>
+        </div>
+        
         <div class="bg-emerald-50 rounded-xl p-4 mb-6">
           <h4 class="font-bold text-emerald-700 mb-2">Format CSV requis (en-tetes):</h4>
           <code class="text-xs bg-white p-2 rounded block mb-2">ref,client,date,point_depart,pays,departement,tonnes,email,statut,immat,transporteur,date_chargement,nb_emails</code>
           <div class="mt-3 text-xs text-emerald-600 space-y-1">
             <p><strong>Champs obligatoires:</strong> ref, client, date, pays, tonnes</p>
             <p><strong>Champs optionnels:</strong> point_depart, departement (pour France: 76, 13, etc.), email, statut (EN ATTENTE/CHARGEE), immat, transporteur, date_chargement, nb_emails</p>
-            <p><strong>Note France:</strong> Utilisez le code departement (ex: 76 pour Seine-Maritime, 13 pour Bouches-du-Rhone)</p>
+            <p><strong>Note France:</strong> Utilisez FR-XX (ex: FR-76, FR-62) ou le code departement seul (76, 62)</p>
+            <p><strong>Note Transport:</strong> Les colonnes "transport" et "transporteur" sont acceptees</p>
           </div>
         </div>
         <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center mb-6">
@@ -3175,14 +3189,31 @@
       showToast('Référence déjà existante!', 'error');
       return;
     }
-    const ok = await saveCmd(n);
-    hideLoading();
-    if (ok) {
-      closeAddModal();
-      await loadCmds();
-      showToast('Commande ajoutée!');
-    } else {
-      showToast('Erreur', 'error');
+    
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify([n])
+      });
+      
+      hideLoading();
+      
+      if (res.ok) {
+        closeAddModal();
+        await loadCmds();
+        showToast('Commande ajoutée!');
+      } else {
+        const errText = await res.text();
+        if (errText.includes('departement') || errText.includes('column') || errText.includes('does not exist')) {
+          showToast('⚠️ La colonne "departement" n\'existe pas dans Supabase. Allez dans Supabase > Table "commandes" > Add column > departement (type: text)', 'error');
+        } else {
+          showToast('Erreur: ' + (errText || 'Erreur inconnue'), 'error');
+        }
+      }
+    } catch (e) {
+      hideLoading();
+      showToast('Erreur de connexion', 'error');
     }
   }
 
@@ -3692,7 +3723,7 @@
         email: headers.indexOf('email'),
         statut: headers.indexOf('statut'),
         immat: headers.indexOf('immat'),
-        transporteur: headers.indexOf('transporteur'),
+        transporteur: headers.indexOf('transporteur') >= 0 ? headers.indexOf('transporteur') : headers.indexOf('transport'),
         date_chargement: headers.indexOf('date_chargement'),
         nb_emails: headers.indexOf('nb_emails')
       };
@@ -3703,25 +3734,55 @@
         if (values.length < 5) continue;
         
         let pays = values[colIndex.pays]?.trim().toUpperCase();
-        if (pays && pays.length > 2) pays = Object.keys(paysNoms).find(k => paysNoms[k].toUpperCase().includes(pays)) || pays;
-        
-        let statut = (values[colIndex.statut] || 'EN ATTENTE').toUpperCase();
-        if (statut === 'CHARGEE' || statut === 'CHARGÉE') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
-        
-        // Handle department for France
         let departement = '';
-        if (pays === 'FR' && colIndex.departement >= 0) {
+        
+        // Parse FR-XX format (e.g., FR-76, FR-10, FR-62)
+        if (pays && pays.startsWith('FR-')) {
+          const deptMatch = pays.match(/^FR-(\d{2,3})$/);
+          if (deptMatch) {
+            departement = deptMatch[1];
+            // Validate department code exists
+            if (!franceDepartements[departement]) {
+              departement = '';
+            }
+            pays = 'FR';
+          }
+        }
+        // Handle France with separate departement column
+        else if (pays === 'FR' && colIndex.departement >= 0) {
           departement = values[colIndex.departement]?.trim() || '';
-          // Validate department code exists
           if (!franceDepartements[departement]) {
             departement = '';
           }
+        }
+        // Try to match country name
+        else if (pays && pays.length > 2 && !pays.startsWith('FR')) {
+          pays = Object.keys(paysNoms).find(k => paysNoms[k].toUpperCase().includes(pays)) || pays;
+        }
+        
+        let statut = (values[colIndex.statut] || 'EN ATTENTE').toUpperCase();
+        if (statut === 'CHARGEE' || statut === 'CHARGÉE' || statut === 'CHARGÉES' || statut === 'CHARGEES') statut = 'CHARGÉE'; else statut = 'EN ATTENTE';
+        
+        // Parse date - handle DD.MM.YYYY format
+        let date = values[colIndex.date]?.trim() || '';
+        if (date && date.includes('.')) {
+          const parts = date.split('.');
+          if (parts.length === 3) {
+            date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
+        }
+        
+        // Parse transporteur
+        let transporteur = values[colIndex.transporteur]?.trim() || '';
+        // Also check for TRANSPORT column if transporteur is empty
+        if (!transporteur && headers.indexOf('transport') >= 0) {
+          transporteur = values[headers.indexOf('transport')]?.trim() || '';
         }
         
         csvImportData.push({
           ref: values[colIndex.ref]?.trim(),
           client: values[colIndex.client]?.trim(),
-          date: values[colIndex.date]?.trim(),
+          date: date,
           point_depart: values[colIndex.point_depart]?.trim() || '',
           pays,
           departement,
@@ -3729,7 +3790,7 @@
           email: values[colIndex.email]?.trim() || '',
           statut,
           immat: values[colIndex.immat]?.trim() || '',
-          transporteur: values[colIndex.transporteur]?.trim() || '',
+          transporteur: transporteur,
           date_chargement: values[colIndex.date_chargement]?.trim() || null,
           nb_emails: parseInt(values[colIndex.nb_emails]) || 0
         });
@@ -3751,16 +3812,47 @@
     closeImportModal();
     
     let imported = 0;
+    let errors = 0;
+    let errorMsg = '';
+    
     for (const cmd of csvImportData) {
       if (cmd.ref && cmd.client && cmd.date && cmd.pays && cmd.tonnes > 0) {
-        const ok = await saveCmd(cmd);
-        if (ok) imported++;
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/commandes`, {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify([cmd])
+          });
+          
+          if (res.ok) {
+            imported++;
+          } else {
+            errors++;
+            const errText = await res.text();
+            if (!errorMsg && errText) {
+              errorMsg = errText;
+              // Check if departement column is missing
+              if (errText.includes('departement') || errText.includes('column') || errText.includes('does not exist')) {
+                errorMsg = '⚠️ La colonne "departement" n\'existe pas dans Supabase. Allez dans Supabase > Table "commandes" > Add column > departement (type: text, nullable: true)';
+              }
+            }
+          }
+        } catch (e) {
+          errors++;
+        }
       }
     }
     
     await loadCmds();
     hideLoading();
-    showToast(`✅ ${imported} commandes importées!`);
+    
+    if (errors > 0 && errorMsg) {
+      showToast(`${imported} importées, ${errors} erreurs. ${errorMsg}`, 'error');
+    } else if (errors > 0) {
+      showToast(`${imported} importées, ${errors} erreurs`, 'error');
+    } else {
+      showToast(`${imported} commandes importées!`);
+    }
   }
   // ==================== INIT ====================
   function initApp() {
