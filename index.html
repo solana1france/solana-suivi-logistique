@@ -3703,11 +3703,18 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
 
     var counts = {};
     cmds.forEach(function(cmd) {
-      var t = cmd.transporteur || 'Non assigné';
+      var t = (cmd.transporteur || '').trim();
+      if (t === '') return; // ignorer les commandes sans transporteur
       counts[t] = (counts[t] || 0) + 1;
     });
 
     var sorted = Object.entries(counts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5);
+
+    if (sorted.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Aucun transporteur assigné aux commandes</div>';
+      return;
+    }
+
     var maxVal = sorted.length > 0 ? sorted[0][1] : 1;
 
     var medals = ['🥇', '🥈', '🥉', '4.', '5.'];
