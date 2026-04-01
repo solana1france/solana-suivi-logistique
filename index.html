@@ -3273,7 +3273,8 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
       filteredCmds = [...cmds];
       maj();
     } catch (e) {
-      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-red-500">❌ Erreur Supabase</td></tr>';
+      console.error('Erreur Supabase:', e);
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-red-500">❌ Erreur de connexion: ' + (e.message || 'Vérifiez votre connexion internet') + '</td></tr>';
     }
     document.getElementById('syncIcon').innerHTML = '🔄';
   }
@@ -3527,6 +3528,7 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
       <div class="flex justify-between"><span class="text-gray-500">Référence:</span><span class="font-bold">${cmd.ref}</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Tonnes:</span><span class="font-bold text-emerald-600">${cmd.tonnes.toFixed(2)} T</span></div>
       <div class="flex justify-between"><span class="text-gray-500">Destination:</span><span class="font-bold">${paysEmojis[cmd.pays] || ''} ${paysNoms[cmd.pays] || cmd.pays}</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">📧 Email:</span><span class="font-bold ${cmd.email ? 'text-emerald-600' : 'text-red-500'}">${cmd.email ? cmd.email : '⚠️ Non configuré'}</span></div>
     </div>`;
     document.getElementById('loadingImmat').value = cmd.immat || '';
     document.getElementById('loadingTransporteur').value = cmd.transporteur || '';
@@ -3560,8 +3562,17 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
       if (idx !== -1) { cmds[idx] = { ...cmds[idx], ...updates }; filterCommands(); }
       hideLoading();
       const msg = loadingMessages[currentLoadingLanguage];
-      window.open(`mailto:${cmdToConfirm.email}?subject=${encodeURIComponent(msg.subject(cmdToConfirm.ref, cmdToConfirm.tonnes))}&body=${encodeURIComponent(msg.body(cmdToConfirm, immat, trans, new Date(date).toLocaleDateString('fr-FR')))}`, '_blank');
-      showToast('✅ Commande chargée!');
+      var emailBody = msg.body(cmdToConfirm, immat, trans, new Date(date).toLocaleDateString('fr-FR'));
+      var emailSubject = msg.subject(cmdToConfirm.ref, cmdToConfirm.tonnes);
+      if (cmdToConfirm.email && cmdToConfirm.email.trim() !== '') {
+        window.open('mailto:' + cmdToConfirm.email + '?subject=' + encodeURIComponent(emailSubject) + '&body=' + encodeURIComponent(emailBody), '_blank');
+        showToast('✅ Commande chargée! Email ouvert.');
+      } else {
+        showToast('⚠️ Commande chargée mais aucun email configuré pour ce client.');
+        // Copier le message dans le presse-papier
+        var fullMsg = 'Objet: ' + emailSubject + '\n\n' + emailBody;
+        navigator.clipboard.writeText(fullMsg).catch(function() {});
+      }
       currentLoadingCmd = null;
     } else {
       hideLoading();
@@ -3680,6 +3691,56 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
           .addTo(markersLayer);
       }
     });
+  }
+
+  // ==================== TOP TRANSPORTEURS (must be before maj) ====================
+  function updateTopTransporters() {
+    var container = document.getElementById('topTransporters');
+    if (!container || !cmds || cmds.length === 0) {
+      if (container) container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Aucune donnée</div>';
+      return;
+    }
+
+    var counts = {};
+    cmds.forEach(function(cmd) {
+      var t = cmd.transporteur || 'Non assigné';
+      counts[t] = (counts[t] || 0) + 1;
+    });
+
+    var sorted = Object.entries(counts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5);
+    var maxVal = sorted.length > 0 ? sorted[0][1] : 1;
+
+    var medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+    var barColors = [
+      'linear-gradient(90deg,#f59e0b,#fbbf24)',
+      'linear-gradient(90deg,#94a3b8,#cbd5e1)',
+      'linear-gradient(90deg,#d97706,#f59e0b)',
+      'linear-gradient(90deg,#6366f1,#818cf8)',
+      'linear-gradient(90deg,#06b6d4,#22d3ee)'
+    ];
+
+    var html = '';
+    sorted.forEach(function(entry, i) {
+      var name = entry[0];
+      var count = entry[1];
+      var pct = Math.round((count / maxVal) * 100);
+      if (name.length > 20) name = name.substring(0, 20) + '...';
+
+      html += '<div>';
+      html += '  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+      html += '    <div style="display:flex;align-items:center;gap:6px">';
+      html += '      <span style="font-size:14px">' + medals[i] + '</span>';
+      html += '      <span style="font-size:12px;font-weight:600;color:var(--text-primary)">' + name + '</span>';
+      html += '    </div>';
+      html += '    <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">' + count + ' cmd</span>';
+      html += '  </div>';
+      html += '  <div style="width:100%;height:6px;background:var(--bg);border-radius:10px;overflow:hidden">';
+      html += '    <div style="height:100%;background:' + barColors[i] + ';border-radius:10px;width:' + pct + '%;transition:width 1s cubic-bezier(0.4,0,0.2,1)"></div>';
+      html += '  </div>';
+      html += '</div>';
+    });
+
+    container.innerHTML = html || '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Aucune donnée</div>';
   }
 
   // ==================== DISPLAY ====================
@@ -4211,67 +4272,6 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('op
 function navTo(view,el){showView(view);document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});if(el)el.classList.add('active');if(window.innerWidth<=1024){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open')}}
 </script>
 <script>
-// ===== Top Transporteurs =====
-function updateTopTransporters() {
-  var container = document.getElementById('topTransporters');
-  if (!container || !cmds || cmds.length === 0) {
-    if (container) container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Aucune donnée</div>';
-    return;
-  }
-
-  // Compter les commandes par transporteur
-  var counts = {};
-  cmds.forEach(function(cmd) {
-    var t = cmd.transporteur || 'Non assigné';
-    counts[t] = (counts[t] || 0) + 1;
-  });
-
-  // Trier par nombre décroissant
-  var sorted = Object.entries(counts).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 5);
-  var maxVal = sorted.length > 0 ? sorted[0][1] : 1;
-
-  var medals = ['🥇', '🥈', '🥉', '4.', '5.'];
-  var barColors = [
-    'linear-gradient(90deg,#f59e0b,#fbbf24)',
-    'linear-gradient(90deg,#94a3b8,#cbd5e1)',
-    'linear-gradient(90deg,#d97706,#f59e0b)',
-    'linear-gradient(90deg,#6366f1,#818cf8)',
-    'linear-gradient(90deg,#06b6d4,#22d3ee)'
-  ];
-
-  var html = '';
-  sorted.forEach(function(entry, i) {
-    var name = entry[0];
-    var count = entry[1];
-    var pct = Math.round((count / maxVal) * 100);
-    if (name.length > 20) name = name.substring(0, 20) + '...';
-
-    html += '<div>';
-    html += '  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
-    html += '    <div style="display:flex;align-items:center;gap:6px">';
-    html += '      <span style="font-size:14px">' + medals[i] + '</span>';
-    html += '      <span style="font-size:12px;font-weight:600;color:var(--text-primary)">' + name + '</span>';
-    html += '    </div>';
-    html += '    <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">' + count + ' cmd</span>';
-    html += '  </div>';
-    html += '  <div style="width:100%;height:6px;background:var(--bg);border-radius:10px;overflow:hidden">';
-    html += '    <div style="height:100%;background:' + barColors[i] + ';border-radius:10px;width:' + pct + '%';transition:width 1s cubic-bezier(0.4,0,0.2,1)"></div>';
-    html += '  </div>';
-    html += '</div>';
-  });
-
-  container.innerHTML = html || '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">Aucune donnée</div>';
-}
-
-// Hook into initApp to also update top transporters
-var _origInitApp2 = window.initApp;
-if (_origInitApp2) {
-  window.initApp = function() {
-    _origInitApp2();
-    setTimeout(updateTopTransporters, 800);
-  };
-}
-</script><script>
 // Dark mode for reports page
 var origDarkToggle = document.querySelector('[onclick*="toggle('dark'"]');
 if(!origDarkToggle) {
