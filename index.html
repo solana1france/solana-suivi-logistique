@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
+<html lang="fr"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🚚 Solana France - Dashboard Logistique PRO</title>
@@ -14,216 +12,207 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   
   <!-- Leaflet Map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   
   <style>
     * { font-family: 'Inter', sans-serif; }
     
-    .gradient-ocean { background: linear-gradient(135deg, #0077b6, #00b4d8, #90e0ef); }
+    :root {
+      --navy: #0f172a;
+      --bg: #f0f4ff;
+      --bg-card: #ffffff;
+      --bg-hover: #f8fafc;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --text-muted: #94a3b8;
+      --border: #e2e8f0;
+      --sidebar-w: 260px;
+      --blue: #2563eb;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+      --indigo: #6366f1;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
+      --shadow-xl: 0 20px 50px rgba(0,0,0,0.15);
+      --radius: 16px;
+      --radius-lg: 20px;
+      --radius-xl: 24px;
+    }
+    
+    .dark {
+      --bg: #0a0e1a;
+      --bg-card: #151c2e;
+      --bg-hover: #1e293b;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --border: #1e293b;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
+      --shadow: 0 2px 8px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+      --shadow-xl: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+    
+    /* ===== SIDEBAR ===== */
+    .sidebar {
+      position: fixed; left: 0; top: 0; bottom: 0;
+      width: var(--sidebar-w);
+      background: linear-gradient(180deg, #0a0f2e 0%, #141b3d 40%, #0d1230 100%);
+      z-index: 45; display: flex; flex-direction: column;
+      transition: transform 0.3s ease;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .sidebar::after {
+      content: ''; position: absolute; top: 0; right: 0; width: 1px; height: 100%;
+      background: linear-gradient(180deg, rgba(99,102,241,0.5), rgba(6,182,212,0.3), rgba(99,102,241,0.1));
+    }
+    .sidebar-logo { padding: 24px 20px; display: flex; align-items: center; gap: 12px; }
+    .sidebar-logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #6366f1, #06b6d4); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
+    .sidebar-logo-text h1 { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .sidebar-logo-text span { font-size: 10px; color: #818cf8; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+    .sidebar-nav { flex: 1; padding: 16px 12px; }
+    .sidebar-nav-label { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 2px; padding: 16px 14px 8px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.25s; font-size: 13px; font-weight: 500; margin-bottom: 3px; border: none; background: none; width: 100%; text-align: left; }
+    .nav-item:hover { color: #fff; background: rgba(99,102,241,0.15); }
+    .nav-item.active { color: #fff; background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.15)); box-shadow: inset 3px 0 0 #818cf8; }
+    .nav-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-user { display: flex; align-items: center; gap: 10px; }
+    .sidebar-avatar { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #ec4899); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; }
+    .sidebar-user-name { font-size: 13px; font-weight: 600; color: #fff; }
+    .sidebar-user-role { font-size: 10px; color: rgba(255,255,255,0.35); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 44; backdrop-filter: blur(8px); }
+    .mobile-menu-btn { display: none; position: fixed; top: 14px; left: 14px; z-index: 43; width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #818cf8); border: none; cursor: pointer; align-items: center; justify-content: center; font-size: 18px; color: #fff; box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
+    
+    /* ===== DASHBOARD LAYOUT ===== */
+    #dashboard { margin-left: var(--sidebar-w); background: linear-gradient(180deg, #f0f4ff 0%, #faf5ff 30%, #f0fdf4 60%, #f0f4ff 100%); }
+    .dark #dashboard { background: linear-gradient(180deg, #0a0e1a 0%, #0f1029 30%, #0a1a14 60%, #0a0e1a 100%); }
+    
+    /* ===== ANIMATED GRADIENT BORDERS ===== */
+    @property --angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+    @keyframes rotate-gradient { to { --angle: 360deg; } }
+    
+    /* ===== GRADIENTS ===== */
+    .gradient-ocean { background: linear-gradient(135deg, #6366f1, #06b6d4, #22d3ee); }
     .gradient-success { background: linear-gradient(135deg, #10b981, #34d399, #6ee7b7); }
     .gradient-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d); }
     .gradient-purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa, #c4b5fd); }
     .gradient-danger { background: linear-gradient(135deg, #ef4444, #f87171, #fca5a5); }
-    .gradient-report { background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7); }
-    .gradient-supply { background: linear-gradient(135deg, #0ea5e9, #06b6d4, #14b8a6); }
-    .gradient-transport { background: linear-gradient(135deg, #f97316, #fb923c, #fdba74); }
+    .gradient-report { background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899); }
+    .gradient-supply { background: linear-gradient(135deg, #06b6d4, #14b8a6, #10b981); }
+    .gradient-transport { background: linear-gradient(135deg, #f97316, #fb923c, #fbbf24); }
     
-    .glass { 
-      background: rgba(255, 255, 255, 0.85);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-    .dark .glass { background: rgba(30, 41, 59, 0.9); }
+    .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); }
+    .dark .glass { background: rgba(21,28,46,0.85); }
     
-    @keyframes float {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-15px) rotate(2deg); }
-    }
+    /* ===== ANIMATIONS ===== */
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+    @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.2); } 50% { box-shadow: 0 0 40px rgba(99,102,241,0.4); } }
+    @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+    @keyframes gradient-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     
-    @keyframes pulse-glow {
-      0%, 100% { box-shadow: 0 0 20px rgba(0, 180, 216, 0.4); }
-      50% { box-shadow: 0 0 50px rgba(0, 180, 216, 0.8); }
-    }
-    
-    @keyframes slide-up {
-      from { opacity: 0; transform: translateY(40px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    @keyframes rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    
-    .animate-float { animation: float 4s ease-in-out infinite; }
-    .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+    .animate-float { animation: float 5s ease-in-out infinite; }
+    .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
     .animate-rotate { animation: rotate 1s linear infinite; }
     
-    .kpi-card {
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    .kpi-card:hover {
-      transform: translateY(-12px) scale(1.02);
-      box-shadow: 0 30px 60px -15px rgba(0, 119, 182, 0.4);
-    }
+    .kpi-card { transition: all 0.4s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
+    .kpi-card:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
+    .report-card, .supply-card, .transporter-card { transition: all 0.3s ease; }
+    .report-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(99,102,241,0.2); }
+    .supply-card { border-left: 4px solid #06b6d4; }
+    .supply-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(6,182,212,0.2); }
+    .transporter-card { border-left: 4px solid #f97316; }
+    .transporter-card:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(249,115,22,0.2); }
+    .table-row { transition: all 0.2s ease; }
+    .table-row:hover { background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(6,182,212,0.04)); }
     
-    .report-card {
-      transition: all 0.3s ease;
-    }
-    .report-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.3);
-    }
-    
-    .supply-card {
-      transition: all 0.3s ease;
-      border-left: 4px solid #0ea5e9;
-    }
-    .supply-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 30px -10px rgba(14, 165, 233, 0.3);
-    }
-    
-    .transporter-card {
-      transition: all 0.3s ease;
-      border-left: 4px solid #f97316;
-    }
-    .transporter-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 30px -10px rgba(249, 115, 22, 0.3);
-    }
-    
-    .table-row { transition: all 0.3s ease; }
-    .table-row:hover { background: linear-gradient(90deg, rgba(0, 119, 182, 0.05), rgba(0, 180, 216, 0.1)); }
-    
-    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #0077b6, #10b981); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #6366f1, #06b6d4); border-radius: 10px; }
     
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      padding: 16px 24px;
-      border-radius: 16px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-      z-index: 9999;
-      animation: slide-up 0.5s ease-out;
-    }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; border-radius: 16px; box-shadow: var(--shadow-xl); z-index: 9999; animation: slide-up 0.4s ease-out; font-size: 13px; font-weight: 500; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+    .loading-overlay { position: fixed; inset: 0; background: rgba(10,15,30,0.7); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9998; }
+    .loading-spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #818cf8; border-radius: 50%; animation: rotate 0.8s linear infinite; }
     
-    .loading-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9998;
-    }
-    .loading-spinner {
-      width: 60px;
-      height: 60px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top-color: #00b4d8;
-      border-radius: 50%;
-      animation: rotate 1s linear infinite;
-    }
+    .reports-page { position: fixed; inset: 0; z-index: 100; overflow-y: auto; }
     
-    .calendar-day {
-      min-height: 100px;
-      border: 1px solid #e5e7eb;
-      transition: all 0.2s;
-    }
-    .calendar-day:hover { background: #f0f9ff; }
-    .calendar-day.has-orders { background: linear-gradient(135deg, #ecfdf5, #f0f9ff); }
-    .calendar-day.today { border: 2px solid #0077b6; background: #f0f9ff; }
+    .filter-chip { padding: 7px 16px; border-radius: 25px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; border: 2px solid transparent; background: var(--bg-card); color: var(--text-secondary); }
+    .filter-chip.active { background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; border-color: transparent; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+    .filter-chip:not(.active):hover { border-color: #6366f1; color: #6366f1; }
     
-    .search-input {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 12px 16px 12px 44px;
-      transition: all 0.2s;
-    }
-    .search-input:focus { border-color: #0077b6; box-shadow: 0 0 0 3px rgba(0,119,182,0.1); outline: none; }
+    .search-input { background: var(--bg-card); border: 2px solid var(--border); border-radius: 14px; padding: 10px 14px 10px 42px; transition: all 0.25s; color: var(--text-primary); font-size: 13px; outline: none; }
+    .search-input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.1); }
     
-    .filter-chip {
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 2px solid transparent;
-    }
-    .filter-chip.active { background: linear-gradient(135deg, #0077b6, #00b4d8); color: white; }
-    .filter-chip:not(.active) { background: #f3f4f6; border-color: #e5e7eb; }
-    .filter-chip:not(.active):hover { border-color: #0077b6; }
+    .calendar-day { min-height: 80px; border: 1px solid var(--border); transition: all 0.2s; background: var(--bg-card); border-radius: 10px; }
+    .calendar-day:hover { background: rgba(99,102,241,0.05); border-color: #818cf8; }
+    .calendar-day.has-orders { background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(6,182,212,0.08)); border-color: #10b981; }
+    .calendar-day.today { border: 2px solid #6366f1; background: rgba(99,102,241,0.06); }
     
-    .reports-page {
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      z-index: 100;
-      overflow-y: auto;
-    }
-    .dark .reports-page {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    }
-    
-    .chart-container {
-      position: relative;
-      height: 300px;
-    }
-    
-    #map { height: 450px; border-radius: 20px; z-index: 1; }
-    
-    .metric-highlight {
-      background: linear-gradient(135deg, #ecfdf5, #f0f9ff);
-      border-radius: 12px;
-      padding: 12px;
-    }
-    
-    .trend-up { color: #10b981; }
-    .trend-down { color: #ef4444; }
-    .trend-neutral { color: #f59e0b; }
-    
-    .transporter-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
+    .transporter-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 25px; font-size: 12px; font-weight: 700; }
     .transporter-badge.gold { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
     .transporter-badge.silver { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; }
     .transporter-badge.bronze { background: linear-gradient(135deg, #fed7aa, #fdba74); color: #9a3412; }
     
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 20px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid #e5e7eb;
+    .chart-container { position: relative; height: 280px; width: 100%; }
+    #map { height: 400px; border-radius: 20px; border: 2px solid var(--border); z-index: 1; }
+    .metric-highlight { background: var(--bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); }
+    .trend-up { color: #10b981; }
+    .trend-down { color: #ef4444; }
+    .trend-neutral { color: #f59e0b; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .hidden { display: none !important; }
+    
+    /* ===== PREMIUM CARD STYLES ===== */
+    .premium-card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
     }
-    .section-header h2 {
-      font-size: 1.5rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #1e40af, #0891b2);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .premium-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #06b6d4, #10b981, #f59e0b);
+      background-size: 200% 100%;
+      animation: gradient-flow 4s ease infinite;
     }
-  </style>
-</head>
+    
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      #dashboard { margin-left: 0; }
+      .mobile-menu-btn { display: flex; }
+    }
+    @media (max-width: 768px) { #map { height: 300px; } }
+  </style>>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width: 640px){.container{max-width:640px}}@media (min-width: 768px){.container{max-width:768px}}@media (min-width: 1024px){.container{max-width:1024px}}@media (min-width: 1280px){.container{max-width:1280px}}@media (min-width: 1536px){.container{max-width:1536px}}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.-bottom-28{bottom:-7rem}.-left-20{left:-5rem}.-top-20{top:-5rem}.bottom-3{bottom:0.75rem}.left-1\/4{left:25%}.left-4{left:1rem}.right-10{right:2.5rem}.right-3{right:0.75rem}.top-0{top:0px}.top-1\/2{top:50%}.top-1\/4{top:25%}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.mx-4{margin-left:1rem;margin-right:1rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-2{margin-bottom:0.5rem}.mb-3{margin-bottom:0.75rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.ml-2{margin-left:0.5rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.block{display:block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-12{height:3rem}.h-14{height:3.5rem}.h-28{height:7rem}.h-3{height:0.75rem}.h-32{height:8rem}.h-4{height:1rem}.h-40{height:10rem}.h-5{height:1.25rem}.h-56{height:14rem}.h-64{height:16rem}.h-full{height:100%}.max-h-48{max-height:12rem}.max-h-60{max-height:15rem}.max-h-96{max-height:24rem}.max-h-\[90vh\]{max-height:90vh}.min-h-screen{min-height:100vh}.w-10{width:2.5rem}.w-12{width:3rem}.w-14{width:3.5rem}.w-28{width:7rem}.w-32{width:8rem}.w-40{width:10rem}.w-5{width:1.25rem}.w-56{width:14rem}.w-full{width:100%}.min-w-\[200px\]{min-width:200px}.max-w-2xl{max-width:42rem}.max-w-3xl{max-width:48rem}.max-w-lg{max-width:32rem}.max-w-md{max-width:28rem}.flex-1{flex:1 1 0%}.-translate-y-1\/2{--tw-translate-y:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-7{grid-template-columns:repeat(7, minmax(0, 1fr))}.flex-wrap{flex-wrap:wrap}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.space-y-3 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whitespace-pre-line{white-space:pre-line}.rounded{border-radius:0.25rem}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-b-2{border-bottom-width:2px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-blue-100{--tw-border-opacity:1;border-color:rgb(219 234 254 / var(--tw-border-opacity, 1))}.border-blue-500{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235 / var(--tw-border-opacity, 1))}.border-gray-200\/50{border-color:rgb(229 231 235 / 0.5)}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219 / var(--tw-border-opacity, 1))}.border-transparent{border-color:transparent}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))}.bg-black\/60{background-color:rgb(0 0 0 / 0.6)}.bg-blue-100{--tw-bg-opacity:1;background-color:rgb(219 234 254 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-emerald-50{--tw-bg-opacity:1;background-color:rgb(236 253 245 / var(--tw-bg-opacity, 1))}.bg-emerald-500{--tw-bg-opacity:1;background-color:rgb(16 185 129 / var(--tw-bg-opacity, 1))}.bg-gray-100{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.bg-orange-50{--tw-bg-opacity:1;background-color:rgb(255 247 237 / var(--tw-bg-opacity, 1))}.bg-red-500{--tw-bg-opacity:1;background-color:rgb(239 68 68 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-white\/10{background-color:rgb(255 255 255 / 0.1)}.bg-white\/20{background-color:rgb(255 255 255 / 0.2)}.bg-gradient-to-br{background-image:linear-gradient(to bottom right, var(--tw-gradient-stops))}.bg-gradient-to-r{background-image:linear-gradient(to right, var(--tw-gradient-stops))}.from-amber-500{--tw-gradient-from:#f59e0b var(--tw-gradient-from-position);--tw-gradient-to:rgb(245 158 11 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-blue-50{--tw-gradient-from:#eff6ff var(--tw-gradient-from-position);--tw-gradient-to:rgb(239 246 255 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-blue-500{--tw-gradient-from:#3b82f6 var(--tw-gradient-from-position);--tw-gradient-to:rgb(59 130 246 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-blue-600{--tw-gradient-from:#2563eb var(--tw-gradient-from-position);--tw-gradient-to:rgb(37 99 235 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-emerald-50{--tw-gradient-from:#ecfdf5 var(--tw-gradient-from-position);--tw-gradient-to:rgb(236 253 245 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-emerald-500{--tw-gradient-from:#10b981 var(--tw-gradient-from-position);--tw-gradient-to:rgb(16 185 129 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-gray-400{--tw-gradient-from:#9ca3af var(--tw-gradient-from-position);--tw-gradient-to:rgb(156 163 175 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-indigo-50{--tw-gradient-from:#eef2ff var(--tw-gradient-from-position);--tw-gradient-to:rgb(238 242 255 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-indigo-600{--tw-gradient-from:#4f46e5 var(--tw-gradient-from-position);--tw-gradient-to:rgb(79 70 229 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-orange-50{--tw-gradient-from:#fff7ed var(--tw-gradient-from-position);--tw-gradient-to:rgb(255 247 237 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-orange-500{--tw-gradient-from:#f97316 var(--tw-gradient-from-position);--tw-gradient-to:rgb(249 115 22 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.from-yellow-50{--tw-gradient-from:#fefce8 var(--tw-gradient-from-position);--tw-gradient-to:rgb(254 252 232 / 0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to)}.via-cyan-500{--tw-gradient-to:rgb(6 182 212 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), #06b6d4 var(--tw-gradient-via-position), var(--tw-gradient-to)}.via-purple-500{--tw-gradient-to:rgb(168 85 247 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), #a855f7 var(--tw-gradient-via-position), var(--tw-gradient-to)}.to-amber-50{--tw-gradient-to:#fffbeb var(--tw-gradient-to-position)}.to-amber-500{--tw-gradient-to:#f59e0b var(--tw-gradient-to-position)}.to-cyan-50{--tw-gradient-to:#ecfeff var(--tw-gradient-to-position)}.to-cyan-500{--tw-gradient-to:#06b6d4 var(--tw-gradient-to-position)}.to-gray-500{--tw-gradient-to:#6b7280 var(--tw-gradient-to-position)}.to-indigo-600{--tw-gradient-to:#4f46e5 var(--tw-gradient-to-position)}.to-orange-500{--tw-gradient-to:#f97316 var(--tw-gradient-to-position)}.to-pink-500{--tw-gradient-to:#ec4899 var(--tw-gradient-to-position)}.to-purple-50{--tw-gradient-to:#faf5ff var(--tw-gradient-to-position)}.to-teal-400{--tw-gradient-to:#2dd4bf var(--tw-gradient-to-position)}.to-teal-50{--tw-gradient-to:#f0fdfa var(--tw-gradient-to-position)}.to-teal-500{--tw-gradient-to:#14b8a6 var(--tw-gradient-to-position)}.to-teal-600{--tw-gradient-to:#0d9488 var(--tw-gradient-to-position)}.bg-clip-text{-webkit-background-clip:text;background-clip:text}.p-10{padding:2.5rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-5{padding-top:1.25rem;padding-bottom:1.25rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pt-4{padding-top:1rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.font-mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-5xl{font-size:3rem;line-height:1}.text-6xl{font-size:3.75rem;line-height:1}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-black{font-weight:900}.font-bold{font-weight:700}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6 / var(--tw-text-opacity, 1))}.text-blue-100{--tw-text-opacity:1;color:rgb(219 234 254 / var(--tw-text-opacity, 1))}.text-blue-200{--tw-text-opacity:1;color:rgb(191 219 254 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-cyan-600{--tw-text-opacity:1;color:rgb(8 145 178 / var(--tw-text-opacity, 1))}.text-emerald-100{--tw-text-opacity:1;color:rgb(209 250 229 / var(--tw-text-opacity, 1))}.text-emerald-200{--tw-text-opacity:1;color:rgb(167 243 208 / var(--tw-text-opacity, 1))}.text-emerald-600{--tw-text-opacity:1;color:rgb(5 150 105 / var(--tw-text-opacity, 1))}.text-emerald-700{--tw-text-opacity:1;color:rgb(4 120 87 / var(--tw-text-opacity, 1))}.text-gray-100{--tw-text-opacity:1;color:rgb(243 244 246 / var(--tw-text-opacity, 1))}.text-gray-200{--tw-text-opacity:1;color:rgb(229 231 235 / var(--tw-text-opacity, 1))}.text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175 / var(--tw-text-opacity, 1))}.text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128 / var(--tw-text-opacity, 1))}.text-gray-600{--tw-text-opacity:1;color:rgb(75 85 99 / var(--tw-text-opacity, 1))}.text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.text-gray-800{--tw-text-opacity:1;color:rgb(31 41 55 / var(--tw-text-opacity, 1))}.text-indigo-600{--tw-text-opacity:1;color:rgb(79 70 229 / var(--tw-text-opacity, 1))}.text-orange-600{--tw-text-opacity:1;color:rgb(234 88 12 / var(--tw-text-opacity, 1))}.text-purple-600{--tw-text-opacity:1;color:rgb(147 51 234 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-teal-600{--tw-text-opacity:1;color:rgb(13 148 136 / var(--tw-text-opacity, 1))}.text-transparent{color:transparent}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-1000{transition-duration:1000ms}.hover\:scale-\[1\.02\]:hover{--tw-scale-x:1.02;--tw-scale-y:1.02;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:bg-emerald-600:hover{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-100:hover{--tw-bg-opacity:1;background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))}.hover\:bg-gray-200:hover{--tw-bg-opacity:1;background-color:rgb(229 231 235 / var(--tw-bg-opacity, 1))}.hover\:bg-red-600:hover{--tw-bg-opacity:1;background-color:rgb(220 38 38 / var(--tw-bg-opacity, 1))}.hover\:text-gray-700:hover{--tw-text-opacity:1;color:rgb(55 65 81 / var(--tw-text-opacity, 1))}.hover\:shadow-xl:hover{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.focus\:border-cyan-500:focus{--tw-border-opacity:1;border-color:rgb(6 182 212 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.active\:scale-\[0\.98\]:active{--tw-scale-x:0.98;--tw-scale-y:0.98;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.disabled\:opacity-50:disabled{opacity:0.5}@media (min-width: 640px){.sm\:inline{display:inline}}@media (min-width: 768px){.md\:col-span-2{grid-column:span 2 / span 2}.md\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.md\:text-2xl{font-size:1.5rem;line-height:2rem}}@media (min-width: 1024px){.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}.lg\:grid-cols-5{grid-template-columns:repeat(5, minmax(0, 1fr))}}@media (min-width: 1280px){.xl\:grid-cols-4{grid-template-columns:repeat(4, minmax(0, 1fr))}}</style></head>
 <body class="bg-gray-50 min-h-screen">
 
   <!-- LOADING OVERLAY -->
@@ -235,26 +224,26 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- REPORTS PAGE -->
-  <div id="reportsPage" class="reports-page hidden">
+  <div id="reportsPage" class="reports-page hidden" style="background:linear-gradient(180deg,#f0f4ff 0%,#faf5ff 30%,#fdf2f8 60%,#f0f4ff 100%)">
     <div class="container mx-auto px-4 py-6">
-      <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div class="flex items-center gap-4">
-          <button onclick="closeReportsPage()" class="p-3 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all">
-            <span class="text-2xl">←</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:16px;padding:0 4px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <button onclick="closeReportsPage()" style="width:44px;height:44px;background:linear-gradient(135deg,#6366f1,#818cf8);border:none;border-radius:14px;color:#fff;font-size:20px;cursor:pointer;box-shadow:0 4px 15px rgba(99,102,241,0.4);transition:all 0.2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform=''">
+            ←
           </button>
           <div>
-            <h1 class="text-3xl font-black bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              📊 Rapports & Analyses PRO
+            <h1 style="font-size:28px;font-weight:900;background:linear-gradient(135deg,#6366f1,#ec4899,#f59e0b);background-size:200% 200%;animation:gradient-flow 5s ease infinite;-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.2">
+              Rapports & Analyses
             </h1>
-            <p class="text-gray-500 text-sm">Tableau de bord analytique complet - Supply Chain & Transporteurs</p>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:4px">Tableau de bord analytique complet</p>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button onclick="exportReportExcel()" class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl font-semibold text-sm hover:bg-emerald-600 transition-colors shadow-lg">
-            📥 Export Excel
+        <div style="display:flex;gap:8px">
+          <button onclick="exportReportExcel()" style="display:flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:14px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 15px rgba(16,185,129,0.35);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            📥 Excel
           </button>
-          <button onclick="exportPDFReport()" class="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors shadow-lg">
-            📄 Export PDF
+          <button onclick="exportPDFReport()" style="display:flex;align-items:center;gap:6px;padding:10px 18px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;border-radius:14px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 4px 15px rgba(239,68,68,0.35);transition:all 0.2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+            📄 PDF
           </button>
         </div>
       </div>
@@ -357,7 +346,7 @@
           
           <!-- Analyse de Saisonnalité -->
           <div class="bg-white rounded-2xl p-5 shadow-lg mb-6">
-            <h3 class="font-bold text-gray-800 mb-4">🌊 Analyse de Saisonnalité & Tendances</h3>
+            <h3 class="font-bold text-gray-800 mb-4">🌊 Analyse de Saisonnalité &amp; Tendances</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div class="metric-highlight">
                 <p class="text-xs text-gray-500 uppercase font-semibold">Meilleur Mois</p>
@@ -683,7 +672,7 @@
         </div>
         
         <h1 class="text-4xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent mb-3">Solana Logistique</h1>
-        <p class="text-gray-500 mb-8 text-lg">Dashboard Export & Suivi</p>
+        <p class="text-gray-500 mb-8 text-lg">Dashboard Export &amp; Suivi</p>
         
         <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-5 mb-6 border border-blue-100">
           <p class="text-blue-700">
@@ -692,9 +681,7 @@
           </p>
         </div>
         
-        <input type="password" id="loginPassword" placeholder="Entrez le mot de passe"
-          class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none transition-all mb-4"
-          onkeypress="if(event.key==='Enter') login()">
+        <input type="password" id="loginPassword" placeholder="Entrez le mot de passe" class="w-full px-6 py-5 text-xl text-center rounded-2xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none transition-all mb-4" onkeypress="if(event.key==='Enter') login()">
         
         <p id="loginError" class="text-red-500 text-sm mb-4 hidden">❌ Mot de passe incorrect</p>
         
@@ -708,84 +695,159 @@
   <!-- MAIN DASHBOARD -->
   <div id="dashboard" class="hidden">
     
-    <header class="sticky top-0 z-40 glass border-b border-gray-200/50">
-      <div class="container mx-auto px-4 py-3">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-14 h-14 gradient-ocean rounded-2xl flex items-center justify-center shadow-xl">
-              <span class="text-2xl">🚚</span>
-            </div>
-            <div>
-              <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 bg-clip-text text-transparent">
-                Solana Logistique PRO
-              </h1>
-              <p class="text-xs text-gray-500" id="headerStats">Chargement...</p>
-            </div>
+    <header class="sticky top-0 z-40 glass border-b" style="border-color:var(--border)">
+      <div style="max-width:100%;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">🚚</span>
+          <div>
+            <h1 style="font-size:18px;font-weight:800;background:linear-gradient(135deg,#2563eb,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Solana Logistique PRO</h1>
+            <p style="font-size:11px;color:var(--text-secondary)" id="headerStats">Chargement...</p>
           </div>
-          
-          <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="synchroniser()" class="flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-xl font-medium transition-all text-sm">
-              <span id="syncIcon">🔄</span> <span class="hidden sm:inline">Sync</span>
-            </button>
-            <button onclick="openReportsPage()" class="flex items-center gap-1 px-4 py-2 gradient-report text-white rounded-xl font-semibold shadow-lg text-sm">
-              📊 <span class="hidden sm:inline">Rapports</span>
-            </button>
-            <button onclick="showAddModal()" class="flex items-center gap-1 px-4 py-2 gradient-ocean text-white rounded-xl font-semibold shadow-lg text-sm">
-              ➕ <span class="hidden sm:inline">Nouvelle</span>
-            </button>
-            <button onclick="showImportModal()" class="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold shadow-lg text-sm">
-              📥 <span class="hidden sm:inline">Import CSV</span>
-            </button>
-            <button onclick="logout()" class="p-2 gradient-danger text-white rounded-xl shadow-lg">🚪</button>
-          </div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <button onclick="synchroniser()" style="padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px" id="syncIcon">🔄 Sync</button>
+          <button onclick="document.documentElement.classList.toggle('dark')" style="padding:6px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer">🌙</button>
+          <span style="color:var(--text-muted);font-size:12px" onclick="setLoadingLanguage('fr')" style="cursor:pointer">🇫🇷</span>
+          <span style="color:var(--text-muted);font-size:12px" onclick="setLoadingLanguage('en')" style="cursor:pointer">🇬🇧</span>
+          <span style="color:var(--text-muted);font-size:12px" onclick="setLoadingLanguage('es')" style="cursor:pointer">🇪🇸</span>
+          <button onclick="logout()" style="padding:6px 12px;background:linear-gradient(135deg,#ef4444,#f87171);border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer">🚪</button>
         </div>
       </div>
     </header>
 
     <main class="container mx-auto px-4 py-6 space-y-6">
       
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg">
-          <p class="text-xs font-semibold text-gray-500 uppercase">Total Tonnes</p>
-          <p class="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent mt-1" id="kpiTonnes">0 T</p>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-ocean rounded-xl flex items-center justify-center shadow-lg animate-float">📦</div>
+      <!-- KPI Cards - Canva Style -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+        
+        <!-- KPI 1: Total Tonnes -->
+        <div style="background:var(--bg-card);border-radius:20px;padding:24px;position:relative;overflow:hidden;border:1px solid var(--border);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--shadow)" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 40px rgba(37,99,235,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:linear-gradient(135deg,rgba(37,99,235,0.1),rgba(6,182,212,0.05));border-radius:50%"></div>
+          <div style="position:absolute;bottom:-30px;right:10px;width:80px;height:80px;background:linear-gradient(135deg,rgba(37,99,235,0.08),transparent);border-radius:50%"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#06b6d4);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(37,99,235,0.3)">📦</div>
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Total Tonnes</span>
+          </div>
+          <p style="font-size:36px;font-weight:900;line-height:1;background:linear-gradient(135deg,#2563eb,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpiTonnes">0 T</p>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:4px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+            <span style="font-size:11px;color:#10b981;font-weight:600">+12% ce mois</span>
+          </div>
         </div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg">
-          <p class="text-xs font-semibold text-gray-500 uppercase">En Attente</p>
-          <p class="text-3xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mt-1" id="kpiAttente">0</p>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-warning rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.3s;">⏳</div>
+        
+        <!-- KPI 2: En Attente -->
+        <div style="background:var(--bg-card);border-radius:20px;padding:24px;position:relative;overflow:hidden;border:1px solid var(--border);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--shadow)" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 40px rgba(245,158,11,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(251,191,36,0.05));border-radius:50%"></div>
+          <div style="position:absolute;bottom:-30px;right:10px;width:80px;height:80px;background:linear-gradient(135deg,rgba(245,158,11,0.08),transparent);border-radius:50%"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#f59e0b,#fbbf24);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(245,158,11,0.3)">⏳</div>
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">En Attente</span>
+          </div>
+          <p style="font-size:36px;font-weight:900;line-height:1;background:linear-gradient(135deg,#f59e0b,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpiAttente">0</p>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:4px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></div>
+            <span style="font-size:11px;color:#f59e0b;font-weight:600">A traiter</span>
+          </div>
         </div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg">
-          <p class="text-xs font-semibold text-gray-500 uppercase">Chargées</p>
-          <p class="text-3xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent mt-1" id="kpiChargees">0</p>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-success rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.6s;">✅</div>
+        
+        <!-- KPI 3: Chargees -->
+        <div style="background:var(--bg-card);border-radius:20px;padding:24px;position:relative;overflow:hidden;border:1px solid var(--border);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--shadow)" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 40px rgba(16,185,129,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(52,211,153,0.05));border-radius:50%"></div>
+          <div style="position:absolute;bottom:-30px;right:10px;width:80px;height:80px;background:linear-gradient(135deg,rgba(16,185,129,0.08),transparent);border-radius:50%"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(16,185,129,0.3)">✅</div>
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Chargees</span>
+          </div>
+          <p style="font-size:36px;font-weight:900;line-height:1;background:linear-gradient(135deg,#10b981,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpiChargees">0</p>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:4px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+            <span style="font-size:11px;color:#10b981;font-weight:600">Livrees</span>
+          </div>
         </div>
-        <div class="kpi-card bg-white rounded-2xl p-5 shadow-lg">
-          <p class="text-xs font-semibold text-gray-500 uppercase">Transporteurs</p>
-          <p class="text-3xl font-black bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent mt-1" id="kpiTransporteurs">0</p>
-          <div class="absolute bottom-3 right-3 w-12 h-12 gradient-transport rounded-xl flex items-center justify-center shadow-lg animate-float" style="animation-delay: 0.9s;">🚛</div>
+        
+        <!-- KPI 4: Transporteurs -->
+        <div style="background:var(--bg-card);border-radius:20px;padding:24px;position:relative;overflow:hidden;border:1px solid var(--border);transition:all 0.4s cubic-bezier(0.4,0,0.2,1);box-shadow:var(--shadow)" onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 40px rgba(139,92,246,0.15)'" onmouseout="this.style.transform='';this.style.boxShadow='var(--shadow)'">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(167,139,250,0.05));border-radius:50%"></div>
+          <div style="position:absolute;bottom:-30px;right:10px;width:80px;height:80px;background:linear-gradient(135deg,rgba(139,92,246,0.08),transparent);border-radius:50%"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(139,92,246,0.3)">🚛</div>
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Transporteurs</span>
+          </div>
+          <p style="font-size:36px;font-weight:900;line-height:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent" id="kpiTransporteurs">0</p>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:4px">
+            <div style="width:6px;height:6px;border-radius:50%;background:#8b5cf6"></div>
+            <span style="font-size:11px;color:#8b5cf6;font-weight:600">Actifs</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pipeline Visuel + Progress -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+        
+        <!-- Pipeline de Livraison -->
+        <div class="lg:col-span-2" style="background:var(--bg-card);border-radius:20px;padding:24px;border:1px solid var(--border);box-shadow:var(--shadow)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+            <div style="width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#06b6d4)"></div>
+            <span style="font-size:14px;font-weight:700;color:var(--text-primary)">Pipeline de Livraison</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:120px;text-align:center">
+              <div style="width:56px;height:56px;margin:0 auto 8px;background:linear-gradient(135deg,#3b82f6,#2563eb);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 15px rgba(37,99,235,0.35)">📋</div>
+              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px">Commandes</p>
+              <p style="font-size:20px;font-weight:800;color:var(--text-primary)" id="pipelineTotal">0</p>
+            </div>
+            <div style="color:var(--text-muted);font-size:20px">→</div>
+            <div style="flex:1;min-width:120px;text-align:center">
+              <div style="width:56px;height:56px;margin:0 auto 8px;background:linear-gradient(135deg,#f59e0b,#f97316);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 15px rgba(245,158,11,0.35)">⏳</div>
+              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px">En Attente</p>
+              <p style="font-size:20px;font-weight:800;color:var(--text-primary)" id="pipelineAttente">0</p>
+            </div>
+            <div style="color:var(--text-muted);font-size:20px">→</div>
+            <div style="flex:1;min-width:120px;text-align:center">
+              <div style="width:56px;height:56px;margin:0 auto 8px;background:linear-gradient(135deg,#10b981,#34d399);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 15px rgba(16,185,129,0.35)">🚚</div>
+              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px">Chargees</p>
+              <p style="font-size:20px;font-weight:800;color:var(--text-primary)" id="pipelineChargees">0</p>
+            </div>
+            <div style="color:var(--text-muted);font-size:20px">→</div>
+            <div style="flex:1;min-width:120px;text-align:center">
+              <div style="width:56px;height:56px;margin:0 auto 8px;background:linear-gradient(135deg,#06b6d4,#22d3ee);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 15px rgba(6,182,212,0.35)">✅</div>
+              <p style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.3px">Livrees</p>
+              <p style="font-size:20px;font-weight:800;color:var(--text-primary)" id="pipelineLivrees">0</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Progress Ring -->
+        <div style="background:var(--bg-card);border-radius:20px;padding:24px;border:1px solid var(--border);box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="position:relative;width:100px;height:100px;margin-bottom:12px">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="8"/>
+              <circle id="progressRing" cx="50" cy="50" r="42" fill="none" stroke="url(#progressGradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90 50 50)" style="transition:stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)"/>
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#2563eb"/>
+                  <stop offset="100%" style="stop-color:#06b6d4"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:22px;font-weight:900;color:var(--text-primary)" id="progressPercent">0%</span>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:700;color:var(--text-primary)">Taux de Livraison</span>
+          <span style="font-size:11px;color:var(--text-secondary);margin-top:2px">Objectif: 100%</span>
+          <div id="progressBar" style="width:100%;height:6px;background:var(--border);border-radius:10px;margin-top:12px;overflow:hidden">
+            <div style="height:100%;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:10px;width:0%;transition:width 1.5s cubic-bezier(0.4,0,0.2,1)" id="progressBarFill"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Progress -->
-      <div class="bg-white rounded-2xl p-5 shadow-lg">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-sm font-semibold text-gray-600">Progression</span>
-          <span class="text-2xl font-black text-emerald-600" id="progressPercent">0%</span>
-        </div>
-        <div class="h-4 bg-gray-100 rounded-full overflow-hidden">
-          <div id="progressBar" class="h-full gradient-success rounded-full transition-all duration-1000" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <!-- FILTERS -->
-      <div class="bg-white rounded-2xl p-5 shadow-lg">
-        <div class="flex flex-wrap items-center gap-4">
-          <div class="relative flex-1 min-w-[200px]">
-            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays, transporteur..." 
-              class="search-input w-full" oninput="filterCommands()">
+<!-- FILTERS -->
+      <div class="premium-card" style="animation:slide-up 0.5s ease-out">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+          <div style="position:relative;flex:1;min-width:200px">
+            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.5">🔍</span>
+            <input type="text" id="searchInput" placeholder="Rechercher client, réf, pays, transporteur..." class="search-input" style="width:100%" oninput="filterCommands()">
           </div>
           <div class="flex items-center gap-2">
             <input type="date" id="dateFrom" class="px-3 py-2 rounded-xl border-2 border-gray-200 text-sm" onchange="filterCommands()">
@@ -882,21 +944,30 @@
       </div>
       
       <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="bg-white rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 mb-4">👑 Top Clients</h3>
-          <div class="h-64"><canvas id="clientsChart"></canvas></div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+        <div class="premium-card" style="animation:slide-up 0.6s ease-out">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#818cf8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(99,102,241,0.3)">👑</div>
+            <h3 style="font-size:15px;font-weight:700;color:var(--text-primary)">Top Clients</h3>
+            <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.5)"></div>
+          </div>
+          <div class="chart-container"><canvas id="clientsChart"></canvas></div>
         </div>
-        <div class="bg-white rounded-2xl p-5 shadow-lg">
-          <h3 class="font-bold text-gray-800 mb-4">📊 Répartition Statuts</h3>
-          <div class="h-64 flex items-center justify-center"><canvas id="statusChart"></canvas></div>
+        <div class="premium-card" style="animation:slide-up 0.7s ease-out">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,#ec4899,#f472b6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 4px 10px rgba(236,72,153,0.3)">📊</div>
+            <h3 style="font-size:15px;font-weight:700;color:var(--text-primary)">Répartition Statuts</h3>
+            <div style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:#06b6d4;box-shadow:0 0 8px rgba(6,182,212,0.5)"></div>
+          </div>
+          <div class="chart-container" style="display:flex;align-items:center;justify-content:center"><canvas id="statusChart"></canvas></div>
         </div>
       </div>
       
     </main>
 
-    <footer class="border-t py-4 mt-6 text-center text-xs text-gray-400">
-      🚚 Solana Logistique PRO - Projet Fin d'Études
+    <footer style="border-top:1px solid var(--border);padding:20px 0;margin-top:32px;text-align:center">
+      <p style="font-size:12px;color:var(--text-muted);font-weight:500">🚚 Solana Logistique PRO — Projet Fin d'Études</p>
+      <p style="font-size:10px;color:var(--text-muted);margin-top:4px;opacity:0.6">Conçu avec passion pour la logistique moderne</p>
     </footer>
   </div>
 
@@ -911,23 +982,23 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">👤 Client</label>
-            <input type="text" id="clientIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="text" id="clientIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">📄 Référence</label>
-            <input type="text" id="refIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="text" id="refIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">📅 Date</label>
-            <input type="date" id="dateIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="date" id="dateIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">🚚 Départ</label>
-            <input type="text" id="pointDepart" placeholder="Ex: 76, 62..." required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="text" id="pointDepart" placeholder="Ex: 76, 62..." required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">🌍 Pays</label>
-            <select id="paysIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none" onchange="updateDepartementSelect()">
+            <select id="paysIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none" onchange="updateDepartementSelect()">
               <option value="">Sélectionner...</option>
             </select>
           </div>
@@ -939,11 +1010,11 @@
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1">⚖️ Tonnes</label>
-            <input type="number" step="0.01" id="tonnesIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="number" step="0.01" id="tonnesIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
           <div class="md:col-span-2">
             <label class="block text-sm font-semibold text-gray-700 mb-1">📧 Email</label>
-            <input type="email" id="emailIn" required class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
+            <input type="email" id="emailIn" required="" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none">
           </div>
         </div>
         <div class="flex gap-3 pt-4">
@@ -984,7 +1055,7 @@
         </div>
         <div class="flex gap-3">
           <button onclick="closeImportModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold">Annuler</button>
-          <button onclick="importCSVData()" id="importBtn" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold disabled:opacity-50" disabled>📥 Importer</button>
+          <button onclick="importCSVData()" id="importBtn" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold disabled:opacity-50" disabled="">📥 Importer</button>
         </div>
       </div>
     </div>
@@ -1008,9 +1079,7 @@
         <div class="mb-4">
           <label class="block text-sm font-semibold text-gray-700 mb-2">🚚 Transporteur</label>
           <div class="relative">
-            <input type="text" id="loadingTransporteur" placeholder="Sélectionner ou saisir..." 
-              class="w-full px-4 py-3 rounded-xl border-2 border-gray-200" 
-              autocomplete="off" oninput="filterTransporterSuggestions()" onfocus="showTransporterSuggestions()">
+            <input type="text" id="loadingTransporteur" placeholder="Sélectionner ou saisir..." class="w-full px-4 py-3 rounded-xl border-2 border-gray-200" autocomplete="off" oninput="filterTransporterSuggestions()" onfocus="showTransporterSuggestions()">
             <div id="transporterSuggestions" class="absolute z-10 w-full mt-1 bg-white rounded-xl shadow-lg border max-h-48 overflow-y-auto hidden"></div>
           </div>
           <div id="transporterStats" class="mt-2 p-3 bg-orange-50 rounded-xl text-sm hidden">
@@ -4069,6 +4138,120 @@ window.SOLANA_LOGO_BASE64 = "iVBORw0KGgoAAAANSUhEUgAABPAAAAILCAYAAABmRmLjAAAAAXN
     // App is ready, waiting for login
   });
 </script>
-</body>
-</html>
+
+
+
+
+<script>
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebarOverlay').classList.toggle('open')}
+function navTo(view,el){showView(view);document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});if(el)el.classList.add('active');if(window.innerWidth<=1024){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open')}}
+</script>
+<script>
+// Pipeline update function - called from maj()
+function updatePipeline() {
+  var total = cmds.length;
+  var attente = cmds.filter(function(c){return c.status === 'EN ATTENTE'}).length;
+  var chargees = cmds.filter(function(c){return c.status === 'CHARGÉE'}).length;
+  var pipelineTotal = document.getElementById('pipelineTotal');
+  var pipelineAttente = document.getElementById('pipelineAttente');
+  var pipelineChargees = document.getElementById('pipelineChargees');
+  var pipelineLivrees = document.getElementById('pipelineLivrees');
+  if(pipelineTotal) pipelineTotal.textContent = total;
+  if(pipelineAttente) pipelineAttente.textContent = attente;
+  if(pipelineChargees) pipelineChargees.textContent = chargees;
+  if(pipelineLivrees) pipelineLivrees.textContent = chargees;
+}
+
+// Update progress ring (SVG)
+function updateProgressRing(percent) {
+  var ring = document.getElementById('progressRing');
+  var fill = document.getElementById('progressBarFill');
+  if(ring) {
+    var circumference = 2 * Math.PI * 42; // 263.9
+    var offset = circumference - (percent / 100) * circumference;
+    ring.style.strokeDashoffset = offset;
+  }
+  if(fill) {
+    fill.style.width = percent + '%';
+  }
+}
+
+// Hook into the original maj function to update pipeline
+var origMaj = maj;
+if(typeof maj === 'function') {
+  // patch maj to also update pipeline
+  var majStr = maj.toString();
+  if(majStr.indexOf('updatePipeline') === -1) {
+    // We'll use MutationObserver on progressPercent to trigger ring update
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(m) {
+        var el = m.target;
+        var pct = parseInt(el.textContent) || 0;
+        updateProgressRing(pct);
+      });
+    });
+    var ppEl = document.getElementById('progressPercent');
+    if(ppEl) observer.observe(ppEl, {childList: true, characterData: true, subtree: true});
+  }
+}
+
+// Also call updatePipeline periodically
+var origInitApp = window.initApp;
+if(origInitApp) {
+  var _origInit = origInitApp;
+  window.initApp = function() {
+    _origInit();
+    setTimeout(updatePipeline, 500);
+    setTimeout(updatePipeline, 1500);
+  };
+}
+</script><script>
+// Dark mode for reports page
+var origDarkToggle = document.querySelector('[onclick*="toggle('dark'"]');
+if(!origDarkToggle) {
+  // Find the dark mode button in header
+  var btns = document.querySelectorAll('button');
+  btns.forEach(function(btn) {
+    if(btn.textContent.includes('🌙')) {
+      btn.addEventListener('click', function() {
+        var rp = document.getElementById('reportsPage');
+        if(rp) {
+          var isDark = document.documentElement.classList.contains('dark');
+          rp.style.background = isDark 
+            ? 'linear-gradient(180deg,#0a0e1a 0%,#0f1029 30%,#150a1a 60%,#0a0e1a 100%)' 
+            : 'linear-gradient(180deg,#f0f4ff 0%,#faf5ff 30%,#fdf2f8 60%,#f0f4ff 100%)';
+        }
+      });
+    }
+  });
+}
+</script></body></html>
+  <!-- SIDEBAR NAV -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🚚</div>
+      <div class="sidebar-logo-text"><h1>SOLANA</h1><span>France</span></div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-nav-label">Principal</div>
+      <button class="nav-item active" onclick="navTo('table',this)"><span class="nav-icon">📊</span> Dashboard</button>
+      <button class="nav-item" onclick="navTo('table',this)"><span class="nav-icon">📦</span> Commandes</button>
+      <button class="nav-item" onclick="navTo('map',this)"><span class="nav-icon">🗺️</span> Suivi Carte</button>
+      <button class="nav-item" onclick="navTo('cards',this)"><span class="nav-icon">🗂️</span> Vue Cartes</button>
+      <button class="nav-item" onclick="navTo('calendar',this)"><span class="nav-icon">📅</span> Calendrier</button>
+      <div class="sidebar-nav-label">Analyse</div>
+      <button class="nav-item" onclick="openReportsPage()"><span class="nav-icon">📈</span> Rapports</button>
+      
+      
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">AD</div>
+        <div><div class="sidebar-user-name">Admin</div><div class="sidebar-user-role">Gestionnaire</div></div>
+        <button onclick="logout()" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:16px;margin-left:auto">⏻</button>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
 
