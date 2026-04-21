@@ -2123,6 +2123,72 @@ if(typeof Chart !== 'undefined') {
 // ============================================================================
 
 // ==================== FONCTIONS HELPER (à définir AVANT exportPDFReport) ====================
+// ── Sanitisation texte pour PDF (helvetica ne supporte pas les accents/emojis) ──
+function sanitizeForPDF(text) {
+  if (Array.isArray(text)) return text.map(sanitizeForPDF);
+  if (typeof text !== 'string') return text;
+  return text
+    .replace(/[\u00C0\u00C1\u00C2\u00C3\u00C4\u00C5]/g, 'A')
+    .replace(/[\u00E0\u00E1\u00E2\u00E3\u00E4\u00E5\u00E6]/g, 'a')
+    .replace(/[\u00C7]/g, 'C')
+    .replace(/[\u00E7]/g, 'c')
+    .replace(/[\u00C8\u00C9\u00CA\u00CB]/g, 'E')
+    .replace(/[\u00E8\u00E9\u00EA\u00EB\u0153]/g, 'e')
+    .replace(/[\u00CC\u00CD\u00CE\u00CF]/g, 'I')
+    .replace(/[\u00EC\u00ED\u00EE\u00EF]/g, 'i')
+    .replace(/[\u00D0]/g, 'D').replace(/[\u00F0]/g, 'd')
+    .replace(/[\u00D1]/g, 'N').replace(/[\u00F1]/g, 'n')
+    .replace(/[\u00D2\u00D3\u00D4\u00D5\u00D6\u00D8]/g, 'O')
+    .replace(/[\u00F2\u00F3\u00F4\u00F5\u00F6\u00F8]/g, 'o')
+    .replace(/[\u00D9\u00DA\u00DB\u00DC]/g, 'U')
+    .replace(/[\u00F9\u00FA\u00FB\u00FC]/g, 'u')
+    .replace(/[\u00DD\u0178]/g, 'Y')
+    .replace(/[\u00FD\u00FF]/g, 'y')
+    .replace(/[\u00DF]/g, 'ss')
+    .replace(/[\u00B0]/g, ' deg')
+    .replace(/[\u20AC]/g, 'EUR')
+    .replace(/[\u2022]/g, '-')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u2018\u2019\u201A]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+    .replace(/[\u2026]/g, '...')
+    .replace(/[\u00AB\u00BB]/g, '')
+    .replace(/[\u00A0\u2000-\u200F\u202F\u205F\u3000]/g, ' ')
+    // Remove emojis and other non-ASCII symbols
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/[\u{2B50}-\u{2B55}]/gu, '')
+    .replace(/[\u{FE00}-\u{FEFF}]/gu, '')
+    .replace(/[\u{1FA00}-\u{1FAFF}]/gu, '')
+    .replace(/[\u{2702}-\u{27B0}]/gu, '')
+    .replace(/[\u{24C2}-\u{1F251}]/gu, '')
+    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+    .replace(/[\u{1F900}-\u{1F9FF}]/gu, '')
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')
+    .replace(/[\u{2700}-\u{27BF}]/gu, '')
+    // Remove any remaining non-ASCII
+    .replace(/[^\x20-\x7E]/g, '');
+}
+
+// Crée un doc PDF avec text() automatiquement nettoyé des accents
+function createCleanPDF(orientation, format) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF(orientation, 'mm', format);
+  const _origText = doc.text.bind(doc);
+  doc.text = function(...args) {
+    if (typeof args[0] === 'string') args[0] = sanitizeForPDF(args[0]);
+    else if (Array.isArray(args[0])) args[0] = sanitizeForPDF(args[0]);
+    return _origText(...args);
+  };
+  const _origSplit = doc.splitTextToSize ? doc.splitTextToSize.bind(doc) : null;
+  if (_origSplit) {
+    doc.splitTextToSize = function(text, maxWidth, options) {
+      var clean = sanitizeForPDF(text);
+      return _origSplit(clean, maxWidth, options);
+    };
+  }
+  return doc;
+}
 
 /**
  * Dessine un rectangle avec dégradé simulé (bandes horizontales fines)
@@ -2292,7 +2358,7 @@ function addPDFFooter(doc, pageNum, totalPages) {
   doc.setTextColor(148, 163, 184);
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
- 
+  doc.text('Solana Logistique — Rapport généré automatiquement | Dashboard PFE', 15, 291);
 
   // Numéro de page (côté droit avec fond)
   if (totalPages) {
@@ -2525,8 +2591,7 @@ async function exportPDFReport() {
     }
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
+  const doc = createCleanPDF('p', 'a4');
   const PW = 210; // Largeur page A4
   const PH = 297; // Hauteur page A4
   const ML = 15;  // Marge gauche
@@ -3232,7 +3297,7 @@ async function exportPDFReport() {
   try {
     const top5Clients = sortedClients.slice(0, 5);
     if (top5Clients.length > 0) {
-      const clientLabels = top5Clients.map(c => c[0].length > 18 ? c[0].substring(0, 18) + '..' : c[0]);
+      const clientLabels = top5Clients.map(c => sanitizeForPDF(c[0]).length > 18 ? sanitizeForPDF(c[0]).substring(0, 18) + '..' : sanitizeForPDF(c[0]));
       const clientValues = top5Clients.map(c => parseFloat(c[1].toFixed(2)));
       const clientColors = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#c084fc'];
 
@@ -3265,7 +3330,7 @@ async function exportPDFReport() {
     const top10Pays = sortedPays.slice(0, 10);
     if (top10Pays.length > 0) {
       const paysLabels = top10Pays.map(p => {
-        const nom = paysNoms[p[0]] || p[0];
+        const nom = sanitizeForPDF(paysNoms[p[0]] || p[0]);
         return nom.length > 12 ? nom.substring(0, 12) + '..' : nom;
       });
       const paysValues = top10Pays.map(p => parseFloat(p[1].tonnes.toFixed(1)));
@@ -3296,7 +3361,7 @@ async function exportPDFReport() {
   y += 76;
   if (transporters.length > 0) {
     try {
-      const transLabels = transporters.slice(0, 6).map(t => t[0].length > 15 ? t[0].substring(0, 15) + '..' : t[0]);
+      const transLabels = transporters.slice(0, 6).map(t => sanitizeForPDF(t[0]).length > 15 ? sanitizeForPDF(t[0]).substring(0, 15) + '..' : sanitizeForPDF(t[0]));
       const transData = transporters.slice(0, 6).map(t => parseFloat(t[1].tonnes.toFixed(1)));
       const transColors = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#fff7ed'];
 
@@ -3556,7 +3621,7 @@ async function exportPDFReport() {
 
       // Nom du transporteur
       doc.setFontSize(8);
-      const tName = p.t[0].length > 14 ? p.t[0].substring(0, 14) + '..' : p.t[0];
+      const tName = sanitizeForPDF(p.t[0]).length > 14 ? sanitizeForPDF(p.t[0]).substring(0, 14) + '..' : sanitizeForPDF(p.t[0]);
       doc.text(tName, px + pw / 2, py + 32, { align: 'center' });
 
       // Tonnes
@@ -3582,7 +3647,7 @@ async function exportPDFReport() {
     const transData = transporters.map((t, i) => {
       const pct = totalTonnes > 0 ? ((t[1].tonnes / totalTonnes) * 100) : 0;
       const avg = t[1].count > 0 ? (t[1].tonnes / t[1].count).toFixed(1) : '0';
-      return [String(i + 1), t[0], String(t[1].count), t[1].tonnes.toFixed(2), pct.toFixed(1) + '%', avg + ' T'];
+      return [String(i + 1), sanitizeForPDF(t[0]), String(t[1].count), t[1].tonnes.toFixed(2), pct.toFixed(1) + '%', avg + ' T'];
     });
 
     doc.autoTable({
@@ -3724,7 +3789,7 @@ async function exportPDFReport() {
   const topClientsData = abcClients.slice(0, 10).map((c, i) => {
     const pct = totalTonnes > 0 ? ((c.tonnes / totalTonnes) * 100).toFixed(1) : '0';
     const badge = c.classe === 'A' ? 'A' : (c.classe === 'B' ? 'B' : 'C');
-    return [String(i + 1), c.name, String(c.count), c.tonnes.toFixed(2), pct + '%', badge];
+    return [String(i + 1), sanitizeForPDF(c.name), String(c.count), c.tonnes.toFixed(2), pct + '%', badge];
   });
 
   doc.autoTable({
@@ -3792,11 +3857,10 @@ async function exportPDFReport() {
   const paysTableData = sortedPays.slice(0, 15).map((p, i) => {
     const avgT = p[1].count > 0 ? (p[1].tonnes / p[1].count).toFixed(1) : '0';
     const pct = totalTonnes > 0 ? ((p[1].tonnes / totalTonnes) * 100).toFixed(1) : '0';
-    const emoji = paysEmojis[p[0]] || '';
     return [
       String(i + 1),
-      emoji + ' ' + p[0],
-      paysNoms[p[0]] || p[0],
+      sanitizeForPDF(p[0]),
+      sanitizeForPDF(paysNoms[p[0]] || p[0]),
       String(p[1].count),
       p[1].tonnes.toFixed(2),
       pct + '%',
@@ -4219,8 +4283,7 @@ async function exportPDFReport() {
     
     showToast('📄 Génération du PDF...');
     
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape pour plus de colonnes
+    const doc = createCleanPDF('l', 'a4'); // Landscape pour plus de colonnes
     
     const totalTonnes = filteredCmds.reduce((s, c) => s + (c.tonnes || 0), 0);
     const enAttente = filteredCmds.filter(c => c.statut === 'EN ATTENTE');
@@ -4313,15 +4376,15 @@ async function exportPDFReport() {
     
     // ===== TABLEAU DES COMMANDES =====
     const tableData = filteredCmds.map(c => [
-      c.client || '',
-      c.ref || '',
+      sanitizeForPDF(c.client || ''),
+      sanitizeForPDF(c.ref || ''),
       c.date || '',
-      c.point_depart || '-',
-      (paysNoms[c.pays] || c.pays || '-'),
+      sanitizeForPDF(c.point_depart || '-'),
+      sanitizeForPDF(paysNoms[c.pays] || c.pays || '-'),
       (c.tonnes || 0).toFixed(2) + ' T',
       c.statut === 'CHARGÉE' ? 'CHARGE' : 'ATTENTE',
-      c.transporteur || '-',
-      c.immat || '-'
+      sanitizeForPDF(c.transporteur || '-'),
+      sanitizeForPDF(c.immat || '-')
     ]);
     
     doc.autoTable({
