@@ -1225,14 +1225,16 @@ function handleCSVFile(input) {
 
 function normalizeRows(rows) {
   return rows.map(row => ({
-    client: (row.client || row.Client || '').trim(),
-    ref: (row.ref || row.Ref || '').trim(),
-    pays: (row.pays || row.Pays || '').trim(),
-    tonnes: String(row.tonnes || row.Tonnes || '').trim(),
-    transporteur: (row.transporteur || row.Transporteur || '').trim(),
-    point_depart: (row.point_depart || row.pointDepart || row['point depart'] || '').trim(),
-    date_chargement: (row.date_chargement || row.dateChargement || row['date chargement'] || '').trim(),
-    statut: (row.statut || row.Statut || '').trim()
+    client: (row.client || row.Client || row.CLIENT || '').trim(),
+    ref: (row.ref || row.Ref || row.Reference || row.Référence || row['Référence'] || '').trim(),
+    pays: (row.pays || row.Pays || row.PAYS || row['Code Pays'] || row['Pays Destination'] || '').trim(),
+    tonnes: String(row.tonnes || row.Tonnes || row.TONNES || '').trim(),
+    transporteur: (row.transporteur || row.Transporteur || row.TRANSPORTEUR || '').trim(),
+    pointdepart: (row.pointdepart || row.pointDepart || row['Point de départ'] || row['Point Depart'] || '').trim(),
+    datechargement: (row.datechargement || row.dateChargement || row['Date de chargement'] || row.Date || '').trim(),
+    statut: (row.statut || row.Statut || row.STATUT || '').trim(),
+    email: (row.email || row.Email || row.EMAIL || '').trim(),
+    immat: (row.immat || row.Immat || row.Immatriculation || row.IMMAT || '').trim()
   }));
 }
 
@@ -1272,20 +1274,24 @@ function showCSVPreview(rows, filename) {
 
 async function importCSVData() {
   if (!importedRows.length) {
-    alert('Aucune donnée à importer.');
+    alert("Aucune donnée à importer.");
     return;
   }
 
-  const payload = importedRows.map(r => ({
-    client: r.client,
-    ref: r.ref,
-    pays: r.pays,
-    tonnes: r.tonnes,
-    transporteur: r.transporteur,
-    point_depart: r.point_depart,
-    date_chargement: r.date_chargement,
-    statut: r.statut
-  }));
+  const payload = importedRows
+    .filter(r => r.client && r.ref)
+    .map(r => ({
+      client: r.client,
+      ref: r.ref,
+      pays: r.pays || 'FR',
+      tonnes: parseFloat(r.tonnes || 0),
+      transporteur: r.transporteur || '',
+      pointdepart: r.pointdepart || '',
+      datechargement: r.datechargement || new Date().toISOString().split('T')[0],
+      statut: r.statut || 'EN ATTENTE',
+      email: r.email || '',
+      immat: r.immat || ''
+    }));
 
   const { data, error } = await supabase
     .from('commandes')
@@ -1294,13 +1300,13 @@ async function importCSVData() {
 
   if (error) {
     console.error(error);
-    alert('Erreur Supabase: ' + error.message);
+    alert("Erreur Supabase: " + error.message);
     return;
   }
 
-  alert(`Import réussi: ${data.length} lignes ajoutées.`);
+  alert("Import réussi: " + data.length + " lignes ajoutées.");
   closeImportModal();
-  if (typeof refreshData === 'function') refreshData();
+  if (typeof refreshData === "function") refreshData();
 }
 
 function closeImportModal() {
