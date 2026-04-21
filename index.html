@@ -1167,159 +1167,7 @@
   </button>
 </div>
 
-<script>
-let importedRows = [];
-
-function handleCSVFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-
-  const ext = file.name.split('.').pop().toLowerCase();
-
-  if (ext === 'csv') {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        const parsed = Papa.parse(e.target.result, {
-          header: true,
-          delimiter: ';',
-          skipEmptyLines: true,
-          transformHeader: h => h.trim()
-        });
-
-        if (parsed.errors && parsed.errors.length) {
-          throw new Error(parsed.errors[0].message);
-        }
-
-        importedRows = normalizeRows(parsed.data);
-        showCSVPreview(importedRows, file.name);
-      } catch (err) {
-        alert('Erreur import CSV: ' + err.message);
-      }
-    };
-    reader.readAsText(file, 'latin1');
-    return;
-  }
-
-  if (ext === 'xlsx' || ext === 'xls') {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const wb = XLSX.read(data, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-        importedRows = normalizeRows(json);
-        showCSVPreview(importedRows, file.name);
-      } catch (err) {
-        alert('Erreur import Excel: ' + err.message);
-      }
-    };
-    reader.readAsArrayBuffer(file);
-    return;
-  }
-
-  alert('Format non supporté. Utilise CSV, XLS ou XLSX.');
-}
-
-function normalizeRows(rows) {
-  return rows.map(row => ({
-    client: (row.client || row.Client || row.CLIENT || '').trim(),
-    ref: (row.ref || row.Ref || row.Reference || row.Référence || row['Référence'] || '').trim(),
-    pays: (row.pays || row.Pays || row.PAYS || row['Code Pays'] || row['Pays Destination'] || '').trim(),
-    tonnes: String(row.tonnes || row.Tonnes || row.TONNES || '').trim(),
-    transporteur: (row.transporteur || row.Transporteur || row.TRANSPORTEUR || '').trim(),
-    pointdepart: (row.pointdepart || row.pointDepart || row['Point de départ'] || row['Point Depart'] || '').trim(),
-    datechargement: (row.datechargement || row.dateChargement || row['Date de chargement'] || row.Date || '').trim(),
-    statut: (row.statut || row.Statut || row.STATUT || '').trim(),
-    email: (row.email || row.Email || row.EMAIL || '').trim(),
-    immat: (row.immat || row.Immat || row.Immatriculation || row.IMMAT || '').trim()
-  }));
-}
-
-function showCSVPreview(rows, filename) {
-  const preview = document.getElementById('csvPreview');
-  const content = document.getElementById('csvPreviewContent');
-  const stats = document.getElementById('csvStats');
-  const importBtn = document.getElementById('importBtn');
-
-  if (!rows || !rows.length) {
-    alert('Aucune donnée trouvée.');
-    return;
-  }
-
-  stats.textContent = `${rows.length} lignes • ${filename}`;
-  content.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="background:var(--bg)">
-          ${Object.keys(rows[0]).map(k => `<th style="padding:8px;border-bottom:1px solid var(--border);text-align:left">${k}</th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.slice(0, 5).map(r => `
-          <tr>
-            ${Object.values(r).map(v => `<td style="padding:8px;border-bottom:1px solid var(--border)">${v ?? ''}</td>`).join('')}
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-
-  preview.style.display = 'block';
-  importBtn.disabled = false;
-  importBtn.style.opacity = '1';
-}
-
-async function importCSVData() {
-  if (!importedRows.length) {
-    alert("Aucune donnée à importer.");
-    return;
-  }
-
-  const payload = importedRows
-    .filter(r => r.client && r.ref)
-    .map(r => ({
-      client: r.client,
-      ref: r.ref,
-      pays: r.pays || 'FR',
-      tonnes: parseFloat(r.tonnes || 0),
-      transporteur: r.transporteur || '',
-      pointdepart: r.pointdepart || '',
-      datechargement: r.datechargement || new Date().toISOString().split('T')[0],
-      statut: r.statut || 'EN ATTENTE',
-      email: r.email || '',
-      immat: r.immat || ''
-    }));
-
-  const { data, error } = await supabase
-    .from('commandes')
-    .insert(payload)
-    .select();
-
-  if (error) {
-    console.error(error);
-    alert("Erreur Supabase: " + error.message);
-    return;
-  }
-
-  alert("Import réussi: " + data.length + " lignes ajoutées.");
-  closeImportModal();
-  if (typeof refreshData === "function") refreshData();
-}
-
-function closeImportModal() {
-  document.getElementById('csvFileInput').value = '';
-  document.getElementById('csvPreview').style.display = 'none';
-  document.getElementById('csvPreviewContent').innerHTML = '';
-  document.getElementById('csvStats').textContent = '';
-  document.getElementById('importBtn').disabled = true;
-  document.getElementById('importBtn').style.opacity = '0.5';
-  importedRows = [];
-}
-</script>
-          </button>
+<!-- Import functions are in the main script block -->
         </div>
       </div>
     </div>
@@ -5246,161 +5094,321 @@ async function exportPDFReport() {
 
   // showImportModal and closeImportModal are defined in the second script block below
 
-  // ==================== CSV IMPORT ====================
+  // ==================== CSV/EXCEL IMPORT ====================
+  // Helper: convert Excel serial date number to YYYY-MM-DD
+  function excelDateToString(dateVal) {
+    if (dateVal === undefined || dateVal === null || dateVal === '') return '';
+    if (typeof dateVal === 'number') {
+      // Excel serial date: days since 1900-01-01 (with the 1900 leap year bug)
+      var epoch = new Date(1899, 11, 30);
+      var d = new Date(epoch.getTime() + dateVal * 86400000);
+      var yyyy = d.getFullYear();
+      var mm = String(d.getMonth() + 1).padStart(2, '0');
+      var dd = String(d.getDate()).padStart(2, '0');
+      return yyyy + '-' + mm + '-' + dd;
+    }
+    return String(dateVal).trim();
+  }
+
+  // Helper: normalize any date string to YYYY-MM-DD
+  function normalizeDate(date) {
+    if (!date || date === '0' || date.includes('RECALIB')) {
+      return new Date().toISOString().split('T')[0];
+    }
+    // DD/MM/YYYY
+    if (date.indexOf('/') >= 0 && date.indexOf('-') < 0) {
+      var p = date.split('/');
+      if (p.length === 3 && p[2].length >= 4) {
+        return p[2] + '-' + p[1].padStart(2, '0') + '-' + p[0].padStart(2, '0');
+      }
+    }
+    // DD.MM.YYYY
+    if (date.indexOf('.') >= 0 && date.indexOf('-') < 0) {
+      var p2 = date.split('.');
+      if (p2.length === 3) {
+        return p2[2] + '-' + p2[1].padStart(2, '0') + '-' + p2[0].padStart(2, '0');
+      }
+    }
+    // YYYY-MM-DD already ok
+    if (/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)) return date;
+    // Try native parse
+    var parsed = new Date(date);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // Helper: normalize statut
+  function normalizeStatut(s) {
+    if (!s) return 'EN ATTENTE';
+    s = String(s).trim();
+    if (s.toLowerCase().indexOf('charg') >= 0) return 'CHARGÉE';
+    if (s.toLowerCase().indexOf('livr') >= 0) return 'LIVREE';
+    if (s.toLowerCase().indexOf('transit') >= 0) return 'EN TRANSIT';
+    if (s.toLowerCase().indexOf('annul') >= 0) return 'ANNULEE';
+    return 'EN ATTENTE';
+  }
+
+  // Helper: show preview table and enable import button
+  function showImportPreview(data) {
+    if (data.length === 0) {
+      showToast('Aucune donnee valide trouvee dans le fichier', 'error');
+      return;
+    }
+    var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<tr style="background:linear-gradient(135deg,#6366f1,#06b6d4);color:#fff">';
+    html += '<th style="padding:8px 12px;text-align:left">Ref</th>';
+    html += '<th style="padding:8px 12px;text-align:left">Client</th>';
+    html += '<th style="padding:8px 12px;text-align:left">Pays</th>';
+    html += '<th style="padding:8px 12px;text-align:left">Dept</th>';
+    html += '<th style="padding:8px 12px;text-align:left">Tonnes</th>';
+    html += '<th style="padding:8px 12px;text-align:left">Statut</th>';
+    html += '</tr>';
+    data.slice(0, 10).forEach(function(d, i) {
+      html += '<tr style="' + (i % 2 === 0 ? '' : 'background:var(--bg)') + '">';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + (d.ref.length > 15 ? d.ref.substring(0, 15) + '...' : d.ref) + '</td>';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + (d.client.length > 15 ? d.client.substring(0, 15) + '...' : d.client) + '</td>';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + d.pays + '</td>';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + (d.departement || '-') + '</td>';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + d.tonnes + '</td>';
+      html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border)">' + d.statut + '</td>';
+      html += '</tr>';
+    });
+    html += '</table>';
+    if (data.length > 10) {
+      html += '<p style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center">... et ' + (data.length - 10) + ' autres lignes</p>';
+    }
+    html += '<p style="font-size:11px;color:var(--text-muted);margin-top:4px">Total: ' + data.length + ' commandes</p>';
+    document.getElementById('csvPreviewContent').innerHTML = html;
+    document.getElementById('csvPreview').style.display = 'block';
+    document.getElementById('csvPreview').classList.remove('hidden');
+    document.getElementById('csvStats').textContent = data.length + ' commandes a importer';
+    var btn = document.getElementById('importBtn');
+    if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+  }
+
+  // Unified import handler for both CSV and XLSX files
   function handleCSVFile(event) {
-    const file = event.target.files[0];
+    var fileInput = event.target || event;
+    var file;
+    if (fileInput.files && fileInput.files[0]) {
+      file = fileInput.files[0];
+    } else if (fileInput instanceof File) {
+      file = fileInput;
+    } else {
+      return;
+    }
     if (!file) return;
     
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const text = e.target.result;
-      const lines = text.split('\n').filter(l => l.trim());
-      
-      if (lines.length < 2) { showToast('Fichier vide', 'error'); return; }
-      
-      // Parse header
-      const headerLine = lines[0];
-      const headers = headerLine.split(';').map(h => h.toLowerCase().trim());
-      
-      // Find column indices
-      const idx = {
-        client: headers.indexOf('client'),
-        ref: headers.indexOf('ref'),
-        pays: headers.indexOf('pays'),
-        tonnes: headers.indexOf('tonnes'),
-        transporteur: headers.indexOf('transporteur'),
-        point_depart: headers.indexOf('point_depart'),
-        date_chargement: headers.indexOf('date_chargement'),
-        statut: headers.indexOf('statut'),
-        email: headers.indexOf('email'),
-        immat: headers.indexOf('immat')
+    var ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    
+    if (ext === '.xlsx' || ext === '.xls') {
+      // ===== EXCEL FILE - Use SheetJS =====
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = new Uint8Array(e.target.result);
+          var wb = XLSX.read(data, { type: 'array', cellDates: true });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          
+          if (rows.length === 0) {
+            showToast('Le fichier Excel est vide', 'error');
+            return;
+          }
+          
+          csvImportData = [];
+          var skippedEmpty = 0;
+          var skippedRecalib = 0;
+          
+          rows.forEach(function(row) {
+            // Support many column name variations
+            var client = row['Client'] || row['client'] || row['CLIENT'] || row['Nom client'] || row['nom_client'] || '';
+            var ref = row['Référence'] || row['Reference'] || row['ref'] || row['Ref'] || row['REF'] || row['Réf'] || row['N°'] || row['No'] || row['N° Commande'] || '';
+            var pays = row['Code Pays'] || row['Pays'] || row['pays'] || row['PAYS'] || row['Destination'] || row['destination'] || '';
+            var tonnesRaw = row['Tonnes'] || row['tonnes'] || row['TONNES'] || row['T'] || row['Poids'] || row['poids'] || row['Quantité'] || row['Quantite'] || 0;
+            var transporteur = row['Transporteur'] || row['transporteur'] || row['TRANSPORTEUR'] || row['Carrier'] || '';
+            var pointDepart = row['Point de départ'] || row['Point Depart'] || row['point_depart'] || row['pointDepart'] || row['Origine'] || row['origine'] || row['Départ'] || '';
+            var dateChargement = row['Date de chargement'] || row['date_chargement'] || row['dateChargement'] || row['Date'] || row['date'] || row['DATE'] || '';
+            var statut = row['Statut'] || row['statut'] || row['STATUT'] || row['Etat'] || row['etat'] || row['Status'] || '';
+            var departement = row['Département'] || row['departement'] || row['DEPARTEMENT'] || row['Dept'] || '';
+            var immat = row['Immatriculation'] || row['immat'] || row['IMMAT'] || row['Immat'] || row['Plaque'] || '';
+            var email = row['Email'] || row['email'] || row['EMAIL'] || row['Mail'] || '';
+            
+            client = String(client).trim();
+            ref = String(ref).trim();
+            
+            // Skip completely empty rows
+            if (!client && !ref) { skippedEmpty++; return; }
+            
+            // Skip RECALIB rows
+            if (ref === 'RECALIB' || client === 'RECALIB') { skippedRecalib++; return; }
+            
+            // Generate ref if missing
+            if (!ref) { ref = 'AUTO-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5); }
+            if (!client) { client = 'CLIENT INCONNU'; }
+            
+            // Clean #REF! and other Excel errors
+            transporteur = String(transporteur).trim();
+            if (!transporteur || transporteur === '#REF!' || transporteur.charAt(0) === '#') { transporteur = ''; }
+            
+            // Parse pays and departement
+            pays = String(pays).trim().toUpperCase();
+            if (pays.startsWith('FR-')) {
+              var pMatch = pays.match(/^FR-(\d{2,3})$/);
+              if (pMatch) { departement = pMatch[1]; pays = 'FR'; }
+            }
+            if (!pays) { pays = 'FR'; }
+            
+            // Convert date to YYYY-MM-DD
+            var date = '';
+            if (dateChargement instanceof Date) {
+              // cellDates: true gives us Date objects
+              var dd2 = String(dateChargement.getDate()).padStart(2, '0');
+              var mm2 = String(dateChargement.getMonth() + 1).padStart(2, '0');
+              var yyyy2 = dateChargement.getFullYear();
+              date = yyyy2 + '-' + mm2 + '-' + dd2;
+            } else if (typeof dateChargement === 'number') {
+              // Excel serial date number
+              date = excelDateToString(dateChargement);
+            } else {
+              date = normalizeDate(String(dateChargement).trim());
+            }
+            if (!date) { date = new Date().toISOString().split('T')[0]; }
+            
+            // Parse tonnes
+            var tonnes = parseFloat(String(tonnesRaw).replace(',', '.')) || 0;
+            
+            // Normalize statut
+            statut = normalizeStatut(statut);
+            
+            csvImportData.push({
+              client: client,
+              ref: ref,
+              date: date,
+              point_depart: String(pointDepart).trim(),
+              pays: pays,
+              departement: departement,
+              tonnes: tonnes,
+              email: String(email).trim(),
+              statut: statut,
+              immat: String(immat).trim(),
+              transporteur: transporteur,
+              date_chargement: date,
+              nb_emails: 0
+            });
+          });
+          
+          if (csvImportData.length === 0) {
+            showToast('Aucune donnee valide trouvee dans le fichier Excel', 'error');
+            return;
+          }
+          
+          var statsMsg = csvImportData.length + ' commandes a importer';
+          if (skippedEmpty > 0) statsMsg += ' (' + skippedEmpty + ' lignes vides ignorees)';
+          if (skippedRecalib > 0) statsMsg += ' (' + skippedRecalib + ' lignes RECALIB ignorees)';
+          
+          showImportPreview(csvImportData);
+          showToast(statsMsg);
+        } catch(ex) {
+          console.error('Erreur parsing Excel:', ex);
+          showToast('Erreur lecture Excel: ' + ex.message, 'error');
+        }
       };
+      reader.readAsArrayBuffer(file);
       
-      csvImportData = [];
-      let skippedEmpty = 0;
-      let skippedRecalib = 0;
-      
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        const values = line.split(';');
-        
-        // Get client and ref
-        let client = values[idx.client]?.trim() || '';
-        let ref = values[idx.ref]?.trim() || '';
-        
-        // Skip completely empty rows
-        if (!client && !ref) {
-          skippedEmpty++;
-          continue;
-        }
-        
-        // Skip RECALIB rows
-        if (ref === 'RECALIB' || client === 'RECALIB') {
-          skippedRecalib++;
-          continue;
-        }
-        
-        // Generate ref if missing
-        if (!ref) {
-          ref = `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-        }
-        
-        // Generate client if missing
-        if (!client) {
-          client = 'CLIENT INCONNU';
-        }
-        
-        // Get pays and parse department
-        let pays = values[idx.pays]?.trim().toUpperCase() || '';
-        let departement = '';
-        
-        // Parse FR-XX format
-        if (pays.startsWith('FR-')) {
-          const match = pays.match(/^FR-(\d{2,3})$/);
-          if (match && franceDepartements[match[1]]) {
-            departement = match[1];
-            pays = 'FR';
-          } else if (match) {
-            departement = match[1];
-            pays = 'FR';
-          }
-        }
-        
-        // Default to FR if no pays
-        if (!pays) {
-          pays = 'FR';
-        }
-        
-        // Get tonnes
-        const tonnesStr = values[idx.tonnes]?.trim().replace(',', '.') || '0';
-        const tonnes = parseFloat(tonnesStr) || 0;
-        
-        // Get statut
-        let statut = values[idx.statut]?.trim().toLowerCase() || 'attente';
-        if (statut.includes('charg')) {
-          statut = 'CHARGÉE';
-        } else {
-          statut = 'EN ATTENTE';
-        }
-        
-        // Get date from date_chargement
-        let date = values[idx.date_chargement]?.trim() || '';
-        if (date && date.includes('.')) {
-          const parts = date.split('.');
-          if (parts.length === 3) {
-            date = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-          }
-        }
-        // Handle invalid dates
-        if (!date || date.includes('RECALIB') || date === '0') {
-          date = new Date().toISOString().split('T')[0];
-        }
-        
-        // Get transporteur
-        const transporteur = values[idx.transporteur]?.trim() || '';
-        
-        // Get point_depart
-        const point_depart = values[idx.point_depart]?.trim() || '';
-        
-        csvImportData.push({
-          client,
-          ref,
-          date,
-          point_depart,
-          pays,
-          departement,
-          tonnes,
-          email: '',
-          statut,
-          immat: '',
-          transporteur,
-          date_chargement: date,
-          nb_emails: 0
-        });
-      }
-      
-      if (csvImportData.length === 0) { 
-        showToast('Aucune donnee valide trouvee', 'error'); 
-        return; 
-      }
-      
-      let statsMsg = csvImportData.length + ' commandes a importer';
-      if (skippedEmpty > 0) statsMsg += ` (${skippedEmpty} lignes vides ignorees)`;
-      if (skippedRecalib > 0) statsMsg += ` (${skippedRecalib} lignes RECALIB ignorees)`;
-      
-      document.getElementById('csvPreviewContent').innerHTML = 
-        '<table class="w-full text-xs"><thead><tr><th>Ref</th><th>Client</th><th>Pays</th><th>Dept</th><th>Tonnes</th></tr></thead><tbody>' + 
-        csvImportData.slice(0, 10).map(d => 
-          `<tr><td>${d.ref.substring(0,15)}${d.ref.length > 15 ? '...' : ''}</td><td>${d.client.substring(0,15)}${d.client.length > 15 ? '...' : ''}</td><td>${d.pays}</td><td>${d.departement || '-'}</td><td>${d.tonnes}</td></tr>`
-        ).join('') + 
-        '</tbody></table><p class="text-xs text-gray-500 mt-2">Affichage de 10 sur ' + csvImportData.length + ' lignes</p>';
-      document.getElementById('csvStats').innerHTML = statsMsg;
-      document.getElementById('csvPreview').classList.remove('hidden');
-      var btn = document.getElementById('importBtn'); btn.disabled = false; btn.style.opacity = '1';
+    } else if (ext === '.csv') {
+      // ===== CSV FILE - Parse as text =====
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var text = e.target.result;
+        parseCSV(text);
+      };
+      reader.readAsText(file);
+    } else {
+      showToast('Format non supporte. Utilisez .xlsx, .xls ou .csv', 'error');
+    }
+  }
+
+  // Parse CSV text content and populate csvImportData
+  function parseCSV(text) {
+    var lines = text.split('\n').filter(function(l) { return l.trim(); });
+    if (lines.length < 2) { showToast('Fichier vide ou invalide', 'error'); return; }
+    
+    var headers = lines[0].split(';').map(function(h) { return h.trim().replace(/"/g, '').toLowerCase(); });
+    
+    var idx = {
+      client: headers.indexOf('client'),
+      ref: headers.indexOf('ref'),
+      pays: headers.indexOf('pays'),
+      tonnes: headers.indexOf('tonnes'),
+      transporteur: headers.indexOf('transporteur'),
+      point_depart: headers.indexOf('point_depart'),
+      date_chargement: headers.indexOf('date_chargement'),
+      statut: headers.indexOf('statut'),
+      email: headers.indexOf('email'),
+      immat: headers.indexOf('immat')
     };
-    reader.readAsText(file);
+    
+    csvImportData = [];
+    var skippedEmpty = 0;
+    var skippedRecalib = 0;
+    
+    for (var i = 1; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      var values = line.split(';').map(function(c) { return c.trim().replace(/"/g, ''); });
+      
+      var client = (values[idx.client] || '').trim();
+      var ref = (values[idx.ref] || '').trim();
+      
+      if (!client && !ref) { skippedEmpty++; continue; }
+      if (ref === 'RECALIB' || client === 'RECALIB') { skippedRecalib++; continue; }
+      if (!ref) ref = 'AUTO-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+      if (!client) client = 'CLIENT INCONNU';
+      
+      var pays = (values[idx.pays] || '').trim().toUpperCase() || '';
+      var departement = '';
+      if (pays.startsWith('FR-')) {
+        var match = pays.match(/^FR-(\d{2,3})$/);
+        if (match) { departement = match[1]; pays = 'FR'; }
+      }
+      if (!pays) pays = 'FR';
+      
+      var tonnesStr = (values[idx.tonnes] || '').trim().replace(',', '.') || '0';
+      var tonnes = parseFloat(tonnesStr) || 0;
+      
+      var statutRaw = (values[idx.statut] || '').trim() || '';
+      var statut = normalizeStatut(statutRaw);
+      
+      var date = (values[idx.date_chargement] || '').trim() || '';
+      date = normalizeDate(date);
+      
+      var transporteur = (values[idx.transporteur] || '').trim() || '';
+      if (!transporteur || transporteur === '#REF!' || transporteur.charAt(0) === '#') { transporteur = ''; }
+      
+      csvImportData.push({
+        client: client, ref: ref, date: date,
+        point_depart: (values[idx.point_depart] || '').trim() || '',
+        pays: pays, departement: departement, tonnes: tonnes,
+        email: (values[idx.email] || '').trim() || '',
+        statut: statut, immat: (values[idx.immat] || '').trim() || '',
+        transporteur: transporteur,
+        date_chargement: date, nb_emails: 0
+      });
+    }
+    
+    if (csvImportData.length === 0) {
+      showToast('Aucune donnee valide trouvee dans le fichier CSV', 'error');
+      return;
+    }
+    
+    showImportPreview(csvImportData);
+    var statsMsg = csvImportData.length + ' commandes a importer';
+    if (skippedEmpty > 0) statsMsg += ' (' + skippedEmpty + ' lignes vides ignorees)';
+    if (skippedRecalib > 0) statsMsg += ' (' + skippedRecalib + ' lignes RECALIB ignorees)';
+    showToast(statsMsg);
   }
 
   async function importCSVData() {
@@ -5652,88 +5660,11 @@ function handleFileDrop(e) {
   e.preventDefault();
   var files = e.dataTransfer.files;
   if (files.length > 0) {
-    handleFile(files[0]);
+    // Use the unified handleCSVFile which supports both XLSX and CSV
+    handleCSVFile(files[0]);
   }
 }
 
-
-
-function handleFile(file) {
-  var validTypes = ['.xlsx','.xls','.csv'];
-  var ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-  if (validTypes.indexOf(ext) === -1) {
-    showToast('Format non supporté. Utilisez .xlsx, .xls ou .csv');
-    return;
-  }
-  
-  document.getElementById('csvStats').textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' Ko)';
-  
-  if (ext === '.csv') {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      parseCSV(e.target.result);
-    };
-    reader.readAsText(file);
-  } else {
-    // XLSX handling uses SheetJS
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      // Parse with SheetJS
-      try {
-        var wb = XLSX.read(e.target.result, { type: 'array' });
-        var ws = wb.Sheets[wb.SheetNames[0]];
-        var rows = XLSX.utils.sheet_to_json(ws);
-        window.csvImportData = [];
-        rows.forEach(function(row) {
-          window.csvImportData.push({
-            client: row['Client'] || row['client'] || '',
-            ref: row['Référence'] || row['ref'] || row['Ref'] || '',
-            date: row['Date'] || row['date'] || '',
-            point_depart: row['Point de départ'] || row['point_depart'] || '',
-            pays: row['Code Pays'] || row['pays'] || '',
-            departement: row['Département'] || row['departement'] || '',
-            tonnes: parseFloat(row['Tonnes'] || row['tonnes'] || 0),
-            statut: row['Statut'] || row['statut'] || 'EN ATTENTE',
-            transporteur: row['Transporteur'] || row['transporteur'] || '',
-            immat: row['Immatriculation'] || row['immat'] || '',
-            email: row['Email'] || row['email'] || ''
-          });
-        });
-        document.getElementById('csvStats').textContent = rows.length + ' lignes détectées dans le fichier Excel';
-        if (typeof parseCSVPreviewFromImport === 'function') parseCSVPreviewFromImport();
-      } catch(ex) {
-        showToast('Erreur parsing Excel: ' + ex.message, 'error');
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  }
-}
-
-function parseCSV(text) {
-  var lines = text.split('\n').filter(function(l) { return l.trim(); });
-  if (lines.length < 2) { showToast('Fichier vide ou invalide'); return; }
-  
-  var headers = lines[0].split(';').map(function(h) { return h.trim().replace(/"/g, ''); });
-  var rows = lines.slice(1, 5).map(function(l) {
-    return l.split(';').map(function(c) { return c.trim().replace(/"/g, ''); });
-  });
-  
-  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html += '<tr style="background:linear-gradient(135deg,#6366f1,#06b6d4);color:#fff">';
-  headers.forEach(function(h) { html += '<th style="padding:8px 12px;text-align:left;border-bottom:2px solid var(--border)">' + h + '</th>'; });
-  html += '</tr>';
-  rows.forEach(function(row, i) {
-    html += '<tr style="' + (i % 2 === 0 ? '' : 'background:var(--bg)') + '">';
-    row.forEach(function(c) { html += '<td style="padding:6px 12px;border-bottom:1px solid var(--border-light)">' + c + '</td>'; });
-    html += '</tr>';
-  });
-  if (lines.length > 6) html += '<tr><td colspan="' + headers.length + '" style="padding:8px;text-align:center;color:var(--text-muted);font-style:italic">... et ' + (lines.length - 2) + ' autres lignes</td></tr>';
-  html += '</table>';
-  
-  document.getElementById('csvPreviewContent').innerHTML = html;
-  document.getElementById('csvPreview').style.display = 'block';
-  window.parsedCSVData = { headers: headers, lines: lines.slice(1) };
-}
-
-// Restore original importCSVData if it was replaced
+// parseCSV is defined in the main script block above (handles CSV text parsing)
+// It populates csvImportData and shows preview via showImportPreview
 </script></body></html>
