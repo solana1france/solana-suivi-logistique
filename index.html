@@ -1427,10 +1427,15 @@ if(typeof Chart !== 'undefined') {
   function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
   // ==================== HELPERS TRANSPORTEURS ====================
+  // Termes qui ne sont pas des transporteurs (incoterms / transport géré en interne)
+  const EXCLUDED_TRANSPORTEURS = ['US', 'FCA', 'EXW', 'FAS', 'FOB', 'CFR', 'CIF', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'];
+
   function getTransporters() {
     const transporters = {};
     cmds.filter(c => c.transporteur && c.transporteur.trim()).forEach(c => {
       const t = c.transporteur.trim();
+      // Exclure les incoterms et transport interne (US, FCA, etc.)
+      if (EXCLUDED_TRANSPORTEURS.indexOf(t.toUpperCase()) >= 0) return;
       if (!transporters[t]) transporters[t] = { count: 0, tonnes: 0 };
       transporters[t].count++;
       transporters[t].tonnes += c.tonnes;
