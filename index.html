@@ -1149,23 +1149,170 @@
           <p style="font-size:11px;color:var(--text-muted);margin-top:8px">.xlsx, .xls, .csv — Max 5MB</p>
         </div>
         <input type="file" id="csvFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleCSVFile(this)">
-        
-        <!-- Preview area -->
-        <div id="csvPreview" style="display:none;margin-top:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <h4 style="font-size:14px;font-weight:700;color:var(--text-primary)">Aperçu</h4>
-            <span id="csvStats" style="font-size:12px;color:var(--text-secondary)"></span>
-          </div>
-          <div id="csvPreviewContent" style="max-height:200px;overflow-y:auto;border-radius:12px;border:1px solid var(--border)"></div>
-        </div>
-        
-        <!-- Action buttons -->
-        <div style="display:flex;gap:10px;margin-top:20px">
-          <button id="importBtn" onclick="importCSVData()" disabled style="flex:1;padding:12px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(16,185,129,0.35);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;opacity:0.5" onmouseover="if(!this.disabled)this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
-            ✅ Confirmer l'import
-          </button>
-          <button onclick="closeImportModal()" style="padding:12px 20px;background:var(--bg);border:1px solid var(--border);border-radius:14px;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer">
-            Annuler
+
+<div id="csvPreview" style="display:none;margin-top:16px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <h4 style="font-size:14px;font-weight:700;color:var(--text-primary)">Aperçu</h4>
+    <span id="csvStats" style="font-size:12px;color:var(--text-secondary)"></span>
+  </div>
+  <div id="csvPreviewContent" style="max-height:200px;overflow-y:auto;border-radius:12px;border:1px solid var(--border)"></div>
+</div>
+
+<div style="display:flex;gap:10px;margin-top:20px">
+  <button id="importBtn" onclick="importCSVData()" disabled style="flex:1;padding:12px;background:linear-gradient(135deg,#10b981,#059669);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(16,185,129,0.35);transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;opacity:0.5" onmouseover="if(!this.disabled)this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+    ✅ Confirmer l'import
+  </button>
+  <button onclick="closeImportModal()" style="padding:12px 20px;background:var(--bg);border:1px solid var(--border);border-radius:14px;color:var(--text-secondary);font-size:14px;font-weight:600;cursor:pointer">
+    Annuler
+  </button>
+</div>
+
+<script>
+let importedRows = [];
+
+function handleCSVFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const parsed = Papa.parse(e.target.result, {
+          header: true,
+          delimiter: ';',
+          skipEmptyLines: true,
+          transformHeader: h => h.trim()
+        });
+
+        if (parsed.errors && parsed.errors.length) {
+          throw new Error(parsed.errors[0].message);
+        }
+
+        importedRows = normalizeRows(parsed.data);
+        showCSVPreview(importedRows, file.name);
+      } catch (err) {
+        alert('Erreur import CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'latin1');
+    return;
+  }
+
+  if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        importedRows = normalizeRows(json);
+        showCSVPreview(importedRows, file.name);
+      } catch (err) {
+        alert('Erreur import Excel: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  alert('Format non supporté. Utilise CSV, XLS ou XLSX.');
+}
+
+function normalizeRows(rows) {
+  return rows.map(row => ({
+    client: (row.client || row.Client || '').trim(),
+    ref: (row.ref || row.Ref || '').trim(),
+    pays: (row.pays || row.Pays || '').trim(),
+    tonnes: String(row.tonnes || row.Tonnes || '').trim(),
+    transporteur: (row.transporteur || row.Transporteur || '').trim(),
+    point_depart: (row.point_depart || row.pointDepart || row['point depart'] || '').trim(),
+    date_chargement: (row.date_chargement || row.dateChargement || row['date chargement'] || '').trim(),
+    statut: (row.statut || row.Statut || '').trim()
+  }));
+}
+
+function showCSVPreview(rows, filename) {
+  const preview = document.getElementById('csvPreview');
+  const content = document.getElementById('csvPreviewContent');
+  const stats = document.getElementById('csvStats');
+  const importBtn = document.getElementById('importBtn');
+
+  if (!rows || !rows.length) {
+    alert('Aucune donnée trouvée.');
+    return;
+  }
+
+  stats.textContent = `${rows.length} lignes • ${filename}`;
+  content.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--bg)">
+          ${Object.keys(rows[0]).map(k => `<th style="padding:8px;border-bottom:1px solid var(--border);text-align:left">${k}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.slice(0, 5).map(r => `
+          <tr>
+            ${Object.values(r).map(v => `<td style="padding:8px;border-bottom:1px solid var(--border)">${v ?? ''}</td>`).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  preview.style.display = 'block';
+  importBtn.disabled = false;
+  importBtn.style.opacity = '1';
+}
+
+async function importCSVData() {
+  if (!importedRows.length) {
+    alert('Aucune donnée à importer.');
+    return;
+  }
+
+  const payload = importedRows.map(r => ({
+    client: r.client,
+    ref: r.ref,
+    pays: r.pays,
+    tonnes: r.tonnes,
+    transporteur: r.transporteur,
+    point_depart: r.point_depart,
+    date_chargement: r.date_chargement,
+    statut: r.statut
+  }));
+
+  const { data, error } = await supabase
+    .from('commandes')
+    .insert(payload)
+    .select();
+
+  if (error) {
+    console.error(error);
+    alert('Erreur Supabase: ' + error.message);
+    return;
+  }
+
+  alert(`Import réussi: ${data.length} lignes ajoutées.`);
+  closeImportModal();
+  if (typeof refreshData === 'function') refreshData();
+}
+
+function closeImportModal() {
+  document.getElementById('csvFileInput').value = '';
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('csvPreviewContent').innerHTML = '';
+  document.getElementById('csvStats').textContent = '';
+  document.getElementById('importBtn').disabled = true;
+  document.getElementById('importBtn').style.opacity = '0.5';
+  importedRows = [];
+}
+</script>
           </button>
         </div>
       </div>
